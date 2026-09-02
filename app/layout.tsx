@@ -1,14 +1,25 @@
-import './globals.css';
-import type { Metadata } from 'next';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
-  title: 'FraguaGo',
-  description: 'Gestión de gimnasios',
+  title: "FraguaGo",
+  description: "Gestión de gimnasios",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="es">
+    <html lang="es" className={cn("font-sans", inter.variable)}>
       <body>{children}</body>
     </html>
   );
