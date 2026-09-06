@@ -12,10 +12,12 @@ export default function Page() {
         { key: 'activityLevel', label: 'Nivel' },
       ]}
       fields={[
-        { name: 'fullName', label: 'Nombre completo', required: true },
+        { name: 'firstName', label: 'Nombre', required: true },
+        { name: 'lastName', label: 'Apellido', required: true },
+        { name: 'email', label: 'Correo', type: 'email', required: true },
+        { name: 'password', label: 'Contraseña (mín. 8 caracteres)', type: 'text', required: true },
+        { name: 'identificationNumber', label: 'CI / Cédula', required: true },
         { name: 'phone', label: 'Teléfono' },
-        { name: 'email', label: 'Correo', type: 'email' },
-        { name: 'idCard', label: 'CI / Cédula' },
         { name: 'address', label: 'Dirección' },
         { name: 'birthDate', label: 'Fecha de nacimiento', type: 'date' },
         { name: 'activityLevel', label: 'Nivel de actividad', type: 'select', options: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] },

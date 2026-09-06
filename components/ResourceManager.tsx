@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { Plus, Trash2, AlertCircle } from 'lucide-react';
 
 export type Field = {
   name: string;
@@ -53,77 +54,141 @@ export default function ResourceManager({
     catch (e: any) { setError(e.message); }
   }
 
+  const inputClass =
+    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
+    'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
+
   return (
-    <>
-      <div className="topbar">
-        <h1>{title}</h1>
-        <button className="btn btn-amber" onClick={() => setOpen(!open)}>
-          {open ? 'Cancelar' : `Nuevo`}
+    <div className="space-y-6 p-8">
+      {/* Header */}
+      <div className="flex items-start justify-between border-b pb-6">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900">{title}</h1>
+          {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
+        </div>
+        <button
+          onClick={() => setOpen(!open)}
+          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
+            open
+              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              : 'bg-amber-600 text-white hover:bg-amber-700'
+          }`}
+        >
+          {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
         </button>
       </div>
-      <div className="content">
-        {subtitle && <div className="page-sub">{subtitle}</div>}
-        {error && <div className="error">{error}</div>}
 
-        {open && (
-          <div className="card section">
-            <form className="form" onSubmit={create}>
-              {fields.map((f) => (
-                <div className="field" key={f.name}>
-                  <label>{f.label}{f.required && ' *'}</label>
-                  {f.type === 'checkbox' ? (
-                    <div className="checkbox-item">
-                      <input type="checkbox" checked={form[f.name] ?? false}
-                        onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })} />
-                      <label style={{ marginBottom: 0 }}>{f.label}</label>
-                    </div>
-                  ) : f.type === 'select' ? (
-                    <select value={form[f.name] ?? ''} required={f.required}
-                      onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}>
-                      <option value="">Selecciona…</option>
-                      {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  ) : f.type === 'textarea' ? (
-                    <textarea className="input" required={f.required} value={form[f.name] ?? ''}
-                      onChange={(e) => setForm({ ...form, [f.name]: e.target.value })} />
-                  ) : (
-                    <input className="input" type={f.type || 'text'} required={f.required}
-                      value={form[f.name] ?? ''}
-                      onChange={(e) => setForm({ ...form, [f.name]: e.target.value })} />
-                  )}
-                </div>
-              ))}
-              <div className="full">
-                <button className="btn btn-primary" type="submit">Guardar</button>
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Formulario de alta */}
+      {open && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
+            {fields.map((f) => (
+              <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {f.label}{f.required && <span className="text-red-500"> *</span>}
+                </label>
+                {f.type === 'checkbox' ? (
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form[f.name] ?? false}
+                      onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    {f.label}
+                  </label>
+                ) : f.type === 'select' ? (
+                  <select
+                    value={form[f.name] ?? ''}
+                    required={f.required}
+                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value="">Selecciona…</option>
+                    {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : f.type === 'textarea' ? (
+                  <textarea
+                    required={f.required}
+                    value={form[f.name] ?? ''}
+                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                    className={`${inputClass} min-h-24`}
+                  />
+                ) : (
+                  <input
+                    type={f.type || 'text'}
+                    required={f.required}
+                    value={form[f.name] ?? ''}
+                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                    className={inputClass}
+                  />
+                )}
               </div>
-            </form>
-          </div>
-        )}
+            ))}
+            <div className="md:col-span-2">
+              <button
+                type="submit"
+                className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
+              >
+                Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
-        <div className="card" style={{ padding: 0 }}>
-          {loading ? (
-            <div className="loading"><div className="spinner"></div></div>
-          ) : items.length === 0 ? (
-            <div className="empty">Aún no hay registros. Crea el primero con el botón "Nuevo".</div>
-          ) : (
-            <table className="table">
+      {/* Tabla */}
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-16 text-center text-slate-500">
+            Aún no hay registros. Crea el primero con el botón "Nuevo".
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
-                <tr>{columns.map((c) => <th key={c.key}>{c.label}</th>)}<th></th></tr>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left">
+                  {columns.map((c) => (
+                    <th key={c.key} className="px-4 py-3 font-semibold text-slate-700">{c.label}</th>
+                  ))}
+                  <th className="px-4 py-3" />
+                </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id}>
-                    {columns.map((c) => <td key={c.key}>{c.render ? c.render(row) : row[c.key]}</td>)}
-                    <td style={{ textAlign: 'right' }}>
-                      <button className="btn btn-sm btn-danger" onClick={() => remove(row.id)}>Eliminar</button>
+                  <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                    {columns.map((c) => (
+                      <td key={c.key} className="px-4 py-3 text-slate-700">
+                        {c.render ? c.render(row) : row[c.key]}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => remove(row.id)}
+                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
