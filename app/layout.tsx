@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { GlobalErrorListener } from "@/components/GlobalErrorListener";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,7 +21,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={cn("font-sans", inter.variable)}>
-      <body>{children}</body>
+      <body>
+        <GlobalErrorListener />
+        {children}
+      </body>
     </html>
   );
 }
