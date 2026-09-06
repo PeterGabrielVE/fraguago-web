@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { login } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,10 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock, Zap, CheckCircle2 } from 'lucide-react';
 import Flame from '@/components/Flame';
+
+// Bandera de entorno: muestra u oculta el registro público.
+// Definir en .env.local -> NEXT_PUBLIC_ENABLE_REGISTRATION=true
+const REGISTRATION_ENABLED = process.env.NEXT_PUBLIC_ENABLE_REGISTRATION === 'true';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -206,12 +211,21 @@ export default function LoginPage() {
               </Button>
 
               {/* Footer Text */}
-              <p className="mt-6 text-center text-xs text-slate-500">
-                ¿Primera vez?{' '}
-                <span className="text-amber-600 font-medium">
-                  Contacta al administrador
-                </span>
-              </p>
+              {REGISTRATION_ENABLED ? (
+                <p className="mt-6 text-center text-sm text-slate-600">
+                  ¿No tienes cuenta?{' '}
+                  <Link href="/register" className="font-medium text-amber-600 hover:underline">
+                    Registra tu gimnasio
+                  </Link>
+                </p>
+              ) : (
+                <p className="mt-6 text-center text-xs text-slate-500">
+                  ¿Primera vez?{' '}
+                  <span className="text-amber-600 font-medium">
+                    Contacta al administrador
+                  </span>
+                </p>
+              )}
             </div>
           </Card>
 
