@@ -1,7 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '@/lib/api';
 import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { useAsync } from '@/hooks/useAsync';
+import { AsyncBoundary } from '@/components/async-boundary';
 
 export type Field = {
   name: string;
@@ -17,23 +19,19 @@ export default function ResourceManager({
 }: {
   title: string; subtitle?: string; endpoint: string; columns: Column[]; fields: Field[];
 }) {
-  const [items, setItems] = useState<any[]>([]);
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState(''); // errores de crear/eliminar
 
-  async function load() {
-    setLoading(true);
-    try { setItems(await api.get(endpoint)); setError(''); }
-    catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
-  }
-  useEffect(() => { load(); }, [endpoint]);
+  // carga (loading / empty / error) gestionada por el hook
+  const { status, data, error, refetch } = useAsync<any[]>(
+    () => api.get(endpoint),
+    [endpoint],
+  );
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    setActionError('');
     try {
       const payload: Record<string, any> = {};
       for (const f of fields) {
@@ -44,14 +42,16 @@ export default function ResourceManager({
         payload[f.name] = v;
       }
       await api.post(endpoint, payload);
-      setForm({}); setOpen(false); load();
-    } catch (e: any) { setError(e.message); }
+      setForm({}); setOpen(false);
+      refetch();
+    } catch (e: any) { setActionError(e.message); }
   }
 
   async function remove(id: string) {
     if (!confirm('¿Eliminar este registro?')) return;
-    try { await api.del(`${endpoint}/${id}`); load(); }
-    catch (e: any) { setError(e.message); }
+    setActionError('');
+    try { await api.del(`${endpoint}/${id}`); refetch(); }
+    catch (e: any) { setActionError(e.message); }
   }
 
   const inputClass =
@@ -78,10 +78,11 @@ export default function ResourceManager({
         </button>
       </div>
 
-      {error && (
+      {/* Banner solo para errores de mutación (crear / eliminar) */}
+      {actionError && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
+          {actionError}
         </div>
       )}
 
@@ -144,50 +145,73 @@ export default function ResourceManager({
         </div>
       )}
 
-      {/* Tabla */}
+      {/* Tabla: loading / empty / error / datos vía AsyncBoundary */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="py-16 text-center text-slate-500">
-            Aún no hay registros. Crea el primero con el botón "Nuevo".
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                  {columns.map((c) => (
-                    <th key={c.key} className="px-4 py-3 font-semibold text-slate-700">{c.label}</th>
-                  ))}
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+        <AsyncBoundary
+          status={status}
+          data={data}
+          error={error}
+          onRetry={refetch}
+          loading={
+            <div className="flex items-center justify-center py-16">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+            </div>
+          }
+          empty={
+            <div className="py-16 text-center text-slate-500">
+              Aún no hay registros. Crea el primero con el botón "Nuevo".
+            </div>
+          }
+          errorFallback={
+            <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+              <p className="text-sm text-slate-600">
+                {error?.message ?? 'No se pudieron cargar los datos.'}
+              </p>
+              <button
+                onClick={refetch}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 transition"
+              >
+                Reintentar
+              </button>
+            </div>
+          }
+        >
+          {(items) => (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-left">
                     {columns.map((c) => (
-                      <td key={c.key} className="px-4 py-3 text-slate-700">
-                        {c.render ? c.render(row) : row[c.key]}
-                      </td>
+                      <th key={c.key} className="px-4 py-3 font-semibold text-slate-700">{c.label}</th>
                     ))}
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => remove(row.id)}
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Eliminar
-                      </button>
-                    </td>
+                    <th className="px-4 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {items.map((row) => (
+                    <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                      {columns.map((c) => (
+                        <td key={c.key} className="px-4 py-3 text-slate-700">
+                          {c.render ? c.render(row) : row[c.key]}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => remove(row.id)}
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </AsyncBoundary>
       </div>
     </div>
   );
