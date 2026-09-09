@@ -25,10 +25,11 @@ export default function ResourceManager({
 
   // carga (loading / empty / error) gestionada por el hook
   const { status, data, error, refetch } = useAsync<any[]>(
-    () => api.get(endpoint),
+    () => api.get(endpoint).then((res) =>
+      Array.isArray(res) ? res : (res?.data ?? [])
+    ),
     [endpoint],
   );
-
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setActionError('');
@@ -68,11 +69,10 @@ export default function ResourceManager({
         </div>
         <button
           onClick={() => setOpen(!open)}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
-            open
-              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              : 'bg-amber-600 text-white hover:bg-amber-700'
-          }`}
+          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
+            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            : 'bg-amber-600 text-white hover:bg-amber-700'
+            }`}
         >
           {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
         </button>
