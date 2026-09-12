@@ -207,6 +207,7 @@ export default function LoginPage() {
                 type="button"
                 variant="outline"
                 className="w-full border-slate-200 hover:bg-slate-50"
+                disabled={loading}
                 onClick={() => {
                   setEmail('admin@fraguago.com');
                   setPassword('demo123');
@@ -244,6 +245,18 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      {loading && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-3 rounded-xl bg-white px-5 py-4 text-sm font-semibold text-slate-800 shadow-2xl">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-200 border-t-amber-600" />
+            Verificando tus credenciales...
+          </div>
+        </div>
+      )}
     </div>
   );
 }
