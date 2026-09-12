@@ -1,3 +1,37 @@
-node_modules
-.next
-.env.local
+# ---- dependencias ----
+/node_modules
+.pnp
+.pnp.*
+
+# ---- builds de Next.js ----
+/.next/
+/out/
+/build
+
+# ---- testing ----
+/coverage
+
+# ---- variables de entorno (locales) ----
+# Se ignora cualquier .env*.local, pero .env.local.example SÍ se sube como plantilla
+.env*.local
+
+# ---- TypeScript ----
+*.tsbuildinfo
+next-env.d.ts
+
+# ---- logs de depuración ----
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Vercel ----
+.vercel
+
+# ---- sistema / editor ----
+.DS_Store
+*.pem
+
+# ---- Claude Code ----
+.claude/settings.local.json
+.claude/agent-memory-local/
