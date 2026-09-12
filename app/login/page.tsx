@@ -168,6 +168,11 @@ export default function LoginPage() {
                       className="pl-10 border-slate-200 focus:border-amber-500 focus:ring-amber-500"
                     />
                   </div>
+                  <div className="text-right">
+                    <Link href="/forgot-password" className="text-xs font-medium text-amber-600 hover:underline">
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Submit Button */}
