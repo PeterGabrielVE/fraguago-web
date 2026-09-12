@@ -97,10 +97,12 @@ export function getRoleRedirect(data?: LoginResponse): string {
   }
 }
 
-export function logout() {
-  if (typeof window !== 'undefined') {
+export async function logout() {
+  try {
+    await api.post('/auth/logout', {});
+  } finally {
     clearSession();
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') window.location.href = '/login';
   }
 }
 

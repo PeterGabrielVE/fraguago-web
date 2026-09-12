@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Sidebar,
@@ -29,6 +30,7 @@ import {
   User,
   Calendar,
   LogOut,
+  Loader2,
   Zap,
 } from 'lucide-react';
 import Flame from './Flame';
@@ -85,6 +87,17 @@ const NAV = [
 
 export default function SidebarNav() {
   const path = usePathname();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -143,12 +156,13 @@ export default function SidebarNav() {
       {/* Footer */}
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <Button
-          onClick={logout}
+          onClick={handleLogout}
+          disabled={loggingOut}
           variant="outline"
           className="w-full justify-start text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Cerrar sesión
+          {loggingOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+          {loggingOut ? 'Saliendo...' : 'Cerrar sesión'}
         </Button>
       </SidebarFooter>
     </Sidebar>
