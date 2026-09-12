@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { login } from '@/lib/auth';
+import { getRoleRedirect, login } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -57,8 +57,8 @@ export default function RegisterGymPage() {
       // Registro correcto: iniciamos sesión con las credenciales del propietario
       // reutilizando el mismo flujo de auth que el login.
       try {
-        await login(ownerEmail, ownerPassword);
-        router.replace('/dashboard');
+        const session = await login(ownerEmail, ownerPassword);
+        router.replace(getRoleRedirect(session));
       } catch {
         // Si el auto-login falla, mandamos al login manual.
         router.replace('/login');

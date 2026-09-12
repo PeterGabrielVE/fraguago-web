@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { login } from '@/lib/auth';
+import { getRoleRedirect, login } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -26,8 +26,8 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await login(email, password);
-      router.replace('/dashboard');
+      const session = await login(email, password);
+      router.replace(getRoleRedirect(session));
     } catch (e: any) {
       setError(e.message || 'No se pudo iniciar sesión');
     } finally {

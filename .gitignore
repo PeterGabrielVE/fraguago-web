@@ -5,6 +5,7 @@
 
 # ---- builds de Next.js ----
 /.next/
+/.next-dev/
 /out/
 /build
 
