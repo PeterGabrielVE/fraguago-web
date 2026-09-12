@@ -82,6 +82,13 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
     throw new Error('Sesión expirada');
   }
 
+  if (res.status === 403) {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/403') {
+      window.location.href = '/403';
+    }
+    throw new Error('No tienes permisos para realizar esta acción');
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }));
 
