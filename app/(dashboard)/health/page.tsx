@@ -13,7 +13,7 @@ export default function HealthPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/members')
+    api.list('/members')
       .then(setMembers)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -23,8 +23,8 @@ export default function HealthPage() {
     setError('');
     if (!memberId) { setHealth(null); setForm({}); setOpen(false); return; }
     try {
-      const h = await api.get(`/health-profiles?memberId=${memberId}`);
-      const data = Array.isArray(h) ? h[0] : h;
+      const profiles = await api.list(`/health-profiles?memberId=${memberId}`);
+      const data = profiles[0];
       setHealth(data || null);
       setForm(data ? { ...data } : {});
     } catch (e: any) {

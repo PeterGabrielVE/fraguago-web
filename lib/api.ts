@@ -62,6 +62,10 @@ async function req(path: string, opts: RequestInit = {}) {
 
 export const api = {
   get: (p: string) => req(p),
+  list: async (p: string) => {
+    const response = await req(p);
+    return Array.isArray(response) ? response : (response?.data ?? []);
+  },
   post: (p: string, body: any) => req(p, { method: 'POST', body: JSON.stringify(body) }),
   put: (p: string, body: any) => req(p, { method: 'PUT', body: JSON.stringify(body) }),
   patch: (p: string, body: any) => req(p, { method: 'PATCH', body: JSON.stringify(body) }),

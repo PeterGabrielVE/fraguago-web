@@ -10,7 +10,7 @@ export default function FinancesPage() {
   const [error, setError] = useState('');
 
   async function load() {
-    setItems(await api.get('/transactions'));
+    setItems(await api.list('/transactions'));
     try { setSummary(await api.get('/transactions/summary')); } catch { }
   }
   useEffect(() => { load().catch((e) => setError(e.message)); }, []);

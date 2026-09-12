@@ -10,9 +10,9 @@ export default function AttendancePage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  async function loadToday() { setToday(await api.get('/attendance/today')); }
+  async function loadToday() { setToday(await api.list('/attendance/today')); }
   useEffect(() => {
-    api.get('/members').then(setMembers).catch((e) => setError(e.message));
+    api.list('/members').then(setMembers).catch((e) => setError(e.message));
     loadToday().catch((e) => setError(e.message));
   }, []);
 
