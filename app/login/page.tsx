@@ -27,7 +27,11 @@ export default function LoginPage() {
     setError('');
     try {
       const session = await login(email, password);
-      router.replace(getRoleRedirect(session));
+      const requestedPath = new URLSearchParams(window.location.search).get('next');
+      const destination = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
+        ? requestedPath
+        : getRoleRedirect(session);
+      router.replace(destination);
     } catch (e: any) {
       setError(e.message || 'No se pudo iniciar sesión');
     } finally {

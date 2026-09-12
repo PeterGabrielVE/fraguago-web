@@ -2,18 +2,51 @@ import { reportError } from '@/lib/errorReporter';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+type TokenResponse = {
+  accessToken?: string;
+  access_token?: string;
+  role?: string;
+  user?: { role?: string };
+};
+
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('fg_token');
 }
 
-async function req(path: string, opts: RequestInit = {}) {
+async function refreshAccessToken(): Promise<string | null> {
+  try {
+    const response = await fetch(`${BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json() as TokenResponse;
+    const accessToken = data.accessToken ?? data.access_token;
+    if (!accessToken) return null;
+
+    localStorage.setItem('fg_token', accessToken);
+    localStorage.setItem('fg_session', JSON.stringify({
+      accessToken,
+      role: data.user?.role ?? data.role,
+    }));
+    return accessToken;
+  } catch {
+    return null;
+  }
+}
+
+async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
   const token = getToken();
 
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       ...opts,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -32,9 +65,18 @@ async function req(path: string, opts: RequestInit = {}) {
   }
 
   if (res.status === 401) {
-    // esperado: sesión expirada, no se reporta
+    if (canRefresh && token && typeof window !== 'undefined') {
+      const refreshedToken = await refreshAccessToken();
+      if (refreshedToken) {
+        return req(path, opts, false);
+      }
+    }
+
+    // El refresh falló o la sesión ya no es recuperable.
     if (typeof window !== 'undefined') {
       localStorage.removeItem('fg_token');
+      localStorage.removeItem('fg_session');
+      document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
       window.location.href = '/login';
     }
     throw new Error('Sesión expirada');

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import SidebarNav from '@/components/Sidebar';
-import { getToken } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Bell, Search } from 'lucide-react';
 
@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
+    if (!getSession()) {
       router.replace('/login');
       return;
     }
