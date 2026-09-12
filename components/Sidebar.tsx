@@ -87,29 +87,29 @@ export default function SidebarNav() {
   const path = usePathname();
 
   return (
-    <Sidebar className="border-r border-slate-200 bg-white">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       {/* Header */}
-      <div className="border-b border-slate-200 p-4">
+      <div className="border-b border-sidebar-border p-5">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/25">
             <Flame size={10} color="#fff" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">
-              Fragua<span className="text-amber-600">Go</span>
+            <h1 className="text-lg font-bold text-white">
+              Fragua<span className="text-primary">Go</span>
             </h1>
-            <p className="text-xs text-slate-500">v0.1.0</p>
+            <p className="text-xs text-slate-300">v0.1.0</p>
           </div>
         </Link>
       </div>
 
       {/* Content */}
-      <SidebarContent className="px-0">
+      <SidebarContent className="fraguago-scrollbar px-0">
         {NAV.map((group) => {
           const Icon = group.items[0]?.icon;
           return (
             <SidebarGroup key={group.group}>
-              <SidebarGroupLabel className="text-xs font-semibold uppercase text-slate-500 px-4">
+              <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 {group.group}
               </SidebarGroupLabel>
               <SidebarMenu className="px-2">
@@ -119,17 +119,17 @@ export default function SidebarNav() {
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
-                        asChild
-                        className={`rounded-lg transition-all ${
+                        render={<Link href={item.href} />}
+                          className={`rounded-lg transition-all ${
                           isActive
-                            ? 'bg-amber-100 text-amber-900 font-medium'
-                            : 'hover:bg-slate-100 text-slate-700'
+                            ? 'bg-primary font-semibold text-primary-foreground shadow-sm shadow-primary/20'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
                         }`}
                       >
-                        <Link href={item.href} className="flex items-center gap-2">
+                        <>
                           <ItemIcon className="h-4 w-4" />
                           <span>{item.label}</span>
-                        </Link>
+                        </>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -141,11 +141,11 @@ export default function SidebarNav() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="border-t border-slate-200 p-4">
+      <SidebarFooter className="border-t border-sidebar-border p-4">
         <Button
           onClick={logout}
           variant="outline"
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="w-full justify-start text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Cerrar sesión
