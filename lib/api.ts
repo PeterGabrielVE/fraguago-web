@@ -9,6 +9,13 @@ type TokenResponse = {
   user?: { role?: string };
 };
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('fg_token');
@@ -101,7 +108,7 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       });
     }
 
-    throw new Error(body.message || 'Fallo en la solicitud');
+    throw new ApiError(body.message || 'Fallo en la solicitud', res.status);
   }
 
   if (res.status === 204) return null;

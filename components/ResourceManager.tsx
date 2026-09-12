@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Edit3,
   MoreVertical,
   Plus,
   Search,
@@ -21,16 +22,25 @@ export type Field = {
   type?: 'text' | 'number' | 'date' | 'select' | 'email' | 'textarea' | 'checkbox';
   options?: string[];
   required?: boolean;
+  requiredOnEdit?: boolean;
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
 
 export default function ResourceManager({
-  title, subtitle, endpoint, columns, fields,
+  title, subtitle, endpoint, columns, fields, getEditValues, renderDetails,
 }: {
-  title: string; subtitle?: string; endpoint: string; columns: Column[]; fields: Field[];
+  title: string;
+  subtitle?: string;
+  endpoint: string;
+  columns: Column[];
+  fields: Field[];
+  getEditValues?: (row: Record<string, any>) => Record<string, any>;
+  renderDetails?: (row: Record<string, any>, onClose: () => void) => React.ReactNode;
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [detailsRow, setDetailsRow] = useState<Record<string, any> | null>(null);
   const [actionError, setActionError] = useState(''); // errores de crear/eliminar
   const [query, setQuery] = useState('');
   const [pageSize, setPageSize] = useState(10);
@@ -57,10 +67,36 @@ export default function ResourceManager({
         if (f.type === 'checkbox' && v === false) continue;
         payload[f.name] = v;
       }
-      await api.post(endpoint, payload);
-      setForm({}); setOpen(false);
+      if (editingId) {
+        await api.put(`${endpoint}/${editingId}`, payload);
+      } else {
+        await api.post(endpoint, payload);
+      }
+      setForm({}); setOpen(false); setEditingId(null);
       refetch();
     } catch (e: any) { setActionError(e.message); }
+  }
+
+  function startEdit(row: Record<string, any>) {
+    setForm(getEditValues ? getEditValues(row) : row);
+    setEditingId(String(row.id));
+    setOpen(true);
+    setActionError('');
+    setMenuId(null);
+  }
+
+  function cancelForm() {
+    setForm({});
+    setOpen(false);
+    setEditingId(null);
+  }
+
+  if (detailsRow && renderDetails) {
+    return (
+      <div className="min-h-full space-y-6 p-8">
+        {renderDetails(detailsRow, () => setDetailsRow(null))}
+      </div>
+    );
   }
 
   async function remove(id: string) {
@@ -83,7 +119,7 @@ export default function ResourceManager({
           {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
         </div>
         <button
-          onClick={() => setOpen(!open)}
+          onClick={() => (open ? cancelForm() : setOpen(true))}
           className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
             ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             : 'bg-amber-600 text-white hover:bg-amber-700'
@@ -123,7 +159,7 @@ export default function ResourceManager({
                 ) : f.type === 'select' ? (
                   <select
                     value={form[f.name] ?? ''}
-                    required={f.required}
+                    required={editingId ? f.requiredOnEdit ?? false : f.required}
                     onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                     className={inputClass}
                   >
@@ -132,7 +168,7 @@ export default function ResourceManager({
                   </select>
                 ) : f.type === 'textarea' ? (
                   <textarea
-                    required={f.required}
+                    required={editingId ? f.requiredOnEdit ?? false : f.required}
                     value={form[f.name] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                     className={`${inputClass} min-h-24`}
@@ -140,7 +176,7 @@ export default function ResourceManager({
                 ) : (
                   <input
                     type={f.type || 'text'}
-                    required={f.required}
+                    required={editingId ? f.requiredOnEdit ?? false : f.required}
                     value={form[f.name] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                     className={inputClass}
@@ -153,7 +189,7 @@ export default function ResourceManager({
                 type="submit"
                 className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
               >
-                Guardar
+                {editingId ? 'Actualizar' : 'Guardar'}
               </button>
             </div>
           </form>
@@ -206,12 +242,15 @@ export default function ResourceManager({
               onPageChange={setPage}
               onMenuChange={setMenuId}
               onSelectionChange={setSelectedIds}
+              onEdit={startEdit}
+              onDetails={renderDetails ? setDetailsRow : undefined}
               onDelete={remove}
               onExport={() => exportCsv(items, columns, title)}
             />
           )}
         </AsyncBoundary>
       </div>
+      {detailsRow && renderDetails?.(detailsRow, () => setDetailsRow(null))}
     </div>
   );
 }
@@ -229,6 +268,8 @@ function ResourceTable({
   onPageChange,
   onMenuChange,
   onSelectionChange,
+  onEdit,
+  onDetails,
   onDelete,
   onExport,
 }: {
@@ -244,6 +285,8 @@ function ResourceTable({
   onPageChange: (value: number) => void;
   onMenuChange: (value: string | null) => void;
   onSelectionChange: (value: string[]) => void;
+  onEdit: (row: Record<string, any>) => void;
+  onDetails?: (row: Record<string, any>) => void;
   onDelete: (id: string) => void;
   onExport: () => void;
 }) {
@@ -332,6 +375,10 @@ function ResourceTable({
                     </button>
                     {menuId === id && (
                       <div className="absolute right-4 top-12 z-10 w-32 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl">
+                        {onDetails && <button type="button" onClick={() => { onMenuChange(null); onDetails(row); }} className="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">Ver detalles</button>}
+                        <button type="button" onClick={() => { onMenuChange(null); onEdit(row); }} className="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                          <Edit3 className="mr-2 inline h-3.5 w-3.5" />Editar
+                        </button>
                         <button type="button" onClick={() => { onMenuChange(null); onDelete(id); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
                           <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
                         </button>
