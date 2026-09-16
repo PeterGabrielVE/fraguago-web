@@ -10,6 +10,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -40,6 +41,11 @@ export type Field = {
   requiredOnEdit?: boolean;
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
+export type StatusConfig = {
+  getStatus: (row: Record<string, any>) => string;
+  render?: (status: string, row: Record<string, any>) => React.ReactNode;
+  update: (id: string, status: 'ACTIVE' | 'SUSPENDED') => Promise<void>;
+};
 export type CreateFormRendererProps = {
   form: Record<string, any>;
   setForm: React.Dispatch<React.SetStateAction<Record<string, any>>>;
@@ -50,7 +56,7 @@ export type CreateFormRendererProps = {
 
 export default function ResourceManager({
   title, subtitle, endpoint, columns, fields, getEditValues, renderDetails,
-  renderCreateForm, onCreate, hideListWhenCreating = false,
+  renderCreateForm, onCreate, hideListWhenCreating = false, statusConfig,
 }: {
   title: string;
   subtitle?: string;
@@ -62,6 +68,7 @@ export default function ResourceManager({
   renderCreateForm?: (props: CreateFormRendererProps) => React.ReactNode;
   onCreate?: (form: Record<string, any>) => Promise<void>;
   hideListWhenCreating?: boolean;
+  statusConfig?: StatusConfig;
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -75,6 +82,8 @@ export default function ResourceManager({
   const [menuId, setMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [statusTarget, setStatusTarget] = useState<{ id: string; label: string; nextStatus: 'ACTIVE' | 'SUSPENDED' } | null>(null);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
 
   // carga (loading / empty / error) gestionada por el hook
   const { status, data, error, refetch } = useAsync<any[]>(
@@ -138,6 +147,19 @@ export default function ResourceManager({
     } catch (e: any) {
       setActionError(e.message);
       setDeleteTarget(null);
+    }
+  }
+
+  async function updateStatus() {
+    if (!statusTarget || !statusConfig) return;
+    setActionError('');
+    try {
+      await statusConfig.update(statusTarget.id, statusTarget.nextStatus);
+      setStatusOverrides((current) => ({ ...current, [statusTarget.id]: statusTarget.nextStatus }));
+      setStatusTarget(null);
+    } catch (e: any) {
+      setActionError(e.message);
+      setStatusTarget(null);
     }
   }
 
@@ -214,6 +236,23 @@ export default function ResourceManager({
               onClick={() => deleteTarget && remove(deleteTarget.id)}
             >
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={Boolean(statusTarget)} onOpenChange={(open) => !open && setStatusTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{statusTarget?.nextStatus === 'SUSPENDED' ? 'Suspender socio' : 'Reactivar socio'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de {statusTarget?.nextStatus === 'SUSPENDED' ? 'suspender' : 'reactivar'} a <span className="font-medium text-foreground">{statusTarget?.label}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={updateStatus}>
+              {statusTarget?.nextStatus === 'SUSPENDED' ? 'Suspender' : 'Reactivar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -323,7 +362,7 @@ export default function ResourceManager({
         >
           {(items) => (
             <ResourceTable
-              items={items}
+              items={items.map((item) => statusOverrides[String(item.id)] ? { ...item, status: statusOverrides[String(item.id)], statusOverride: true } : item)}
               columns={columns}
               query={query}
               page={page}
@@ -344,6 +383,15 @@ export default function ResourceManager({
               onDetails={renderDetails ? setDetailsRow : undefined}
               onDeleteRequest={requestDelete}
               onExport={() => exportCsv(items, columns, title)}
+              statusConfig={statusConfig}
+              onStatusRequest={(row, nextStatus) => {
+                const firstColumn = columns[0];
+                const rawValue = firstColumn ? (firstColumn.render ? firstColumn.render(row) : row[firstColumn.key]) : row.id;
+                const label = resolveCellText(rawValue) || String(row.id ?? 'este socio');
+                setStatusTarget({ id: String(row.id), label, nextStatus });
+                setMenuId(null);
+                setMenuAnchor(null);
+              }}
             />
           )}
         </AsyncBoundary>
@@ -372,6 +420,8 @@ function ResourceTable({
   onDetails,
   onDeleteRequest,
   onExport,
+  statusConfig,
+  onStatusRequest,
 }: {
   items: any[];
   columns: Column[];
@@ -391,6 +441,8 @@ function ResourceTable({
   onDetails?: (row: Record<string, any>) => void;
   onDeleteRequest: (row: Record<string, any>) => void;
   onExport: () => void;
+  statusConfig?: StatusConfig;
+  onStatusRequest?: (row: Record<string, any>, nextStatus: 'ACTIVE' | 'SUSPENDED') => void;
 }) {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [openFilter, setOpenFilter] = useState<string | null>(null);
@@ -533,6 +585,7 @@ function ResourceTable({
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label="Seleccionar registros visibles" className="h-4 w-4 rounded border-slate-300 accent-amber-600" />
               </th>
               {columns.map((column) => <th key={column.key} className="px-4 py-4 text-xs font-semibold">{column.label}</th>)}
+              {statusConfig && <th className="px-4 py-4 text-xs font-semibold">Estado</th>}
               <th className="w-20 px-4 py-4 text-right text-xs font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -572,6 +625,10 @@ function ResourceTable({
                       )}
                     </td>
                   ))}
+                  {statusConfig && (() => {
+                    const status = statusConfig.getStatus(row);
+                    return <td className="px-4 py-4">{statusConfig.render ? statusConfig.render(status, row) : status}</td>;
+                  })()}
                   <td className="relative px-4 py-4 text-right" onClick={(event) => event.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -611,6 +668,16 @@ function ResourceTable({
                         <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
                           <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
                         </button>
+                        {statusConfig && onStatusRequest && ['ACTIVE', 'SUSPENDED'].includes(statusConfig.getStatus(row)) && (
+                          <button
+                            type="button"
+                            onClick={() => onStatusRequest(row, statusConfig.getStatus(row) === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')}
+                            className="w-full px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <RefreshCw className="mr-2 inline h-3.5 w-3.5" />
+                            {statusConfig.getStatus(row) === 'ACTIVE' ? 'Suspender' : 'Reactivar'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>

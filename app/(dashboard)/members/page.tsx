@@ -21,6 +21,42 @@ const preferredTimeOptions = [
   { value: 'VARIADO', label: 'Variado' },
 ];
 
+function getMemberStatus(member: Record<string, any>) {
+  const status = String(member.status ?? '').toUpperCase();
+  if (member.statusOverride) return status;
+  if (status === 'SUSPENDED') return 'SUSPENDED';
+  if (status === 'INACTIVE') return 'INACTIVE';
+  if (status === 'EXPIRED') return 'EXPIRED';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const hasExpiredMembership = (member.memberships ?? []).some((membership: Record<string, any>) => {
+    if (!membership.endDate) return false;
+    const endDate = new Date(membership.endDate);
+    endDate.setHours(0, 0, 0, 0);
+    return endDate < today;
+  });
+
+  return hasExpiredMembership ? 'EXPIRED' : 'ACTIVE';
+}
+
+function statusBadge(status: string) {
+  const labels: Record<string, string> = {
+    ACTIVE: 'Activo',
+    SUSPENDED: 'Suspendido',
+    INACTIVE: 'Inactivo',
+    EXPIRED: 'Vencido',
+  };
+  const colors: Record<string, string> = {
+    ACTIVE: 'bg-emerald-100 text-emerald-700',
+    SUSPENDED: 'bg-amber-100 text-amber-800',
+    INACTIVE: 'bg-slate-100 text-slate-600',
+    EXPIRED: 'bg-red-100 text-red-700',
+  };
+
+  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${colors[status] ?? colors.INACTIVE}`}>{labels[status] ?? status}</span>;
+}
+
 export default function Page() {
   async function createMember(form: Record<string, any>) {
     const memberResponse = await api.post('/members', {
@@ -121,6 +157,11 @@ export default function Page() {
       onCreate={createMember}
       renderCreateForm={(props) => <MemberCreateForm {...props} />}
       hideListWhenCreating
+      statusConfig={{
+        getStatus: getMemberStatus,
+        render: (status) => statusBadge(status),
+        update: (id, status) => api.patch(`/members/${id}/status`, { status }),
+      }}
       fields={[
         { name: 'firstName', label: 'Nombre', required: true },
         { name: 'lastName', label: 'Apellido', required: true },
