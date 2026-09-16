@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { Children, isValidElement, useState } from 'react';
 import { api } from '@/lib/api';
 import {
   AlertCircle,
@@ -7,20 +7,33 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Edit3,
   MoreVertical,
+  Pencil,
   Plus,
   Search,
   Trash2,
 } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
+import PhoneField from '@/components/PhoneField';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+export type SelectOption = string | { value: string; label: string };
 
 export type Field = {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'select' | 'email' | 'textarea' | 'checkbox';
-  options?: string[];
+  type?: 'text' | 'number' | 'date' | 'select' | 'email' | 'textarea' | 'checkbox' | 'phone';
+  options?: SelectOption[];
   required?: boolean;
   requiredOnEdit?: boolean;
 };
@@ -47,6 +60,8 @@ export default function ResourceManager({
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
 
   // carga (loading / empty / error) gestionada por el hook
   const { status, data, error, refetch } = useAsync<any[]>(
@@ -68,7 +83,7 @@ export default function ResourceManager({
         payload[f.name] = v;
       }
       if (editingId) {
-        await api.put(`${endpoint}/${editingId}`, payload);
+        await api.patch(`${endpoint}/${editingId}`, payload);
       } else {
         await api.post(endpoint, payload);
       }
@@ -100,10 +115,42 @@ export default function ResourceManager({
   }
 
   async function remove(id: string) {
-    if (!confirm('¿Eliminar este registro?')) return;
     setActionError('');
-    try { await api.del(`${endpoint}/${id}`); refetch(); }
-    catch (e: any) { setActionError(e.message); }
+    try {
+      await api.del(`${endpoint}/${id}`);
+      setDeleteTarget(null);
+      refetch();
+    } catch (e: any) {
+      setActionError(e.message);
+      setDeleteTarget(null);
+    }
+  }
+
+  function resolveCellText(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) return value.map((item) => resolveCellText(item)).filter(Boolean).join(' ');
+    if (isValidElement(value)) {
+      const props = value.props as { children?: React.ReactNode };
+      const children = Children.toArray(props.children ?? []);
+      return children.map((child) => resolveCellText(child)).filter(Boolean).join(' ');
+    }
+    if (typeof value === 'object') {
+      if ('label' in value && typeof (value as any).label === 'string') return (value as any).label;
+      if ('name' in value && typeof (value as any).name === 'string') return (value as any).name;
+      if ('value' in value && typeof (value as any).value === 'string') return (value as any).value;
+      return '';
+    }
+    return String(value);
+  }
+
+  function requestDelete(row: Record<string, any>) {
+    const firstColumn = columns[0];
+    const rawValue = firstColumn ? (firstColumn.render ? firstColumn.render(row) : row[firstColumn.key]) : row.id;
+    const label = resolveCellText(rawValue) || String(row.id ?? 'este registro');
+    setDeleteTarget({ id: String(row.id), label });
+    setMenuId(null);
+    setMenuAnchor(null);
   }
 
   const inputClass =
@@ -137,6 +184,26 @@ export default function ResourceManager({
         </div>
       )}
 
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar registro</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Seguro que deseas eliminar <span className="font-medium text-foreground">{deleteTarget?.label}</span>? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => deleteTarget && remove(deleteTarget.id)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Formulario de alta */}
       {open && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -156,6 +223,12 @@ export default function ResourceManager({
                     />
                     {f.label}
                   </label>
+                ) : f.type === 'phone' ? (
+                  <PhoneField
+                    value={form[f.name] ?? ''}
+                    required={editingId ? f.requiredOnEdit ?? false : f.required}
+                    onChange={(value) => setForm({ ...form, [f.name]: value })}
+                  />
                 ) : f.type === 'select' ? (
                   <select
                     value={form[f.name] ?? ''}
@@ -164,7 +237,11 @@ export default function ResourceManager({
                     className={inputClass}
                   >
                     <option value="">Selecciona…</option>
-                    {f.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+                    {f.options?.map((o) => {
+                      const value = typeof o === 'string' ? o : o.value;
+                      const label = typeof o === 'string' ? o : o.label;
+                      return <option key={value} value={value}>{label}</option>;
+                    })}
                   </select>
                 ) : f.type === 'textarea' ? (
                   <textarea
@@ -197,7 +274,7 @@ export default function ResourceManager({
       )}
 
       {/* Tabla: loading / empty / error / datos vía AsyncBoundary */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
         <AsyncBoundary
           status={status}
           data={data}
@@ -237,14 +314,19 @@ export default function ResourceManager({
               pageSize={pageSize}
               selectedIds={selectedIds}
               menuId={menuId}
+              menuAnchor={menuAnchor}
               onQueryChange={(value) => { setQuery(value); setPage(1); }}
               onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
               onPageChange={setPage}
-              onMenuChange={setMenuId}
+              onMenuChange={(value) => {
+                setMenuId(value);
+                if (!value) setMenuAnchor(null);
+              }}
+              setMenuAnchor={setMenuAnchor}
               onSelectionChange={setSelectedIds}
               onEdit={startEdit}
               onDetails={renderDetails ? setDetailsRow : undefined}
-              onDelete={remove}
+              onDeleteRequest={requestDelete}
               onExport={() => exportCsv(items, columns, title)}
             />
           )}
@@ -263,14 +345,16 @@ function ResourceTable({
   pageSize,
   selectedIds,
   menuId,
+  menuAnchor,
   onQueryChange,
   onPageSizeChange,
   onPageChange,
   onMenuChange,
+  setMenuAnchor,
   onSelectionChange,
   onEdit,
   onDetails,
-  onDelete,
+  onDeleteRequest,
   onExport,
 }: {
   items: any[];
@@ -280,14 +364,16 @@ function ResourceTable({
   pageSize: number;
   selectedIds: string[];
   menuId: string | null;
+  menuAnchor: { x: number; y: number } | null;
   onQueryChange: (value: string) => void;
   onPageSizeChange: (value: number) => void;
   onPageChange: (value: number) => void;
   onMenuChange: (value: string | null) => void;
+  setMenuAnchor: (anchor: { x: number; y: number } | null) => void;
   onSelectionChange: (value: string[]) => void;
   onEdit: (row: Record<string, any>) => void;
   onDetails?: (row: Record<string, any>) => void;
-  onDelete: (id: string) => void;
+  onDeleteRequest: (row: Record<string, any>) => void;
   onExport: () => void;
 }) {
   const normalizedQuery = query.trim().toLowerCase();
@@ -349,7 +435,7 @@ function ResourceTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-visible">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left uppercase tracking-wide text-slate-500">
@@ -363,23 +449,76 @@ function ResourceTable({
           <tbody>
             {visibleItems.map((row) => {
               const id = String(row.id);
+
               return (
-                <tr key={id} className="border-b border-slate-100 last:border-0 hover:bg-amber-50/30">
-                  <td className="px-5 py-4">
+                <tr
+                  key={id}
+                  onClick={() => onDetails?.(row)}
+                  className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-amber-50/30"
+                >
+                  <td className="px-5 py-4" onClick={(event) => event.stopPropagation()}>
                     <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelection(id)} aria-label={`Seleccionar registro ${id}`} className="h-4 w-4 rounded border-slate-300 accent-amber-600" />
                   </td>
-                  {columns.map((column) => <td key={column.key} className="px-4 py-4 text-slate-700">{column.render ? column.render(row) : String(row[column.key] ?? '—')}</td>)}
-                  <td className="relative px-4 py-4 text-right">
-                    <button type="button" onClick={() => onMenuChange(menuId === id ? null : id)} aria-label={`Acciones para ${id}`} className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                    {menuId === id && (
-                      <div className="absolute right-4 top-12 z-10 w-32 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl">
-                        {onDetails && <button type="button" onClick={() => { onMenuChange(null); onDetails(row); }} className="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">Ver detalles</button>}
-                        <button type="button" onClick={() => { onMenuChange(null); onEdit(row); }} className="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                          <Edit3 className="mr-2 inline h-3.5 w-3.5" />Editar
+                  {columns.map((column, index) => (
+                    <td key={column.key} className="px-4 py-4 text-slate-700" onClick={(event) => {
+                      if (index === 0 && onDetails) {
+                        event.stopPropagation();
+                        onDetails(row);
+                      }
+                    }}>
+                      {index === 0 && onDetails ? (
+                        <button
+                          type="button"
+                          className="text-left font-medium text-amber-700 transition hover:text-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDetails(row);
+                          }}
+                        >
+                          {column.render ? column.render(row) : String(row[column.key] ?? '—')}
                         </button>
-                        <button type="button" onClick={() => { onMenuChange(null); onDelete(id); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                      ) : (
+                        column.render ? column.render(row) : String(row[column.key] ?? '—')
+                      )}
+                    </td>
+                  ))}
+                  <td className="relative px-4 py-4 text-right" onClick={(event) => event.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (onDetails) {
+                            onDetails(row);
+                            return;
+                          }
+                          onEdit(row);
+                        }}
+                        aria-label={`Ver detalles de ${id}`}
+                        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                          const nextAnchor = menuId === id ? null : { x: rect.right - 128, y: rect.bottom + 8 };
+                          setMenuAnchor(nextAnchor);
+                          onMenuChange(nextAnchor ? id : null);
+                        }}
+                        aria-label={`Acciones para ${id}`}
+                        className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {menuId === id && menuAnchor && (
+                      <div
+                        className="fixed z-50 w-32 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
+                        style={{ left: `${menuAnchor.x}px`, top: `${menuAnchor.y}px` }}
+                      >
+                        <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
                           <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
                         </button>
                       </div>

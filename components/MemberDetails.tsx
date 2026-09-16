@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pencil, Save, X } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PhoneField, { isValidPhone } from '@/components/PhoneField';
 
 export type MemberDetailsMember = {
   id: string;
@@ -32,6 +33,59 @@ type EmergencyContact = {
   relationship?: string;
 };
 
+const activityOptions = [
+  { value: 'BEGINNER', label: 'Principiante' },
+  { value: 'INTERMEDIATE', label: 'Intermedio' },
+  { value: 'ADVANCED', label: 'Avanzado' },
+];
+
+const preferredTimeOptions = [
+  { value: 'MAÑANA', label: 'Mañana' },
+  { value: 'TARDE', label: 'Tarde' },
+  { value: 'NOCHE', label: 'Noche' },
+  { value: 'OTROS', label: 'Otros' },
+  { value: 'VARIADO', label: 'Variado' },
+];
+
+const relationshipOptions = [
+  { value: 'MADRE', label: 'Madre' },
+  { value: 'PADRE', label: 'Padre' },
+  { value: 'HERMANO', label: 'Hermano' },
+  { value: 'HERMANA', label: 'Hermana' },
+  { value: 'HIJO', label: 'Hijo' },
+  { value: 'HIJA', label: 'Hija' },
+  { value: 'PAREJA', label: 'Pareja' },
+  { value: 'ESPOSO', label: 'Esposo' },
+  { value: 'ESPOSA', label: 'Esposa' },
+  { value: 'AMIGO', label: 'Amigo' },
+  { value: 'AMIGA', label: 'Amiga' },
+  { value: 'VECINO', label: 'Vecino' },
+  { value: 'VECINA', label: 'Vecina' },
+  { value: 'OTRO', label: 'Otro' },
+];
+
+function normalizeFirstRecord<T>(value: T | T[] | { data?: T | T[]; items?: T[]; profiles?: T[]; healthProfiles?: T[]; result?: T[]; } | null | undefined): T | Record<string, never> {
+  if (!value) return {};
+
+  if (Array.isArray(value)) return (value[0] ?? {}) as T;
+
+  if (typeof value === 'object') {
+    const maybe = value as Record<string, any>;
+
+    if (Array.isArray(maybe.data)) return (maybe.data[0] ?? {}) as T;
+    if (maybe.data && typeof maybe.data === 'object' && !Array.isArray(maybe.data)) return maybe.data as T;
+
+    if (Array.isArray(maybe.items)) return (maybe.items[0] ?? {}) as T;
+    if (Array.isArray(maybe.profiles)) return (maybe.profiles[0] ?? {}) as T;
+    if (Array.isArray(maybe.healthProfiles)) return (maybe.healthProfiles[0] ?? {}) as T;
+    if (Array.isArray(maybe.result)) return (maybe.result[0] ?? {}) as T;
+
+    return value as T;
+  }
+
+  return {};
+}
+
 export default function MemberDetails({ member, onClose }: { member: MemberDetailsMember; onClose: () => void }) {
   const profile = member.user?.profile ?? {};
   const [editingDetails, setEditingDetails] = useState(false);
@@ -42,7 +96,7 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
     phone: profile.phone ?? '',
     address: profile.address ?? '',
     activityLevel: member.activityLevel ?? '',
-    preferredTime: member.preferredTime ?? '',
+    preferredTime: profile.preferredTime ?? '',
   });
   const [health, setHealth] = useState<HealthProfile>({});
   const [contact, setContact] = useState<EmergencyContact>({});
@@ -54,14 +108,36 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
   const [error, setError] = useState('');
 
   useEffect(() => {
-    void api.list(`/health-profiles?memberId=${member.id}`)
-      .then((profiles) => setHealth(profiles[0] ?? {}))
-      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la ficha médica.'))
+    setHealth({});
+    setHealthLoaded(false);
+    setContact({ memberId: member.id });
+    setContactLoaded(false);
+    setError('');
+
+    void api.get(`/health-profiles?memberId=${member.id}`)
+      .then((response) => {
+        const nextProfile = Array.isArray(response)
+          ? response[0] ?? {}
+          : (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data)
+            ? (response as any).data[0] ?? {}
+            : (response && typeof response === 'object' && 'data' in response && (response as any).data && typeof (response as any).data === 'object'
+              ? (response as any).data
+              : response ?? {}));
+        setHealth((nextProfile ?? {}) as HealthProfile);
+      })
+      .catch((requestError) => {
+        if (requestError instanceof ApiError && requestError.status === 404) {
+          setHealth({});
+          return;
+        }
+        setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar la ficha médica.');
+      })
       .finally(() => setHealthLoaded(true));
 
     void api.get(`/members/${member.id}/emergency-contact`)
       .then((memberContact) => {
-        setContact(memberContact ?? { memberId: member.id });
+        const nextContact = normalizeFirstRecord(memberContact) as EmergencyContact;
+        setContact(nextContact && Object.keys(nextContact).length > 0 ? nextContact : { memberId: member.id });
       })
       .catch((requestError) => {
         if (requestError instanceof ApiError && requestError.status === 404) {
@@ -74,7 +150,19 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
   }, [member.id]);
 
   async function saveDetails() {
-    await api.put(`/members/${member.id}`, details);
+    if (!isValidPhone(details.phone)) throw new Error('El teléfono debe tener un código válido y 7 dígitos.');
+
+    const payload = {
+      firstName: details.firstName,
+      lastName: details.lastName,
+      email: details.email,
+      phone: details.phone,
+      address: details.address || undefined,
+      activityLevel: details.activityLevel || undefined,
+      preferredTime: details.preferredTime || undefined,
+    };
+
+    await api.patch(`/members/${member.id}`, payload);
     setEditingDetails(false);
   }
 
@@ -90,12 +178,14 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
       takesMedication: health.takesMedication ?? false,
       medicationDescription: health.takesMedication ? health.medicationDescription || undefined : undefined,
     };
-    await api.put(`/health-profiles?memberId=${member.id}`, payload);
+    await api.patch(`/health-profiles?memberId=${member.id}`, payload);
     setEditingHealth(false);
   }
 
   async function saveContact() {
-    const payload = { memberId: member.id, name: contact.name, phone: contact.phone, relationship: contact.relationship };
+    if (!isValidPhone(contact.phone ?? '')) throw new Error('El teléfono debe tener un código válido y 7 dígitos.');
+
+    const payload = { name: contact.name, phone: contact.phone, relationship: contact.relationship };
     await api.put(`/members/${member.id}/emergency-contact`, payload);
     setEditingContact(false);
   }
@@ -138,10 +228,10 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
               <DetailField label="Nombre" value={details.firstName} editing={editingDetails} onChange={(value) => updateDetails('firstName', value)} />
               <DetailField label="Apellido" value={details.lastName} editing={editingDetails} onChange={(value) => updateDetails('lastName', value)} />
               <DetailField label="Correo" value={details.email} editing={editingDetails} onChange={(value) => updateDetails('email', value)} />
-              <DetailField label="Teléfono" value={details.phone} editing={editingDetails} onChange={(value) => updateDetails('phone', value)} />
+              <DetailField label="Teléfono" value={details.phone} editing={editingDetails} type="phone" onChange={(value) => updateDetails('phone', value)} />
               <DetailField label="Dirección" value={details.address} editing={editingDetails} onChange={(value) => updateDetails('address', value)} />
-              <DetailField label="Nivel de actividad" value={details.activityLevel} editing={editingDetails} onChange={(value) => updateDetails('activityLevel', value)} />
-              <DetailField label="Horario preferido" value={details.preferredTime} editing={editingDetails} onChange={(value) => updateDetails('preferredTime', value)} />
+              <DetailField label="Nivel de actividad" value={details.activityLevel} editing={editingDetails} options={activityOptions} onChange={(value) => updateDetails('activityLevel', value)} />
+              <DetailField label="Horario preferido" value={details.preferredTime} editing={editingDetails} options={preferredTimeOptions} onChange={(value) => updateDetails('preferredTime', value)} />
             </div>
             {editingDetails && <SaveButton saving={saving} onClick={() => save(saveDetails)} />}
           </TabsContent>
@@ -149,6 +239,11 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
           <TabsContent value="health" className="pt-6">
             {!healthLoaded ? <LoadingText /> : <>
               <TabHeader title="Condiciones de salud" editing={editingHealth} onEdit={() => setEditingHealth(true)} />
+              {!editingHealth && Object.keys(health).length === 0 && (
+                <p className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  Este socio aún no tiene información médica registrada.
+                </p>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 {(['hypertension', 'diabetes', 'heartProblems', 'asthma'] as const).map((key) => <CheckField key={key} label={healthLabel[key]} checked={Boolean(health[key])} editing={editingHealth} onChange={(value) => updateHealth(key, value)} />)}
               </div>
@@ -164,11 +259,15 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
           <TabsContent value="emergency" className="pt-6">
             {!contactLoaded ? <LoadingText /> : <>
               <TabHeader title="Contacto de emergencia" editing={editingContact} onEdit={() => setEditingContact(true)} />
-              {!contact.id && !editingContact && <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Este socio todavía no tiene un contacto de emergencia registrado.</p>}
+              {!contact.id && !editingContact && Object.keys(contact).length <= 1 && (
+                <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Este socio todavía no tiene un contacto de emergencia registrado.
+                </p>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <DetailField label="Nombre" value={contact.name ?? ''} editing={editingContact} onChange={(value) => updateContact('name', value)} />
-                <DetailField label="Teléfono" value={contact.phone ?? ''} editing={editingContact} onChange={(value) => updateContact('phone', value)} />
-                <DetailField label="Parentesco" value={contact.relationship ?? ''} editing={editingContact} onChange={(value) => updateContact('relationship', value)} />
+                <DetailField label="Teléfono" value={contact.phone ?? ''} editing={editingContact} type="phone" onChange={(value) => updateContact('phone', value)} />
+                <DetailField label="Parentesco" value={contact.relationship ?? ''} editing={editingContact} options={relationshipOptions} onChange={(value) => updateContact('relationship', value)} />
               </div>
               {editingContact && <SaveButton saving={saving} onClick={() => save(saveContact)} />}
             </>}
@@ -185,8 +284,13 @@ function TabHeader({ title, editing, onEdit }: { title: string; editing: boolean
   return <div className="mb-5 flex items-center justify-between"><h3 className="text-lg font-semibold text-slate-900">{title}</h3>{!editing && <button type="button" onClick={onEdit} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Pencil className="h-4 w-4" />Editar</button>}</div>;
 }
 
-function DetailField({ label, value, editing, multiline = false, onChange }: { label: string; value: string; editing: boolean; multiline?: boolean; onChange: (value: string) => void }) {
-  return <label className="mb-4 block text-sm font-medium text-slate-700"><span className="mb-1.5 block">{label}</span>{editing ? (multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" /> : <input value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />) : <span className="block rounded-lg bg-slate-50 px-3 py-2 font-normal text-slate-600">{value || '—'}</span>}</label>;
+function DetailField({ label, value, editing, multiline = false, options, type = 'text', onChange }: { label: string; value: string; editing: boolean; multiline?: boolean; options?: { value: string; label: string }[]; type?: 'text' | 'phone'; onChange: (value: string) => void }) {
+  const displayValue = options?.find((option) => option.value === value)?.label ?? value;
+
+  return <label className="mb-4 block text-sm font-medium text-slate-700"><span className="mb-1.5 block">{label}</span>{editing ? (multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" /> : type === 'phone' ? <PhoneField value={value} onChange={onChange} /> : options && options.length > 0 ? <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200">
+    <option value="">Selecciona…</option>
+    {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+  </select> : <input value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />) : <span className="block rounded-lg bg-slate-50 px-3 py-2 font-normal text-slate-600">{displayValue || '—'}</span>}</label>;
 }
 
 function CheckField({ label, checked, editing, onChange }: { label: string; checked: boolean; editing: boolean; onChange: (value: boolean) => void }) {

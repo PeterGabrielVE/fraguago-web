@@ -23,8 +23,14 @@ export default function HealthPage() {
     setError('');
     if (!memberId) { setHealth(null); setForm({}); setOpen(false); return; }
     try {
-      const profiles = await api.list(`/health-profiles?memberId=${memberId}`);
-      const data = profiles[0];
+      const response = await api.get(`/health-profiles?memberId=${memberId}`);
+      const data = Array.isArray(response)
+        ? response[0] ?? null
+        : (response && typeof response === 'object' && 'data' in response && Array.isArray((response as any).data)
+          ? (response as any).data[0] ?? null
+          : (response && typeof response === 'object' && 'data' in response && (response as any).data && typeof (response as any).data === 'object'
+            ? (response as any).data
+            : response ?? null));
       setHealth(data || null);
       setForm(data ? { ...data } : {});
     } catch (e: any) {
@@ -49,7 +55,7 @@ export default function HealthPage() {
         takesMedication: form.takesMedication || false,
         medicationDescription: form.takesMedication ? (form.medicationDescription || undefined) : undefined,
       };
-      await api.put(`/health-profiles?memberId=${selected}`, payload);
+      await api.patch(`/health-profiles?memberId=${selected}`, payload);
       setOpen(false);
       await loadHealth(selected);
     } catch (e: any) {

@@ -15,7 +15,7 @@ export default function Page() {
       fields={[
         { name: 'memberId', label: 'ID del socio', required: true },
         { name: 'name', label: 'Nombre del contacto', required: true },
-        { name: 'phone', label: 'Teléfono', required: true },
+        { name: 'phone', label: 'Teléfono', type: 'phone', required: true },
         { name: 'relationship', label: 'Parentesco (padre, hijo, hermano, etc.)', required: true },
       ]}
     />
