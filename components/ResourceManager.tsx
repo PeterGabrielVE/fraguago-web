@@ -11,7 +11,9 @@ import {
   Pencil,
   Plus,
   Search,
+  SlidersHorizontal,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
@@ -390,10 +392,34 @@ function ResourceTable({
   onDeleteRequest: (row: Record<string, any>) => void;
   onExport: () => void;
 }) {
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const [filterSearch, setFilterSearch] = useState<Record<string, string>>({});
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredItems = normalizedQuery
-    ? items.filter((row) => columns.some((column) => String(column.render ? column.render(row) : row[column.key] ?? '').toLowerCase().includes(normalizedQuery)))
-    : items;
+  const getNodeText = (value: unknown): string => {
+    if (value === null || value === undefined || typeof value === 'boolean') return '';
+    if (typeof value === 'string' || typeof value === 'number') return String(value);
+    if (Array.isArray(value)) return value.map(getNodeText).filter(Boolean).join(' ');
+    if (isValidElement(value)) return getNodeText((value.props as { children?: unknown }).children);
+    return '';
+  };
+  const getCellText = (row: any, column: Column) => {
+    const value = column.render ? column.render(row) : row[column.key];
+    return getNodeText(value);
+  };
+  const filterOptions = columns.reduce<Record<string, string[]>>((result, column) => {
+    result[column.key] = [...new Set(items.map((row) => getCellText(row, column)).filter(Boolean))].slice(0, 50);
+    return result;
+  }, {});
+  const filteredItems = items.filter((row) => {
+    const matchesQuery = !normalizedQuery || columns.some((column) => getCellText(row, column).toLowerCase().includes(normalizedQuery));
+    const matchesFilters = columns.every((column) => {
+      const selected = activeFilters[column.key] ?? [];
+      return selected.length === 0 || selected.includes(getCellText(row, column));
+    });
+    return matchesQuery && matchesFilters;
+  });
+  const activeFilterEntries = Object.entries(activeFilters).flatMap(([key, values]) => values.map((value) => ({ key, value })));
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visibleItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -447,6 +473,56 @@ function ResourceTable({
             />
           </label>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
+        <SlidersHorizontal className="h-4 w-4 text-slate-400" aria-hidden="true" />
+        {columns.map((column) => {
+          const selectedCount = activeFilters[column.key]?.length ?? 0;
+          return (
+            <div key={column.key} className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition ${selectedCount > 0 ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:text-amber-700'}`}
+              >
+                {column.label}{selectedCount > 0 && <span className="rounded-full bg-amber-600 px-1.5 text-[10px] text-white">{selectedCount}</span>}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              {openFilter === column.key && (
+                <div className="absolute left-0 top-full z-40 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-xl">
+                  <p className="mb-2 text-xs font-semibold text-slate-500">Filtrar por {column.label}</p>
+                  <input
+                    type="search"
+                    value={filterSearch[column.key] ?? ''}
+                    onChange={(event) => setFilterSearch((current) => ({ ...current, [column.key]: event.target.value }))}
+                    placeholder={`Buscar ${column.label.toLowerCase()}...`}
+                    aria-label={`Buscar opciones de ${column.label}`}
+                    className="mb-2 h-9 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  />
+                  <div className="max-h-52 space-y-1 overflow-y-auto">
+                    {(filterOptions[column.key] ?? []).filter((option) => option.toLowerCase().includes((filterSearch[column.key] ?? '').trim().toLowerCase())).length === 0 ? <p className="py-2 text-xs text-slate-400">Sin opciones</p> : (filterOptions[column.key] ?? []).filter((option) => option.toLowerCase().includes((filterSearch[column.key] ?? '').trim().toLowerCase())).map((option) => {
+                      const checked = activeFilters[column.key]?.includes(option) ?? false;
+                      return <button key={option} type="button" onClick={() => setActiveFilters((current) => {
+                          const selected = current[column.key] ?? [];
+                          return { ...current, [column.key]: checked ? selected.filter((value) => value !== option) : [...selected, option] };
+                        })} className={`flex w-full items-center rounded px-2 py-1.5 text-left text-sm transition ${checked ? 'bg-amber-100 font-semibold text-amber-800' : 'text-slate-700 hover:bg-slate-50'}`}>
+                        <span className="truncate">{option}</span>
+                      </button>;
+                    })}
+                  </div>
+                  <button type="button" onClick={() => setOpenFilter(null)} className="mt-3 w-full rounded-md bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">Aplicar</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {activeFilterEntries.length > 0 && <>
+          <div className="flex flex-wrap gap-1">
+            {activeFilterEntries.map(({ key, value }) => <button key={`${key}-${value}`} type="button" onClick={() => setActiveFilters((current) => ({ ...current, [key]: (current[key] ?? []).filter((item) => item !== value) }))} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-800 hover:bg-amber-200"><span>{value}</span><X className="h-3 w-3" /></button>)}
+          </div>
+          <button type="button" onClick={() => setActiveFilters({})} className="ml-auto text-xs font-semibold text-slate-500 hover:text-red-600">Limpiar filtros</button>
+        </>}
       </div>
 
       <div className="overflow-x-auto overflow-y-visible">
