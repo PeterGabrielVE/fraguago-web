@@ -38,9 +38,17 @@ export type Field = {
   requiredOnEdit?: boolean;
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
+export type CreateFormRendererProps = {
+  form: Record<string, any>;
+  setForm: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  fields: Field[];
+  editingId: string | null;
+  onSubmit: (event: React.FormEvent) => void;
+};
 
 export default function ResourceManager({
   title, subtitle, endpoint, columns, fields, getEditValues, renderDetails,
+  renderCreateForm, onCreate, hideListWhenCreating = false,
 }: {
   title: string;
   subtitle?: string;
@@ -49,6 +57,9 @@ export default function ResourceManager({
   fields: Field[];
   getEditValues?: (row: Record<string, any>) => Record<string, any>;
   renderDetails?: (row: Record<string, any>, onClose: () => void) => React.ReactNode;
+  renderCreateForm?: (props: CreateFormRendererProps) => React.ReactNode;
+  onCreate?: (form: Record<string, any>) => Promise<void>;
+  hideListWhenCreating?: boolean;
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -84,6 +95,8 @@ export default function ResourceManager({
       }
       if (editingId) {
         await api.patch(`${endpoint}/${editingId}`, payload);
+      } else if (onCreate) {
+        await onCreate(form);
       } else {
         await api.post(endpoint, payload);
       }
@@ -207,7 +220,7 @@ export default function ResourceManager({
       {/* Formulario de alta */}
       {open && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
+          {renderCreateForm && !editingId ? renderCreateForm({ form, setForm, fields, editingId, onSubmit: create }) : <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
             {fields.map((f) => (
               <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -270,11 +283,12 @@ export default function ResourceManager({
               </button>
             </div>
           </form>
+          }
         </div>
       )}
 
       {/* Tabla: loading / empty / error / datos vía AsyncBoundary */}
-      <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
+      {!(open && hideListWhenCreating) && <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
         <AsyncBoundary
           status={status}
           data={data}
@@ -331,7 +345,7 @@ export default function ResourceManager({
             />
           )}
         </AsyncBoundary>
-      </div>
+      </div>}
       {detailsRow && renderDetails?.(detailsRow, () => setDetailsRow(null))}
     </div>
   );
