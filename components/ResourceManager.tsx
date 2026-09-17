@@ -60,8 +60,10 @@ export type RowAction = {
   confirmDescription?: React.ReactNode;
 };
 
+export type ListFilter = { label: string; endpoint: string };
+
 export default function ResourceManager({
-  title, subtitle, endpoint, columns, fields, getEditValues, renderDetails, formVariant = 'inline', onCreate, extraActions, disableEdit,
+  title, subtitle, endpoint, columns, fields, getEditValues, renderDetails, formVariant = 'inline', onCreate, extraActions, disableEdit, filters,
 }: {
   title: string;
   subtitle?: string;
@@ -77,6 +79,8 @@ export default function ResourceManager({
   extraActions?: (row: Record<string, any>) => RowAction[];
   /** Oculta el botón de editar (lápiz) cuando el recurso no soporta actualización genérica. */
   disableEdit?: boolean;
+  /** Pestañas que cambian de qué endpoint se lee la lista (crear/editar/eliminar siguen usando `endpoint`). La primera se usa por defecto. */
+  filters?: ListFilter[];
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -92,13 +96,15 @@ export default function ResourceManager({
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<RowAction | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [activeFilter, setActiveFilter] = useState(0);
+  const listEndpoint = filters?.[activeFilter]?.endpoint ?? endpoint;
 
   // carga (loading / empty / error) gestionada por el hook
   const { status, data, error, refetch } = useAsync<any[]>(
-    () => api.get(endpoint).then((res) =>
+    () => api.get(listEndpoint).then((res) =>
       Array.isArray(res) ? res : (res?.data ?? [])
     ),
-    [endpoint],
+    [listEndpoint],
   );
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -313,6 +319,25 @@ export default function ResourceManager({
           {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
         </button>
       </div>
+
+      {/* Pestañas de filtro: cambian de qué endpoint se lee la lista */}
+      {filters && filters.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {filters.map((f, i) => (
+            <button
+              key={f.label}
+              type="button"
+              onClick={() => { setActiveFilter(i); setPage(1); }}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${i === activeFilter
+                ? 'bg-amber-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Banner solo para errores de mutación (crear / eliminar). Si el formulario está en un modal abierto, el error se muestra dentro de él. */}
       {actionError && !(formVariant === 'modal' && open) && (

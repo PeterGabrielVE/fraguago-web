@@ -3,21 +3,13 @@ import { useEffect, useState } from 'react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
 import { RefreshCw } from 'lucide-react';
+import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
 
 function nowAsDatetimeLocal() {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
-
-const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
-  active: 'Activa',
-  expired: 'Vencida',
-  cancelled: 'Cancelada',
-  canceled: 'Cancelada',
-  pending: 'Pendiente',
-  suspended: 'Suspendida',
-};
 
 function memberFullName(member: any) {
   const firstName = member?.user?.profile?.firstName ?? '';
@@ -46,11 +38,25 @@ export default function Page() {
       title="Membresías" subtitle="Asigna un plan a un socio; el vencimiento se calcula solo."
       endpoint="/memberships"
       formVariant="modal"
+      filters={[
+        { label: 'Todas', endpoint: '/memberships' },
+        { label: 'Por vencer', endpoint: '/memberships/expiring' },
+        { label: 'Vencidas', endpoint: '/memberships/expired' },
+      ]}
       columns={[
         { key: 'member', label: 'Socio', render: (r) => memberFullName(r.member) || r.memberId },
         { key: 'plan', label: 'Plan', render: (r) => r.plan?.name || r.planId },
         { key: 'endDate', label: 'Vence', render: (r) => new Date(r.endDate).toLocaleDateString('es-MX') },
-        { key: 'status', label: 'Estado', render: (r) => MEMBERSHIP_STATUS_LABELS[r.status] ?? r.status },
+        {
+          key: 'status', label: 'Estado', render: (r) => {
+            const s = effectiveMembershipStatus(r);
+            return (
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${MEMBERSHIP_STATUS_BADGES[s] ?? 'bg-slate-100 text-slate-600'}`}>
+                {MEMBERSHIP_STATUS_LABELS[s] ?? s}
+              </span>
+            );
+          },
+        },
       ]}
       fields={[
         { name: 'memberId', label: 'Socio', type: 'select', required: true, options: memberOptions },
@@ -61,7 +67,11 @@ export default function Page() {
         planId: payload.planId,
         startDate: payload.startDate,
       })}
-      disableEdit
+      getEditValues={(row) => ({
+        memberId: row.memberId,
+        planId: row.planId,
+        startDate: row.startDate ? String(row.startDate).slice(0, 16) : '',
+      })}
       extraActions={(row) => [
         {
           label: 'Renovar',
