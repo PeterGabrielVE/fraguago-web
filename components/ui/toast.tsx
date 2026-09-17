@@ -50,6 +50,9 @@ function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
         "data-expanded:data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
         "data-expanded:data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
         "data-expanded:data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
+        "data-[type=success]:border-green-200 data-[type=success]:bg-green-50 data-[type=success]:text-green-800 dark:data-[type=success]:border-green-900/50 dark:data-[type=success]:bg-green-950/50 dark:data-[type=success]:text-green-300",
+        "data-[type=error]:border-red-200 data-[type=error]:bg-red-50 data-[type=error]:text-red-800 dark:data-[type=error]:border-red-900/50 dark:data-[type=error]:bg-red-950/50 dark:data-[type=error]:text-red-300",
+        "data-[type=warning]:border-amber-200 data-[type=warning]:bg-amber-50 data-[type=warning]:text-amber-800 dark:data-[type=warning]:border-amber-900/50 dark:data-[type=warning]:bg-amber-950/50 dark:data-[type=warning]:text-amber-300",
         className
       )}
       {...props}
@@ -155,7 +158,7 @@ function ToastIcon({ type }: { type: string | undefined }) {
 
   if (type === "error") {
     icon = (
-      <OctagonXIcon className="text-destructive" aria-hidden="true" />
+      <OctagonXIcon aria-hidden="true" />
     )
   }
 

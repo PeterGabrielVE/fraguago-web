@@ -26,21 +26,42 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from '@/components/ui/toast';
 
 export type SelectOption = string | { value: string; label: string };
 
 export type Field = {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'select' | 'email' | 'textarea' | 'checkbox' | 'phone';
+  type?: 'text' | 'number' | 'date' | 'datetime-local' | 'select' | 'email' | 'textarea' | 'checkbox' | 'phone';
   options?: SelectOption[];
   required?: boolean;
   requiredOnEdit?: boolean;
+  defaultValue?: string | (() => string);
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
 
+export type RowAction = {
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  onClick: () => Promise<any> | void;
+  className?: string;
+  /** Si es true, la acción abre un modal de confirmación (como el de crear) en vez de ejecutarse al instante. */
+  confirm?: boolean;
+  confirmTitle?: string;
+  confirmDescription?: React.ReactNode;
+};
+
 export default function ResourceManager({
-  title, subtitle, endpoint, columns, fields, getEditValues, renderDetails,
+  title, subtitle, endpoint, columns, fields, getEditValues, renderDetails, formVariant = 'inline', onCreate, extraActions, disableEdit,
 }: {
   title: string;
   subtitle?: string;
@@ -49,6 +70,13 @@ export default function ResourceManager({
   fields: Field[];
   getEditValues?: (row: Record<string, any>) => Record<string, any>;
   renderDetails?: (row: Record<string, any>, onClose: () => void) => React.ReactNode;
+  formVariant?: 'inline' | 'modal';
+  /** Sobrescribe el POST de creación por defecto (api.post(endpoint, payload)), p. ej. para endpoints anidados. */
+  onCreate?: (payload: Record<string, any>) => Promise<any>;
+  /** Acciones extra por fila que se muestran en el menú "···" junto a Eliminar. */
+  extraActions?: (row: Record<string, any>) => RowAction[];
+  /** Oculta el botón de editar (lápiz) cuando el recurso no soporta actualización genérica. */
+  disableEdit?: boolean;
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -62,6 +90,8 @@ export default function ResourceManager({
   const [menuId, setMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<RowAction | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   // carga (loading / empty / error) gestionada por el hook
   const { status, data, error, refetch } = useAsync<any[]>(
@@ -79,17 +109,38 @@ export default function ResourceManager({
         let v = form[f.name];
         if (v === '' || v === undefined) continue;
         if (f.type === 'number') v = Number(v);
+        if (f.type === 'datetime-local') v = new Date(v).toISOString();
         if (f.type === 'checkbox' && v === false) continue;
         payload[f.name] = v;
       }
+      const wasEditing = Boolean(editingId);
       if (editingId) {
         await api.patch(`${endpoint}/${editingId}`, payload);
+      } else if (onCreate) {
+        await onCreate(payload);
       } else {
         await api.post(endpoint, payload);
       }
       setForm({}); setOpen(false); setEditingId(null);
       refetch();
-    } catch (e: any) { setActionError(e.message); }
+      toast.add({ title: wasEditing ? 'Registro actualizado' : 'Registro creado', type: 'success' });
+    } catch (e: any) {
+      setActionError(e.message);
+      toast.add({ title: 'No se pudo guardar', description: e.message, type: 'error' });
+    }
+  }
+
+  function startCreate() {
+    const defaults: Record<string, any> = {};
+    for (const f of fields) {
+      if (f.defaultValue !== undefined) {
+        defaults[f.name] = typeof f.defaultValue === 'function' ? f.defaultValue() : f.defaultValue;
+      }
+    }
+    setForm(defaults);
+    setEditingId(null);
+    setActionError('');
+    setOpen(true);
   }
 
   function startEdit(row: Record<string, any>) {
@@ -120,9 +171,11 @@ export default function ResourceManager({
       await api.del(`${endpoint}/${id}`);
       setDeleteTarget(null);
       refetch();
+      toast.add({ title: 'Registro eliminado', type: 'success' });
     } catch (e: any) {
       setActionError(e.message);
       setDeleteTarget(null);
+      toast.add({ title: 'No se pudo eliminar', description: e.message, type: 'error' });
     }
   }
 
@@ -153,9 +206,94 @@ export default function ResourceManager({
     setMenuAnchor(null);
   }
 
+  function requestRowAction(action: RowAction) {
+    setMenuId(null);
+    setMenuAnchor(null);
+    if (action.confirm) {
+      setActionError('');
+      setConfirmTarget(action);
+    } else {
+      runRowAction(action);
+    }
+  }
+
+  async function runRowAction(action: RowAction) {
+    setActionError('');
+    try {
+      await action.onClick();
+      refetch();
+      toast.add({ title: 'Acción completada', description: action.label, type: 'success' });
+    } catch (e: any) {
+      setActionError(e.message);
+      toast.add({ title: 'No se pudo completar la acción', description: e.message, type: 'error' });
+    }
+  }
+
+  async function confirmRowAction() {
+    if (!confirmTarget) return;
+    setConfirmBusy(true);
+    await runRowAction(confirmTarget);
+    setConfirmBusy(false);
+    setConfirmTarget(null);
+  }
+
   const inputClass =
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
     'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
+
+  const formFields = fields.map((f) => (
+    <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
+      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+        {f.label}{f.required && <span className="text-red-500"> *</span>}
+      </label>
+      {f.type === 'checkbox' ? (
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={form[f.name] ?? false}
+            onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+          />
+          {f.label}
+        </label>
+      ) : f.type === 'phone' ? (
+        <PhoneField
+          value={form[f.name] ?? ''}
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          onChange={(value) => setForm({ ...form, [f.name]: value })}
+        />
+      ) : f.type === 'select' ? (
+        <select
+          value={form[f.name] ?? ''}
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          className={inputClass}
+        >
+          <option value="">Selecciona…</option>
+          {f.options?.map((o) => {
+            const value = typeof o === 'string' ? o : o.value;
+            const label = typeof o === 'string' ? o : o.label;
+            return <option key={value} value={value}>{label}</option>;
+          })}
+        </select>
+      ) : f.type === 'textarea' ? (
+        <textarea
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          value={form[f.name] ?? ''}
+          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          className={`${inputClass} min-h-24`}
+        />
+      ) : (
+        <input
+          type={f.type || 'text'}
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          value={form[f.name] ?? ''}
+          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          className={inputClass}
+        />
+      )}
+    </div>
+  ));
 
   return (
     <div className="space-y-6 p-8">
@@ -166,7 +304,7 @@ export default function ResourceManager({
           {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
         </div>
         <button
-          onClick={() => (open ? cancelForm() : setOpen(true))}
+          onClick={() => (open ? cancelForm() : startCreate())}
           className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
             ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             : 'bg-amber-600 text-white hover:bg-amber-700'
@@ -176,8 +314,8 @@ export default function ResourceManager({
         </button>
       </div>
 
-      {/* Banner solo para errores de mutación (crear / eliminar) */}
-      {actionError && (
+      {/* Banner solo para errores de mutación (crear / eliminar). Si el formulario está en un modal abierto, el error se muestra dentro de él. */}
+      {actionError && !(formVariant === 'modal' && open) && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {actionError}
@@ -204,63 +342,68 @@ export default function ResourceManager({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Confirmación de acciones extra (p. ej. renovar), con el mismo estilo de modal que crear/editar */}
+      <Dialog open={Boolean(confirmTarget)} onOpenChange={(nextOpen) => { if (!nextOpen) setConfirmTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{confirmTarget?.confirmTitle ?? confirmTarget?.label}</DialogTitle>
+            {confirmTarget?.confirmDescription && (
+              <DialogDescription>{confirmTarget.confirmDescription}</DialogDescription>
+            )}
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setConfirmTarget(null)}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={confirmBusy}
+              onClick={confirmRowAction}
+              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
+            >
+              {confirmBusy ? 'Procesando…' : confirmTarget?.label}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Formulario de alta */}
-      {open && (
+      {formVariant === 'modal' ? (
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) cancelForm(); }}>
+          <DialogContent className="sm:max-w-lg">
+            <form onSubmit={create} className="grid gap-4">
+              <DialogHeader>
+                <DialogTitle>{editingId ? 'Editar registro' : 'Nuevo registro'}</DialogTitle>
+                <DialogDescription>{title}</DialogDescription>
+              </DialogHeader>
+              {actionError && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {actionError}
+                </div>
+              )}
+              <div className="grid gap-4 md:grid-cols-2">
+                {formFields}
+              </div>
+              <DialogFooter>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
+                >
+                  {editingId ? 'Actualizar' : 'Guardar'}
+                </button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      ) : open && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
-            {fields.map((f) => (
-              <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {f.label}{f.required && <span className="text-red-500"> *</span>}
-                </label>
-                {f.type === 'checkbox' ? (
-                  <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={form[f.name] ?? false}
-                      onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                    />
-                    {f.label}
-                  </label>
-                ) : f.type === 'phone' ? (
-                  <PhoneField
-                    value={form[f.name] ?? ''}
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    onChange={(value) => setForm({ ...form, [f.name]: value })}
-                  />
-                ) : f.type === 'select' ? (
-                  <select
-                    value={form[f.name] ?? ''}
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="">Selecciona…</option>
-                    {f.options?.map((o) => {
-                      const value = typeof o === 'string' ? o : o.value;
-                      const label = typeof o === 'string' ? o : o.label;
-                      return <option key={value} value={value}>{label}</option>;
-                    })}
-                  </select>
-                ) : f.type === 'textarea' ? (
-                  <textarea
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    value={form[f.name] ?? ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    className={`${inputClass} min-h-24`}
-                  />
-                ) : (
-                  <input
-                    type={f.type || 'text'}
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    value={form[f.name] ?? ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    className={inputClass}
-                  />
-                )}
-              </div>
-            ))}
+            {formFields}
             <div className="md:col-span-2">
               <button
                 type="submit"
@@ -328,6 +471,9 @@ export default function ResourceManager({
               onDetails={renderDetails ? setDetailsRow : undefined}
               onDeleteRequest={requestDelete}
               onExport={() => exportCsv(items, columns, title)}
+              extraActions={extraActions}
+              onRunAction={requestRowAction}
+              disableEdit={disableEdit}
             />
           )}
         </AsyncBoundary>
@@ -356,6 +502,9 @@ function ResourceTable({
   onDetails,
   onDeleteRequest,
   onExport,
+  extraActions,
+  onRunAction,
+  disableEdit,
 }: {
   items: any[];
   columns: Column[];
@@ -375,6 +524,9 @@ function ResourceTable({
   onDetails?: (row: Record<string, any>) => void;
   onDeleteRequest: (row: Record<string, any>) => void;
   onExport: () => void;
+  extraActions?: (row: Record<string, any>) => RowAction[];
+  onRunAction: (action: RowAction) => void;
+  disableEdit?: boolean;
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const filteredItems = normalizedQuery
@@ -484,21 +636,23 @@ function ResourceTable({
                   ))}
                   <td className="relative px-4 py-4 text-right" onClick={(event) => event.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (onDetails) {
-                            onDetails(row);
-                            return;
-                          }
-                          onEdit(row);
-                        }}
-                        aria-label={`Ver detalles de ${id}`}
-                        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
+                      {(onDetails || !disableEdit) && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (onDetails) {
+                              onDetails(row);
+                              return;
+                            }
+                            onEdit(row);
+                          }}
+                          aria-label={`Ver detalles de ${id}`}
+                          className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={(event) => {
@@ -515,9 +669,22 @@ function ResourceTable({
                     </div>
                     {menuId === id && menuAnchor && (
                       <div
-                        className="fixed z-50 w-32 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
+                        className="fixed z-50 w-36 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
                         style={{ left: `${menuAnchor.x}px`, top: `${menuAnchor.y}px` }}
                       >
+                        {extraActions?.(row).map((action) => {
+                          const Icon = action.icon;
+                          return (
+                            <button
+                              key={action.label}
+                              type="button"
+                              onClick={() => onRunAction(action)}
+                              className={action.className ?? 'w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50'}
+                            >
+                              {Icon && <Icon className="mr-2 inline h-3.5 w-3.5" />}{action.label}
+                            </button>
+                          );
+                        })}
                         <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
                           <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
                         </button>

@@ -32,6 +32,7 @@ import {
   LogOut,
   Loader2,
   Zap,
+  Coins,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -66,6 +67,7 @@ const NAV = [
     items: [
       { href: '/payment-records', label: 'Pagos', icon: DollarSign },
       { href: '/finances', label: 'Finanzas', icon: BarChart3 },
+      { href: '/exchange-rates', label: 'Tasas de cambio', icon: Coins },
     ],
   },
   {
