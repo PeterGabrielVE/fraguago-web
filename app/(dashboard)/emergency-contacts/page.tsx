@@ -1,10 +1,12 @@
 'use client';
+import { ShieldAlert } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 
 export default function Page() {
   return (
     <ResourceManager
       title="Contactos de Emergencia"
+      icon={ShieldAlert}
       endpoint="/emergency-contacts"
       columns={[
         { key: 'member', label: 'Socio', render: (r) => r.member?.user?.profile?.firstName || '—' },

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Receipt } from 'lucide-react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
 import { CURRENCY_OPTIONS, formatMoney } from '@/lib/currency';
@@ -32,6 +33,7 @@ export default function Page() {
     <ResourceManager
       title="Registro de Pagos"
       subtitle="Ingresos y egresos registrados."
+      icon={Receipt}
       endpoint="/transactions"
       formVariant="modal"
       columns={[

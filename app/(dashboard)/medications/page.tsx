@@ -1,10 +1,12 @@
 'use client';
+import { Pill } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 
 export default function Page() {
   return (
     <ResourceManager
       title="Medicamentos" subtitle="Medicamentos de uso continuo de los socios."
+      icon={Pill}
       endpoint="/medications"
       columns={[
         { key: 'member', label: 'Socio', render: (r) => r.member?.user?.profile?.firstName || '—' },

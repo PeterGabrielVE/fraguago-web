@@ -1,4 +1,5 @@
 'use client';
+import { Wrench } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 import { CURRENCY_OPTIONS, formatMoney } from '@/lib/currency';
 
@@ -6,6 +7,7 @@ export default function Page() {
   return (
     <ResourceManager
       title="Servicios"
+      icon={Wrench}
       endpoint="/services"
       columns={[
         { key: 'name', label: 'Nombre' },

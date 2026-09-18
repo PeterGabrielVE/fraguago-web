@@ -6,6 +6,14 @@ import { api, ApiError } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneField, { isValidPhone } from '@/components/PhoneField';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
+import {
+  attendanceStreakMessage,
+  attendanceWeekdayLabel,
+  computeAttendanceStreak,
+  WEEKLY_ATTENDANCE_GOAL,
+  type AttendanceRecord,
+} from '@/lib/attendanceStreak';
+import Flame from '@/components/Flame';
 
 type MembershipHistoryItem = {
   id: string;
@@ -14,6 +22,10 @@ type MembershipHistoryItem = {
   status?: string;
   plan?: { name?: string; type?: string; price?: string | number };
 };
+
+type AttendanceHistoryItem = AttendanceRecord & { id: string; checkedInAt: string; shift?: string };
+
+const SHIFT_LABELS: Record<string, string> = { MORNING: 'Mañana', AFTERNOON: 'Tarde', NIGHT: 'Noche' };
 
 export type MemberDetailsMember = {
   id: string;
@@ -117,6 +129,8 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
   const [error, setError] = useState('');
   const [memberships, setMemberships] = useState<MembershipHistoryItem[]>([]);
   const [membershipsLoaded, setMembershipsLoaded] = useState(false);
+  const [attendance, setAttendance] = useState<AttendanceHistoryItem[]>([]);
+  const [attendanceLoaded, setAttendanceLoaded] = useState(false);
 
   useEffect(() => {
     setHealth({});
@@ -125,12 +139,19 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
     setContactLoaded(false);
     setMemberships([]);
     setMembershipsLoaded(false);
+    setAttendance([]);
+    setAttendanceLoaded(false);
     setError('');
 
     void api.list(`/members/${member.id}/memberships`)
       .then((list) => setMemberships(list as MembershipHistoryItem[]))
       .catch(() => setError('No se pudo cargar el historial de membresías.'))
       .finally(() => setMembershipsLoaded(true));
+
+    void api.list(`/attendance/member/${member.id}`)
+      .then((list) => setAttendance(list as AttendanceHistoryItem[]))
+      .catch(() => setError('No se pudo cargar el historial de asistencia.'))
+      .finally(() => setAttendanceLoaded(true));
 
     void api.get(`/health-profiles?memberId=${member.id}`)
       .then((response) => {
@@ -234,9 +255,10 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
         {error && <p role="alert" className="mx-6 mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         <Tabs defaultValue="details" className="flex flex-col gap-5 p-6">
-          <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-5">
             <TabsTrigger value="details" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Detalles</TabsTrigger>
             <TabsTrigger value="memberships" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Membresías</TabsTrigger>
+            <TabsTrigger value="attendance" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Asistencia</TabsTrigger>
             <TabsTrigger value="health" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Ficha médica</TabsTrigger>
             <TabsTrigger value="emergency" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Contacto de emergencia</TabsTrigger>
           </TabsList>
@@ -291,6 +313,44 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
                   </tbody>
                 </table>
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="attendance" className="pt-6">
+            <h3 className="mb-5 text-lg font-semibold text-slate-900">Historial de asistencia</h3>
+            {!attendanceLoaded ? <LoadingText /> : attendance.length === 0 ? (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Este socio aún no tiene asistencias registradas.
+              </p>
+            ) : (
+              <>
+                <AttendanceStreakCard records={attendance} />
+                <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-left uppercase tracking-wide text-slate-500">
+                        <th className="px-4 py-3 text-xs font-semibold">Fecha</th>
+                        <th className="px-4 py-3 text-xs font-semibold">Día</th>
+                        <th className="px-4 py-3 text-xs font-semibold">Hora</th>
+                        <th className="px-4 py-3 text-xs font-semibold">Turno</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendance.map((a) => {
+                        const checkedInAt = new Date(a.checkedInAt);
+                        return (
+                          <tr key={a.id} className="border-b border-slate-100 last:border-0">
+                            <td className="px-4 py-3 font-medium text-slate-700">{checkedInAt.toLocaleDateString('es-MX')}</td>
+                            <td className="px-4 py-3 text-slate-600">{attendanceWeekdayLabel(checkedInAt)}</td>
+                            <td className="px-4 py-3 text-slate-600">{checkedInAt.toLocaleTimeString('es-MX')}</td>
+                            <td className="px-4 py-3 text-slate-600">{SHIFT_LABELS[a.shift ?? ''] ?? a.shift ?? '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </TabsContent>
 
@@ -360,3 +420,57 @@ function SaveButton({ saving, onClick }: { saving: boolean; onClick: () => void 
 }
 
 function LoadingText() { return <p className="py-10 text-center text-sm text-slate-500">Cargando información...</p>; }
+
+const WEEK_RANGE_FORMAT = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' });
+
+function AttendanceStreakCard({ records }: { records: AttendanceRecord[] }) {
+  const streak = computeAttendanceStreak(records);
+  const progress = Math.min(streak.currentWeekDays / WEEKLY_ATTENDANCE_GOAL, 1) * 100;
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-600">
+            <Flame size={18} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              {streak.streakWeeks > 0 ? `Racha de ${streak.streakWeeks} ${streak.streakWeeks === 1 ? 'semana' : 'semanas'}` : 'Sin racha activa'}
+            </p>
+            <p className="text-sm text-amber-800">{attendanceStreakMessage(streak)}</p>
+          </div>
+        </div>
+        <div className="w-full sm:w-48">
+          <div className="mb-1 flex items-center justify-between text-xs font-medium text-amber-800">
+            <span>Esta semana</span>
+            <span>{streak.currentWeekDays}/{WEEKLY_ATTENDANCE_GOAL} días</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-amber-200">
+            <div className="h-full rounded-full bg-amber-600 transition-all" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-6 gap-2 border-t border-amber-200 bg-white px-5 py-4">
+        {streak.recentWeeks.map((week) => {
+          const weekEnd = new Date(week.weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 4);
+          return (
+            <div key={week.weekStart.toISOString()} className="flex flex-col items-center gap-1.5">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
+                  week.goalMet ? 'bg-emerald-100 text-emerald-700' : week.days > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                {week.days}
+              </div>
+              <span className="text-center text-[10px] leading-tight text-slate-500">
+                {WEEK_RANGE_FORMAT.format(week.weekStart)}–{WEEK_RANGE_FORMAT.format(weekEnd)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

@@ -63,15 +63,19 @@ export type RowAction = {
 export type ListFilter = { label: string; endpoint: string };
 
 export default function ResourceManager({
-  title, subtitle, endpoint, columns, fields, getEditValues, renderDetails, formVariant = 'inline', onCreate, extraActions, disableEdit, filters,
+  title, subtitle, icon: Icon, endpoint, columns, fields, getEditValues, renderDetails, renderCreate, formVariant = 'inline', onCreate, extraActions, disableEdit, filters, headerActions,
 }: {
   title: string;
   subtitle?: string;
+  /** Ícono del módulo, mostrado en la insignia del encabezado (mismo lenguaje visual que Asistencia). */
+  icon?: React.ComponentType<{ className?: string }>;
   endpoint: string;
   columns: Column[];
   fields: Field[];
   getEditValues?: (row: Record<string, any>) => Record<string, any>;
   renderDetails?: (row: Record<string, any>, onClose: () => void) => React.ReactNode;
+  /** Reemplaza el formulario de alta (inline/modal por `fields`) por una vista propia, p. ej. una versión de `renderDetails` con pestañas editables. No aplica a edición. */
+  renderCreate?: (onDone: () => void, onCancel: () => void) => React.ReactNode;
   formVariant?: 'inline' | 'modal';
   /** Sobrescribe el POST de creación por defecto (api.post(endpoint, payload)), p. ej. para endpoints anidados. */
   onCreate?: (payload: Record<string, any>) => Promise<any>;
@@ -81,6 +85,8 @@ export default function ResourceManager({
   disableEdit?: boolean;
   /** Pestañas que cambian de qué endpoint se lee la lista (crear/editar/eliminar siguen usando `endpoint`). La primera se usa por defecto. */
   filters?: ListFilter[];
+  /** Contenido extra en el header, a la izquierda del botón "Nuevo" (p. ej. un botón de generación con IA). */
+  headerActions?: React.ReactNode;
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -167,6 +173,14 @@ export default function ResourceManager({
     return (
       <div className="min-h-full space-y-6 p-8">
         {renderDetails(detailsRow, () => setDetailsRow(null))}
+      </div>
+    );
+  }
+
+  if (open && !editingId && renderCreate) {
+    return (
+      <div className="min-h-full space-y-6 p-8">
+        {renderCreate(() => { cancelForm(); refetch(); }, cancelForm)}
       </div>
     );
   }
@@ -304,20 +318,32 @@ export default function ResourceManager({
   return (
     <div className="space-y-6 p-8">
       {/* Header */}
-      <div className="flex items-start justify-between border-b pb-6">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900">{title}</h1>
-          {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            {Icon && (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+                <Icon className="h-7 w-7" />
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
+              {subtitle && <p className="mt-1 text-slate-600">{subtitle}</p>}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {headerActions}
+            <button
+              onClick={() => (open ? cancelForm() : startCreate())}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
+                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                : 'bg-amber-600 text-white hover:bg-amber-700'
+                }`}
+            >
+              {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => (open ? cancelForm() : startCreate())}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
-            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            : 'bg-amber-600 text-white hover:bg-amber-700'
-            }`}
-        >
-          {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
-        </button>
       </div>
 
       {/* Pestañas de filtro: cambian de qué endpoint se lee la lista */}

@@ -1,8 +1,9 @@
 'use client';
 import ResourceManager from '@/components/ResourceManager';
 import MemberDetails, { type MemberDetailsMember } from '@/components/MemberDetails';
+import MemberCreate from '@/components/MemberCreate';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 
 const activityOptions = [
   { value: 'BEGINNER', label: 'Principiante' },
@@ -22,6 +23,7 @@ export default function Page() {
   return (
     <ResourceManager
       title="Socios" subtitle="Los clientes de tu gimnasio."
+      icon={Users}
       endpoint="/members"
       columns={[
         {
@@ -77,6 +79,7 @@ export default function Page() {
         preferredTime: member.user?.profile?.preferredTime ?? '',
       })}
       renderDetails={(member, onClose) => <MemberDetails member={member as MemberDetailsMember} onClose={onClose} />}
+      renderCreate={(onDone, onCancel) => <MemberCreate onCreated={onDone} onCancel={onCancel} />}
       fields={[
         { name: 'firstName', label: 'Nombre', required: true },
         { name: 'lastName', label: 'Apellido', required: true },
