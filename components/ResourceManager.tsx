@@ -49,6 +49,12 @@ export type Field = {
   required?: boolean;
   requiredOnEdit?: boolean;
   defaultValue?: string | (() => string);
+  /** El campo solo aparece al crear; se oculta por completo al editar (y por lo tanto nunca se manda en el PATCH). */
+  createOnly?: boolean;
+  /** El input se muestra deshabilitado; su valor solo cambia por `mirrorFrom` de otro campo. */
+  readOnly?: boolean;
+  /** Copia automáticamente el valor de otro campo (por nombre) cada vez que ese otro campo cambia, p. ej. contraseña = cédula. */
+  mirrorFrom?: string;
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
 export type StatusConfig = {
@@ -145,6 +151,7 @@ export default function ResourceManager({
   function buildPayload() {
     const payload: Record<string, any> = {};
     for (const f of fields) {
+      if (f.createOnly && editingId) continue;
       let v = form[f.name];
       if (v === '' || v === undefined) continue;
       if (f.type === 'number') v = Number(v);
@@ -310,7 +317,20 @@ export default function ResourceManager({
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
     'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
 
-  const formFields = fields.map((f) => (
+  // Actualiza un campo y, si algún otro campo lo espeja (mirrorFrom), lo sincroniza también.
+  function updateField(name: string, value: any) {
+    setForm((current) => {
+      const next = { ...current, [name]: value };
+      for (const other of fields) {
+        if (other.mirrorFrom === name) next[other.name] = value;
+      }
+      return next;
+    });
+  }
+
+  const formFields = fields
+    .filter((f) => !(f.createOnly && editingId))
+    .map((f) => (
     <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
       <label className="mb-1.5 block text-sm font-medium text-slate-700">
         {f.label}{f.required && <span className="text-red-500"> *</span>}
@@ -320,7 +340,7 @@ export default function ResourceManager({
           <input
             type="checkbox"
             checked={form[f.name] ?? false}
-            onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
+            onChange={(e) => updateField(f.name, e.target.checked)}
             className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
           />
           {f.label}
@@ -329,13 +349,14 @@ export default function ResourceManager({
         <PhoneField
           value={form[f.name] ?? ''}
           required={editingId ? f.requiredOnEdit ?? false : f.required}
-          onChange={(value) => setForm({ ...form, [f.name]: value })}
+          onChange={(value) => updateField(f.name, value)}
         />
       ) : f.type === 'select' ? (
         <select
           value={form[f.name] ?? ''}
           required={editingId ? f.requiredOnEdit ?? false : f.required}
-          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          disabled={f.readOnly}
+          onChange={(e) => updateField(f.name, e.target.value)}
           className={inputClass}
         >
           <option value="">Selecciona…</option>
@@ -349,7 +370,8 @@ export default function ResourceManager({
         <textarea
           required={editingId ? f.requiredOnEdit ?? false : f.required}
           value={form[f.name] ?? ''}
-          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          readOnly={f.readOnly}
+          onChange={(e) => updateField(f.name, e.target.value)}
           className={`${inputClass} min-h-24`}
         />
       ) : (
@@ -357,8 +379,9 @@ export default function ResourceManager({
           type={f.type || 'text'}
           required={editingId ? f.requiredOnEdit ?? false : f.required}
           value={form[f.name] ?? ''}
-          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-          className={inputClass}
+          readOnly={f.readOnly}
+          onChange={(e) => updateField(f.name, e.target.value)}
+          className={`${inputClass} ${f.readOnly ? 'bg-slate-100 text-slate-600' : ''}`}
         />
       )}
     </div>
