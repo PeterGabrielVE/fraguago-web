@@ -1,4 +1,5 @@
 'use client';
+import { ArrowLeftRight } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 import { CURRENCY_LABELS } from '@/lib/currency';
 
@@ -12,6 +13,7 @@ export default function Page() {
     <ResourceManager
       title="Tasas de cambio"
       subtitle="Cuánto equivale 1 dólar (moneda base del gym) en la otra moneda — la misma forma en que se dice 'la tasa de hoy'. Ej. VES: 900 significa 900 Bs. por USD. Los pagos usan la última tasa registrada de cada moneda."
+      icon={ArrowLeftRight}
       endpoint="/exchange-rates"
       disableEdit
       columns={[

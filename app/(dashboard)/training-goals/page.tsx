@@ -1,10 +1,12 @@
 'use client';
+import { Target } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 
 export default function Page() {
   return (
     <ResourceManager
       title="Objetivos de Entrenamiento"
+      icon={Target}
       endpoint="/training-goals"
       columns={[
         { key: 'member', label: 'Socio', render: (r) => r.member?.user?.profile?.firstName || '—' },

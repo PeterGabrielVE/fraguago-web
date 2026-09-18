@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
-import { RefreshCw } from 'lucide-react';
+import { CreditCard, RefreshCw } from 'lucide-react';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
 
 function nowAsDatetimeLocal() {
@@ -36,6 +36,7 @@ export default function Page() {
   return (
     <ResourceManager
       title="Membresías" subtitle="Asigna un plan a un socio; el vencimiento se calcula solo."
+      icon={CreditCard}
       endpoint="/memberships"
       formVariant="modal"
       filters={[

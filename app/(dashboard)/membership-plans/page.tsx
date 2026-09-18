@@ -1,4 +1,5 @@
 'use client';
+import { Layers } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 import { CURRENCY_OPTIONS, formatMoney } from '@/lib/currency';
 
@@ -13,6 +14,7 @@ export default function Page() {
   return (
     <ResourceManager
       title="Planes de membresía" subtitle="Mensual, anual, familiar…"
+      icon={Layers}
       endpoint="/membership-plans"
       formVariant="modal"
       columns={[

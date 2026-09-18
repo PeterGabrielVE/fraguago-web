@@ -33,6 +33,7 @@ import {
   Loader2,
   Zap,
   Coins,
+  Dumbbell,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -82,6 +83,7 @@ const NAV = [
     group: 'Equipo',
     items: [
       { href: '/trainers', label: 'Entrenadores', icon: User },
+      { href: '/routines', label: 'Rutinas', icon: Dumbbell },
       { href: '/schedules', label: 'Horarios', icon: Calendar },
     ],
   },

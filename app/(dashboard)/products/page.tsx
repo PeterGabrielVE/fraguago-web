@@ -1,4 +1,5 @@
 'use client';
+import { Package } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 import { CURRENCY_OPTIONS, formatMoney } from '@/lib/currency';
 
@@ -7,6 +8,7 @@ export default function Page() {
     <ResourceManager
       title="Productos"
       subtitle="Inventario."
+      icon={Package}
       endpoint="/products"
       columns={[
         { key: 'name', label: 'Nombre' },
