@@ -5,6 +5,15 @@ import { Pencil, Save, X } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneField, { isValidPhone } from '@/components/PhoneField';
+import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
+
+type MembershipHistoryItem = {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status?: string;
+  plan?: { name?: string; type?: string; price?: string | number };
+};
 
 export type MemberDetailsMember = {
   id: string;
@@ -106,13 +115,22 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
   const [editingContact, setEditingContact] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [memberships, setMemberships] = useState<MembershipHistoryItem[]>([]);
+  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
 
   useEffect(() => {
     setHealth({});
     setHealthLoaded(false);
     setContact({ memberId: member.id });
     setContactLoaded(false);
+    setMemberships([]);
+    setMembershipsLoaded(false);
     setError('');
+
+    void api.list(`/members/${member.id}/memberships`)
+      .then((list) => setMemberships(list as MembershipHistoryItem[]))
+      .catch(() => setError('No se pudo cargar el historial de membresías.'))
+      .finally(() => setMembershipsLoaded(true));
 
     void api.get(`/health-profiles?memberId=${member.id}`)
       .then((response) => {
@@ -216,8 +234,9 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
         {error && <p role="alert" className="mx-6 mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         <Tabs defaultValue="details" className="flex flex-col gap-5 p-6">
-          <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-4">
             <TabsTrigger value="details" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Detalles</TabsTrigger>
+            <TabsTrigger value="memberships" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Membresías</TabsTrigger>
             <TabsTrigger value="health" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Ficha médica</TabsTrigger>
             <TabsTrigger value="emergency" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Contacto de emergencia</TabsTrigger>
           </TabsList>
@@ -234,6 +253,45 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
               <DetailField label="Horario preferido" value={details.preferredTime} editing={editingDetails} options={preferredTimeOptions} onChange={(value) => updateDetails('preferredTime', value)} />
             </div>
             {editingDetails && <SaveButton saving={saving} onClick={() => save(saveDetails)} />}
+          </TabsContent>
+
+          <TabsContent value="memberships" className="pt-6">
+            <h3 className="mb-5 text-lg font-semibold text-slate-900">Historial de membresías</h3>
+            {!membershipsLoaded ? <LoadingText /> : memberships.length === 0 ? (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Este socio aún no tiene membresías registradas.
+              </p>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-left uppercase tracking-wide text-slate-500">
+                      <th className="px-4 py-3 text-xs font-semibold">Plan</th>
+                      <th className="px-4 py-3 text-xs font-semibold">Inicio</th>
+                      <th className="px-4 py-3 text-xs font-semibold">Vence</th>
+                      <th className="px-4 py-3 text-xs font-semibold">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {memberships.map((m) => {
+                      const s = effectiveMembershipStatus(m);
+                      return (
+                        <tr key={m.id} className="border-b border-slate-100 last:border-0">
+                          <td className="px-4 py-3 font-medium text-slate-700">{m.plan?.name ?? '—'}</td>
+                          <td className="px-4 py-3 text-slate-600">{new Date(m.startDate).toLocaleDateString('es-MX')}</td>
+                          <td className="px-4 py-3 text-slate-600">{new Date(m.endDate).toLocaleDateString('es-MX')}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${MEMBERSHIP_STATUS_BADGES[s] ?? 'bg-slate-100 text-slate-600'}`}>
+                              {MEMBERSHIP_STATUS_LABELS[s] ?? s}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="health" className="pt-6">

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { GlobalErrorListener } from "@/components/GlobalErrorListener";
+import { Toaster } from "@/components/ui/toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ export default function RootLayout({
     <html lang="es" className={cn("font-sans", inter.variable)}>
       <body>
         <GlobalErrorListener />
-        {children}
+        <Toaster>{children}</Toaster>
       </body>
     </html>
   );

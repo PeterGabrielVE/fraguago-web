@@ -29,16 +29,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from '@/components/ui/toast';
 
 export type SelectOption = string | { value: string; label: string };
 
 export type Field = {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'select' | 'email' | 'textarea' | 'checkbox' | 'phone';
+  type?: 'text' | 'number' | 'date' | 'datetime-local' | 'select' | 'email' | 'textarea' | 'checkbox' | 'phone';
   options?: SelectOption[];
   required?: boolean;
   requiredOnEdit?: boolean;
+  defaultValue?: string | (() => string);
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
 export type StatusConfig = {
@@ -54,9 +64,23 @@ export type CreateFormRendererProps = {
   onSubmit: (event: React.FormEvent) => void;
 };
 
+export type RowAction = {
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  onClick: () => Promise<any> | void;
+  className?: string;
+  /** Si es true, la acción abre un modal de confirmación (como el de crear) en vez de ejecutarse al instante. */
+  confirm?: boolean;
+  confirmTitle?: string;
+  confirmDescription?: React.ReactNode;
+};
+
+export type ListFilter = { label: string; endpoint: string };
+
 export default function ResourceManager({
   title, subtitle, endpoint, columns, fields, getEditValues, renderDetails,
-  renderCreateForm, onCreate, hideListWhenCreating = false, statusConfig,
+  renderCreateForm, hideListWhenCreating = false, statusConfig,
+  formVariant = 'inline', onCreate, extraActions, disableEdit, filters,
 }: {
   title: string;
   subtitle?: string;
@@ -65,10 +89,25 @@ export default function ResourceManager({
   fields: Field[];
   getEditValues?: (row: Record<string, any>) => Record<string, any>;
   renderDetails?: (row: Record<string, any>, onClose: () => void) => React.ReactNode;
+  /** Reemplaza el formulario de alta estándar (basado en `fields`) por uno propio, p. ej. con pestañas. Solo aplica al variant "inline" y a la creación (no a editar). */
   renderCreateForm?: (props: CreateFormRendererProps) => React.ReactNode;
-  onCreate?: (form: Record<string, any>) => Promise<void>;
+  /** Oculta la tabla mientras el formulario de alta está abierto (útil junto con renderCreateForm cuando el formulario es grande). */
   hideListWhenCreating?: boolean;
+  /** Habilita una columna de estado + acción de activar/suspender por fila. */
   statusConfig?: StatusConfig;
+  formVariant?: 'inline' | 'modal';
+  /**
+   * Sobrescribe el POST de creación por defecto (api.post(endpoint, payload)), p. ej. para endpoints anidados.
+   * Cuando se usa junto con `renderCreateForm`, recibe el `form` tal cual (sin la conversión de tipos de `fields`),
+   * ya que el formulario propio puede tener campos que no están declarados en `fields`.
+   */
+  onCreate?: (payload: Record<string, any>) => Promise<any>;
+  /** Acciones extra por fila que se muestran en el menú "···" junto a Eliminar. */
+  extraActions?: (row: Record<string, any>) => RowAction[];
+  /** Oculta el botón de editar (lápiz) cuando el recurso no soporta actualización genérica. */
+  disableEdit?: boolean;
+  /** Pestañas que cambian de qué endpoint se lee la lista (crear/editar/eliminar siguen usando `endpoint`). La primera se usa por defecto. */
+  filters?: ListFilter[];
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -84,36 +123,66 @@ export default function ResourceManager({
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [statusTarget, setStatusTarget] = useState<{ id: string; label: string; nextStatus: 'ACTIVE' | 'SUSPENDED' } | null>(null);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [confirmTarget, setConfirmTarget] = useState<RowAction | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [activeFilter, setActiveFilter] = useState(0);
+  const listEndpoint = filters?.[activeFilter]?.endpoint ?? endpoint;
 
   // carga (loading / empty / error) gestionada por el hook
   const { status, data, error, refetch } = useAsync<any[]>(
-    () => api.get(endpoint).then((res) =>
+    () => api.get(listEndpoint).then((res) =>
       Array.isArray(res) ? res : (res?.data ?? [])
     ),
-    [endpoint],
+    [listEndpoint],
   );
+
+  function buildPayload() {
+    const payload: Record<string, any> = {};
+    for (const f of fields) {
+      let v = form[f.name];
+      if (v === '' || v === undefined) continue;
+      if (f.type === 'number') v = Number(v);
+      if (f.type === 'datetime-local') v = new Date(v).toISOString();
+      if (f.type === 'checkbox' && v === false) continue;
+      payload[f.name] = v;
+    }
+    return payload;
+  }
+
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setActionError('');
     try {
-      const payload: Record<string, any> = {};
-      for (const f of fields) {
-        let v = form[f.name];
-        if (v === '' || v === undefined) continue;
-        if (f.type === 'number') v = Number(v);
-        if (f.type === 'checkbox' && v === false) continue;
-        payload[f.name] = v;
-      }
+      const wasEditing = Boolean(editingId);
       if (editingId) {
-        await api.patch(`${endpoint}/${editingId}`, payload);
+        await api.patch(`${endpoint}/${editingId}`, buildPayload());
       } else if (onCreate) {
-        await onCreate(form);
+        // Con renderCreateForm, el formulario propio decide su propia forma de datos
+        // (puede tener campos que no están en `fields`), así que se pasa tal cual.
+        await onCreate(renderCreateForm ? form : buildPayload());
       } else {
-        await api.post(endpoint, payload);
+        await api.post(endpoint, buildPayload());
       }
       setForm({}); setOpen(false); setEditingId(null);
       refetch();
-    } catch (e: any) { setActionError(e.message); }
+      toast.add({ title: wasEditing ? 'Registro actualizado' : 'Registro creado', type: 'success' });
+    } catch (e: any) {
+      setActionError(e.message);
+      toast.add({ title: 'No se pudo guardar', description: e.message, type: 'error' });
+    }
+  }
+
+  function startCreate() {
+    const defaults: Record<string, any> = {};
+    for (const f of fields) {
+      if (f.defaultValue !== undefined) {
+        defaults[f.name] = typeof f.defaultValue === 'function' ? f.defaultValue() : f.defaultValue;
+      }
+    }
+    setForm(defaults);
+    setEditingId(null);
+    setActionError('');
+    setOpen(true);
   }
 
   function startEdit(row: Record<string, any>) {
@@ -144,9 +213,11 @@ export default function ResourceManager({
       await api.del(`${endpoint}/${id}`);
       setDeleteTarget(null);
       refetch();
+      toast.add({ title: 'Registro eliminado', type: 'success' });
     } catch (e: any) {
       setActionError(e.message);
       setDeleteTarget(null);
+      toast.add({ title: 'No se pudo eliminar', description: e.message, type: 'error' });
     }
   }
 
@@ -190,9 +261,94 @@ export default function ResourceManager({
     setMenuAnchor(null);
   }
 
+  function requestRowAction(action: RowAction) {
+    setMenuId(null);
+    setMenuAnchor(null);
+    if (action.confirm) {
+      setActionError('');
+      setConfirmTarget(action);
+    } else {
+      runRowAction(action);
+    }
+  }
+
+  async function runRowAction(action: RowAction) {
+    setActionError('');
+    try {
+      await action.onClick();
+      refetch();
+      toast.add({ title: 'Acción completada', description: action.label, type: 'success' });
+    } catch (e: any) {
+      setActionError(e.message);
+      toast.add({ title: 'No se pudo completar la acción', description: e.message, type: 'error' });
+    }
+  }
+
+  async function confirmRowAction() {
+    if (!confirmTarget) return;
+    setConfirmBusy(true);
+    await runRowAction(confirmTarget);
+    setConfirmBusy(false);
+    setConfirmTarget(null);
+  }
+
   const inputClass =
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
     'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
+
+  const formFields = fields.map((f) => (
+    <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
+      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+        {f.label}{f.required && <span className="text-red-500"> *</span>}
+      </label>
+      {f.type === 'checkbox' ? (
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={form[f.name] ?? false}
+            onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+          />
+          {f.label}
+        </label>
+      ) : f.type === 'phone' ? (
+        <PhoneField
+          value={form[f.name] ?? ''}
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          onChange={(value) => setForm({ ...form, [f.name]: value })}
+        />
+      ) : f.type === 'select' ? (
+        <select
+          value={form[f.name] ?? ''}
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          className={inputClass}
+        >
+          <option value="">Selecciona…</option>
+          {f.options?.map((o) => {
+            const value = typeof o === 'string' ? o : o.value;
+            const label = typeof o === 'string' ? o : o.label;
+            return <option key={value} value={value}>{label}</option>;
+          })}
+        </select>
+      ) : f.type === 'textarea' ? (
+        <textarea
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          value={form[f.name] ?? ''}
+          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          className={`${inputClass} min-h-24`}
+        />
+      ) : (
+        <input
+          type={f.type || 'text'}
+          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          value={form[f.name] ?? ''}
+          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+          className={inputClass}
+        />
+      )}
+    </div>
+  ));
 
   return (
     <div className="space-y-6 p-8">
@@ -203,7 +359,7 @@ export default function ResourceManager({
           {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
         </div>
         <button
-          onClick={() => (open ? cancelForm() : setOpen(true))}
+          onClick={() => (open ? cancelForm() : startCreate())}
           className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
             ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             : 'bg-amber-600 text-white hover:bg-amber-700'
@@ -213,8 +369,27 @@ export default function ResourceManager({
         </button>
       </div>
 
-      {/* Banner solo para errores de mutación (crear / eliminar) */}
-      {actionError && (
+      {/* Pestañas de filtro: cambian de qué endpoint se lee la lista */}
+      {filters && filters.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {filters.map((f, i) => (
+            <button
+              key={f.label}
+              type="button"
+              onClick={() => { setActiveFilter(i); setPage(1); }}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${i === activeFilter
+                ? 'bg-amber-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Banner solo para errores de mutación (crear / eliminar). Si el formulario está en un modal abierto, el error se muestra dentro de él. */}
+      {actionError && !(formVariant === 'modal' && open) && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {actionError}
@@ -258,144 +433,155 @@ export default function ResourceManager({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Confirmación de acciones extra (p. ej. renovar), con el mismo estilo de modal que crear/editar */}
+      <Dialog open={Boolean(confirmTarget)} onOpenChange={(nextOpen) => { if (!nextOpen) setConfirmTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{confirmTarget?.confirmTitle ?? confirmTarget?.label}</DialogTitle>
+            {confirmTarget?.confirmDescription && (
+              <DialogDescription>{confirmTarget.confirmDescription}</DialogDescription>
+            )}
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setConfirmTarget(null)}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={confirmBusy}
+              onClick={confirmRowAction}
+              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
+            >
+              {confirmBusy ? 'Procesando…' : confirmTarget?.label}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Formulario de alta */}
-      {open && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          {renderCreateForm && !editingId ? renderCreateForm({ form, setForm, fields, editingId, onSubmit: create }) : <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
-            {fields.map((f) => (
-              <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {f.label}{f.required && <span className="text-red-500"> *</span>}
-                </label>
-                {f.type === 'checkbox' ? (
-                  <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={form[f.name] ?? false}
-                      onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                    />
-                    {f.label}
-                  </label>
-                ) : f.type === 'phone' ? (
-                  <PhoneField
-                    value={form[f.name] ?? ''}
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    onChange={(value) => setForm({ ...form, [f.name]: value })}
-                  />
-                ) : f.type === 'select' ? (
-                  <select
-                    value={form[f.name] ?? ''}
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="">Selecciona…</option>
-                    {f.options?.map((o) => {
-                      const value = typeof o === 'string' ? o : o.value;
-                      const label = typeof o === 'string' ? o : o.label;
-                      return <option key={value} value={value}>{label}</option>;
-                    })}
-                  </select>
-                ) : f.type === 'textarea' ? (
-                  <textarea
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    value={form[f.name] ?? ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    className={`${inputClass} min-h-24`}
-                  />
-                ) : (
-                  <input
-                    type={f.type || 'text'}
-                    required={editingId ? f.requiredOnEdit ?? false : f.required}
-                    value={form[f.name] ?? ''}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    className={inputClass}
-                  />
-                )}
+      {formVariant === 'modal' ? (
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) cancelForm(); }}>
+          <DialogContent className="sm:max-w-lg">
+            <form onSubmit={create} className="grid gap-4">
+              <DialogHeader>
+                <DialogTitle>{editingId ? 'Editar registro' : 'Nuevo registro'}</DialogTitle>
+                <DialogDescription>{title}</DialogDescription>
+              </DialogHeader>
+              {actionError && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {actionError}
+                </div>
+              )}
+              <div className="grid gap-4 md:grid-cols-2">
+                {formFields}
               </div>
-            ))}
-            <div className="md:col-span-2">
-              <button
-                type="submit"
-                className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
-              >
-                {editingId ? 'Actualizar' : 'Guardar'}
-              </button>
-            </div>
-          </form>
-          }
+              <DialogFooter>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
+                >
+                  {editingId ? 'Actualizar' : 'Guardar'}
+                </button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      ) : open && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          {renderCreateForm && !editingId ? renderCreateForm({ form, setForm, fields, editingId, onSubmit: create }) : (
+            <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
+              {formFields}
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
+                >
+                  {editingId ? 'Actualizar' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 
       {/* Tabla: loading / empty / error / datos vía AsyncBoundary */}
-      {!(open && hideListWhenCreating) && <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
-        <AsyncBoundary
-          status={status}
-          data={data}
-          error={error}
-          onRetry={refetch}
-          loading={
-            <div className="flex items-center justify-center py-16">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
-            </div>
-          }
-          empty={
-            <div className="py-16 text-center text-slate-500">
-              Aún no hay registros. Crea el primero con el botón "Nuevo".
-            </div>
-          }
-          errorFallback={
-            <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <AlertCircle className="h-8 w-8 text-red-500" />
-              <p className="text-sm text-slate-600">
-                {error?.message ?? 'No se pudieron cargar los datos.'}
-              </p>
-              <button
-                onClick={refetch}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 transition"
-              >
-                Reintentar
-              </button>
-            </div>
-          }
-        >
-          {(items) => (
-            <ResourceTable
-              items={items.map((item) => statusOverrides[String(item.id)] ? { ...item, status: statusOverrides[String(item.id)], statusOverride: true } : item)}
-              columns={columns}
-              query={query}
-              page={page}
-              pageSize={pageSize}
-              selectedIds={selectedIds}
-              menuId={menuId}
-              menuAnchor={menuAnchor}
-              onQueryChange={(value) => { setQuery(value); setPage(1); }}
-              onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
-              onPageChange={setPage}
-              onMenuChange={(value) => {
-                setMenuId(value);
-                if (!value) setMenuAnchor(null);
-              }}
-              setMenuAnchor={setMenuAnchor}
-              onSelectionChange={setSelectedIds}
-              onEdit={startEdit}
-              onDetails={renderDetails ? setDetailsRow : undefined}
-              onDeleteRequest={requestDelete}
-              onExport={() => exportCsv(items, columns, title)}
-              statusConfig={statusConfig}
-              onStatusRequest={(row, nextStatus) => {
-                const firstColumn = columns[0];
-                const rawValue = firstColumn ? (firstColumn.render ? firstColumn.render(row) : row[firstColumn.key]) : row.id;
-                const label = resolveCellText(rawValue) || String(row.id ?? 'este socio');
-                setStatusTarget({ id: String(row.id), label, nextStatus });
-                setMenuId(null);
-                setMenuAnchor(null);
-              }}
-            />
-          )}
-        </AsyncBoundary>
-      </div>}
+      {!(open && hideListWhenCreating) && (
+        <div className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
+          <AsyncBoundary
+            status={status}
+            data={data}
+            error={error}
+            onRetry={refetch}
+            loading={
+              <div className="flex items-center justify-center py-16">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+              </div>
+            }
+            empty={
+              <div className="py-16 text-center text-slate-500">
+                Aún no hay registros. Crea el primero con el botón "Nuevo".
+              </div>
+            }
+            errorFallback={
+              <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <p className="text-sm text-slate-600">
+                  {error?.message ?? 'No se pudieron cargar los datos.'}
+                </p>
+                <button
+                  onClick={refetch}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 transition"
+                >
+                  Reintentar
+                </button>
+              </div>
+            }
+          >
+            {(items) => (
+              <ResourceTable
+                items={items.map((item) => statusOverrides[String(item.id)] ? { ...item, status: statusOverrides[String(item.id)], statusOverride: true } : item)}
+                columns={columns}
+                query={query}
+                page={page}
+                pageSize={pageSize}
+                selectedIds={selectedIds}
+                menuId={menuId}
+                menuAnchor={menuAnchor}
+                onQueryChange={(value) => { setQuery(value); setPage(1); }}
+                onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
+                onPageChange={setPage}
+                onMenuChange={(value) => {
+                  setMenuId(value);
+                  if (!value) setMenuAnchor(null);
+                }}
+                setMenuAnchor={setMenuAnchor}
+                onSelectionChange={setSelectedIds}
+                onEdit={startEdit}
+                onDetails={renderDetails ? setDetailsRow : undefined}
+                onDeleteRequest={requestDelete}
+                onExport={() => exportCsv(items, columns, title)}
+                extraActions={extraActions}
+                onRunAction={requestRowAction}
+                disableEdit={disableEdit}
+                statusConfig={statusConfig}
+                onStatusRequest={(row, nextStatus) => {
+                  const firstColumn = columns[0];
+                  const rawValue = firstColumn ? (firstColumn.render ? firstColumn.render(row) : row[firstColumn.key]) : row.id;
+                  const label = resolveCellText(rawValue) || String(row.id ?? 'este socio');
+                  setStatusTarget({ id: String(row.id), label, nextStatus });
+                  setMenuId(null);
+                  setMenuAnchor(null);
+                }}
+              />
+            )}
+          </AsyncBoundary>
+        </div>
+      )}
       {detailsRow && renderDetails?.(detailsRow, () => setDetailsRow(null))}
     </div>
   );
@@ -420,6 +606,9 @@ function ResourceTable({
   onDetails,
   onDeleteRequest,
   onExport,
+  extraActions,
+  onRunAction,
+  disableEdit,
   statusConfig,
   onStatusRequest,
 }: {
@@ -441,6 +630,9 @@ function ResourceTable({
   onDetails?: (row: Record<string, any>) => void;
   onDeleteRequest: (row: Record<string, any>) => void;
   onExport: () => void;
+  extraActions?: (row: Record<string, any>) => RowAction[];
+  onRunAction: (action: RowAction) => void;
+  disableEdit?: boolean;
   statusConfig?: StatusConfig;
   onStatusRequest?: (row: Record<string, any>, nextStatus: 'ACTIVE' | 'SUSPENDED') => void;
 }) {
@@ -631,21 +823,23 @@ function ResourceTable({
                   })()}
                   <td className="relative px-4 py-4 text-right" onClick={(event) => event.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (onDetails) {
-                            onDetails(row);
-                            return;
-                          }
-                          onEdit(row);
-                        }}
-                        aria-label={`Ver detalles de ${id}`}
-                        className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
+                      {(onDetails || !disableEdit) && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (onDetails) {
+                              onDetails(row);
+                              return;
+                            }
+                            onEdit(row);
+                          }}
+                          aria-label={`Ver detalles de ${id}`}
+                          className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={(event) => {
@@ -662,12 +856,22 @@ function ResourceTable({
                     </div>
                     {menuId === id && menuAnchor && (
                       <div
-                        className="fixed z-50 w-32 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
+                        className="fixed z-50 w-36 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
                         style={{ left: `${menuAnchor.x}px`, top: `${menuAnchor.y}px` }}
                       >
-                        <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                          <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
-                        </button>
+                        {extraActions?.(row).map((action) => {
+                          const Icon = action.icon;
+                          return (
+                            <button
+                              key={action.label}
+                              type="button"
+                              onClick={() => onRunAction(action)}
+                              className={action.className ?? 'w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50'}
+                            >
+                              {Icon && <Icon className="mr-2 inline h-3.5 w-3.5" />}{action.label}
+                            </button>
+                          );
+                        })}
                         {statusConfig && onStatusRequest && ['ACTIVE', 'SUSPENDED'].includes(statusConfig.getStatus(row)) && (
                           <button
                             type="button"
@@ -678,6 +882,9 @@ function ResourceTable({
                             {statusConfig.getStatus(row) === 'ACTIVE' ? 'Suspender' : 'Reactivar'}
                           </button>
                         )}
+                        <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                          <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
+                        </button>
                       </div>
                     )}
                   </td>
