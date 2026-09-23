@@ -7,6 +7,8 @@ import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import PhoneField from '@/components/PhoneField';
 import { preferredTimeOptions, type MeProfile, type MemberProfileUpdate } from '@/lib/portal';
+import GamificationCard from '@/components/GamificationCard';
+import type { GamificationSummary } from '@/lib/gamification';
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
@@ -34,6 +36,8 @@ export default function PortalProfilePage() {
         </div>
       </div>
 
+      <GamificationSection />
+
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <AsyncBoundary
           status={status}
@@ -60,6 +64,35 @@ export default function PortalProfilePage() {
         </AsyncBoundary>
       </div>
     </div>
+  );
+}
+
+// GAM-F01 — nivel y puntos del socio. Se carga aparte del perfil para que un
+// fallo de gamificación no bloquee la edición de datos personales.
+function GamificationSection() {
+  const { status, data, error, refetch } = useAsync<GamificationSummary>(
+    () => api.get('/me/gamification') as Promise<GamificationSummary>,
+    [],
+  );
+
+  return (
+    <AsyncBoundary
+      status={status}
+      data={data}
+      error={error}
+      onRetry={refetch}
+      isEmpty={() => false}
+      loading={<div className="h-48 animate-pulse rounded-xl border border-slate-200 bg-white" />}
+      errorFallback={
+        <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          No se pudo cargar tu nivel y puntos.
+          <button onClick={refetch} className="ml-auto font-semibold underline">Reintentar</button>
+        </div>
+      }
+    >
+      {(summary) => <GamificationCard summary={summary} />}
+    </AsyncBoundary>
   );
 }
 

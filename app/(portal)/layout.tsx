@@ -2,9 +2,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, CreditCard, Clock, Dumbbell, Activity, User, LogOut, Loader2 } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Clock, Dumbbell, Activity, Gift, User, LogOut, Loader2 } from 'lucide-react';
 import Flame from '@/components/Flame';
 import ThemeToggle from '@/components/ThemeToggle';
+import BadgeUnlockNotifier from '@/components/BadgeUnlockNotifier';
 import { getSession, logout } from '@/lib/auth';
 
 const NAV = [
@@ -13,6 +14,7 @@ const NAV = [
   { href: '/portal/attendance', label: 'Asistencias', icon: Clock },
   { href: '/portal/routine', label: 'Rutina', icon: Dumbbell },
   { href: '/portal/progress', label: 'Progreso', icon: Activity },
+  { href: '/portal/rewards', label: 'Recompensas', icon: Gift },
   { href: '/portal/profile', label: 'Mi perfil', icon: User },
 ];
 
@@ -116,6 +118,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       </header>
 
       <main>{children}</main>
+
+      <BadgeUnlockNotifier />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   type AttendanceRecord,
 } from '@/lib/attendanceStreak';
 import Flame from '@/components/Flame';
+import MemberPointsPanel from '@/components/MemberPointsPanel';
 
 type MembershipHistoryItem = {
   id: string;
@@ -255,12 +256,13 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
         {error && <p role="alert" className="mx-6 mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         <Tabs defaultValue="details" className="flex flex-col gap-5 p-6">
-          <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-6">
             <TabsTrigger value="details" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Detalles</TabsTrigger>
             <TabsTrigger value="memberships" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Membresías</TabsTrigger>
             <TabsTrigger value="attendance" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Asistencia</TabsTrigger>
             <TabsTrigger value="health" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Ficha médica</TabsTrigger>
             <TabsTrigger value="emergency" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Contacto de emergencia</TabsTrigger>
+            <TabsTrigger value="points" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Puntos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="pt-6">
@@ -389,6 +391,10 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
               </div>
               {editingContact && <SaveButton saving={saving} onClick={() => save(saveContact)} />}
             </>}
+          </TabsContent>
+
+          <TabsContent value="points" className="pt-6">
+            <MemberPointsPanel memberId={member.id} />
           </TabsContent>
         </Tabs>
       </section>

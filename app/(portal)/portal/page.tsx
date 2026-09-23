@@ -20,6 +20,7 @@ import {
   type PaginatedResponse,
   type Routine,
 } from '@/lib/portal';
+import { requestBadgesRefresh } from '@/lib/gamification';
 
 type DashboardData = {
   profile: MeProfile;
@@ -54,8 +55,14 @@ export default function PortalDashboardPage() {
   async function handleCheckIn() {
     setCheckingIn(true);
     try {
-      await api.post('/me/check-in', {});
-      toast.add({ title: 'Asistencia registrada', type: 'success' });
+      const res = await api.post('/me/check-in', {});
+      const pointsAwarded: number = res?.gamification?.pointsAwarded ?? 0;
+      toast.add({
+        title: 'Asistencia registrada',
+        description: pointsAwarded > 0 ? `+${pointsAwarded} puntos` : undefined,
+        type: 'success',
+      });
+      requestBadgesRefresh();
       refetch();
     } catch (e: any) {
       toast.add({ title: 'No se pudo registrar la asistencia', description: e.message, type: 'error' });

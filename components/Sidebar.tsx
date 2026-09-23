@@ -38,6 +38,10 @@ import {
   ShieldCheck,
   Settings,
   ScrollText,
+  Gift,
+  Ticket,
+  Award,
+  Crown,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -82,6 +86,15 @@ const NAV = [
       { href: '/concepts', label: 'Conceptos', icon: Tag },
       { href: '/products', label: 'Productos', icon: Box },
       { href: '/services', label: 'Servicios', icon: Wrench },
+    ],
+  },
+  {
+    group: 'Gamificación',
+    items: [
+      { href: '/rewards', label: 'Recompensas', icon: Gift },
+      { href: '/redemptions', label: 'Canjes', icon: Ticket },
+      { href: '/badges', label: 'Insignias', icon: Award },
+      { href: '/tiers', label: 'Niveles', icon: Crown },
     ],
   },
   {
