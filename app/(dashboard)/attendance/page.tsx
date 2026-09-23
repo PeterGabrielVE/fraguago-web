@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ExportButton from '@/components/ExportButton';
 import { api } from '@/lib/api';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -135,10 +136,17 @@ export default function AttendancePage() {
               <p className="mt-1 text-slate-600">Registra la entrada de tus socios al gimnasio.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-5 py-3 text-right sm:text-left">
-            <div>
-              <p className="text-sm font-semibold text-amber-800">Un hábito hoy,</p>
-              <p className="text-sm text-amber-700">mejores resultados mañana.</p>
+          <div className="flex items-center gap-3">
+            <ExportButton
+              resource="attendance"
+              label="Exportar día"
+              filters={{ from: filterDate, to: filterDate, shift: filterShift }}
+            />
+            <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-5 py-3 text-right sm:text-left">
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Un hábito hoy,</p>
+                <p className="text-sm text-amber-700">mejores resultados mañana.</p>
+              </div>
             </div>
           </div>
         </div>

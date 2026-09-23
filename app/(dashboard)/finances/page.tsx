@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Filter, Plus, Receipt, Wallet } from 'lucide-react';
 import { api } from '@/lib/api';
+import ExportButton from '@/components/ExportButton';
 import { CURRENCY_LABELS, formatMoney } from '@/lib/currency';
 import {
   Dialog,
@@ -125,6 +126,11 @@ export default function FinancesPage() {
               <p className="mt-1 text-slate-600">Ingresos y egresos del gimnasio.</p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          <ExportButton
+            resource="finances"
+            filters={{ type: filterType, conceptId: filterConceptId, from: filterFrom, to: filterTo }}
+          />
           <button
             onClick={() => (open ? cancelForm() : setOpen(true))}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
@@ -134,6 +140,7 @@ export default function FinancesPage() {
           >
             {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
           </button>
+          </div>
         </div>
       </div>
 

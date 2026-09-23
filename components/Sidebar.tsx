@@ -47,6 +47,7 @@ import {
   UserX,
   Inbox,
   Share2,
+  Upload,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -129,6 +130,7 @@ const NAV = [
     group: 'Administración',
     items: [
       { href: '/users', label: 'Usuarios', icon: ShieldCheck },
+      { href: '/import', label: 'Importar datos', icon: Upload },
       { href: '/settings', label: 'Configuración', icon: Settings },
       { href: '/audit-logs', label: 'Auditoría', icon: ScrollText },
     ],

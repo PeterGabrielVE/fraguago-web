@@ -157,10 +157,9 @@ export default function ResourceManager({
   const listEndpoint = filters?.[activeFilter]?.endpoint ?? endpoint;
 
   // carga (loading / empty / error) gestionada por el hook
+  // api.list trae todas las páginas (la tabla pagina y busca en el cliente).
   const { status, data, error, refetch } = useAsync<any[]>(
-    () => api.get(listEndpoint).then((res) =>
-      Array.isArray(res) ? res : (res?.data ?? [])
-    ),
+    () => api.list(listEndpoint),
     [listEndpoint],
   );
 

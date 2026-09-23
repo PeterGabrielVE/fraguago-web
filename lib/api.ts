@@ -49,6 +49,28 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+// Renueva el access token con el refresh token (cookie). Reutilizable por
+// clientes que no usan req(): descargas, subidas con progreso, SSE.
+export function refreshSession(): Promise<string | null> {
+  return refreshAccessToken();
+}
+
+// fetch autenticado con un reintento tras renovar el token si responde 401.
+// Para respuestas binarias (descargas) donde req() no sirve porque parsea JSON.
+export async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const run = () => {
+    const token = getToken();
+    return fetch(BASE + path, {
+      ...init,
+      credentials: 'include',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(init.headers || {}) },
+    });
+  };
+  let res = await run();
+  if (res.status === 401 && getToken() && (await refreshAccessToken())) res = await run();
+  return res;
+}
+
 async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
   const token = getToken();
 
@@ -119,12 +141,46 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
   return text ? JSON.parse(text) : null;
 }
 
+// Tope de filas que se traen para una lista completa (tablas y selects).
+const MAX_LIST_ROWS = 5000;
+// Máximo pageSize que aceptan los endpoints paginados del API.
+const LIST_PAGE_SIZE = 100;
+
+// Devuelve TODAS las filas de un endpoint. Si responde paginado
+// ({ data, total } o { data, meta: { total } }) y la primera página no trae
+// todo, pide el resto de páginas en paralelo (antes solo se veían 20).
+async function listAll(path: string): Promise<any[]> {
+  const first = await req(path);
+  if (Array.isArray(first)) return first;
+  const data: any[] = Array.isArray(first?.data) ? first.data : [];
+  const total = typeof first?.total === 'number' ? first.total : first?.meta?.total;
+  if (typeof total !== 'number' || data.length >= total) return data;
+
+  const [base, query = ''] = path.split('?');
+  const pages = Math.ceil(Math.min(total, MAX_LIST_ROWS) / LIST_PAGE_SIZE);
+  const responses = await Promise.all(
+    Array.from({ length: pages }, (_, i) => {
+      const params = new URLSearchParams(query);
+      params.set('page', String(i + 1));
+      params.set('pageSize', String(LIST_PAGE_SIZE));
+      return req(`${base}?${params}`);
+    }),
+  );
+  // Sin duplicados si alguien crea/borra registros mientras se pagina.
+  const byId = new Map<string, any>();
+  const rows: any[] = [];
+  for (const res of responses) {
+    for (const row of res?.data ?? []) {
+      if (row?.id) { if (byId.has(row.id)) continue; byId.set(row.id, row); }
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
 export const api = {
   get: (p: string) => req(p),
-  list: async (p: string) => {
-    const response = await req(p);
-    return Array.isArray(response) ? response : (response?.data ?? []);
-  },
+  list: listAll,
   post: (p: string, body: any) => req(p, { method: 'POST', body: JSON.stringify(body) }),
   put: (p: string, body: any) => req(p, { method: 'PUT', body: JSON.stringify(body) }),
   patch: (p: string, body: any) => req(p, { method: 'PATCH', body: JSON.stringify(body) }),
