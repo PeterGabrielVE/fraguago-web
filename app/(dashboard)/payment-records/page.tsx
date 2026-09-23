@@ -3,15 +3,10 @@ import { useEffect, useState } from 'react';
 import { Receipt } from 'lucide-react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
-import { CURRENCY_OPTIONS, formatMoney } from '@/lib/currency';
+import { CURRENCY_OPTIONS, PAYMENT_METHOD_LABELS, formatMoney } from '@/lib/currency';
 
 const TYPE_LABELS: Record<string, string> = { INCOME: 'Ingreso', EXPENSE: 'Egreso' };
-const METHOD_LABELS: Record<string, string> = {
-  CASH: 'Efectivo',
-  CARD: 'Tarjeta',
-  TRANSFER: 'Transferencia',
-  OTHER: 'Otro',
-};
+const METHOD_LABELS = PAYMENT_METHOD_LABELS;
 
 export default function Page() {
   const [memberOptions, setMemberOptions] = useState<SelectOption[]>([]);

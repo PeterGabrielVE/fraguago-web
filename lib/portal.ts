@@ -79,10 +79,22 @@ export type RoutineTrainer = {
   user: { profile: { firstName: string; lastName: string } };
 };
 
+export type RoutineExercise = {
+  id: string;
+  day: number;
+  order: number;
+  sets: number;
+  reps: string;
+  restSeconds?: number | null;
+  notes?: string | null;
+  exercise: { id: string; name: string; muscleGroup?: string | null; equipment?: string | null };
+};
+
 export type Routine = {
   id: string;
   name: string;
   description?: string | null;
+  exercises?: RoutineExercise[];
   createdAt: string;
   trainer: RoutineTrainer | null;
   /** El socio ya la marcó como completada hoy (solo en /me/routine). */

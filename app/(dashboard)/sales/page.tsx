@@ -15,7 +15,7 @@ import {
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { formatMoney } from '@/lib/currency';
+import { PAYMENT_METHOD_LABELS, formatMoney } from '@/lib/currency';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +62,7 @@ export default function SalesPage() {
 
   const [members, setMembers] = useState<any[]>([]);
   const [memberId, setMemberId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [memberQuery, setMemberQuery] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const memberBoxRef = useRef<HTMLDivElement>(null);
@@ -171,6 +172,8 @@ export default function SalesPage() {
 
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const cartCurrency = cart[0]?.currency;
+  // El API rechaza ventas con monedas mezcladas (el ingreso va en una sola).
+  const mixedCurrencies = new Set(cart.map((i) => i.currency)).size > 1;
 
   async function confirmSale() {
     if (cart.length === 0) return;
@@ -178,6 +181,7 @@ export default function SalesPage() {
     try {
       await api.post('/sales', {
         memberId: memberId || undefined,
+        paymentMethod,
         items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       });
       toast.add({ title: 'Venta registrada', type: 'success' });
@@ -371,14 +375,31 @@ export default function SalesPage() {
 
           {/* Total y confirmar */}
           <div className="space-y-3 border-t border-slate-200 pt-3">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-slate-600">Método de pago</span>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+              >
+                {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+            {mixedCurrencies && (
+              <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                El carrito mezcla productos en distintas monedas: registra una venta por moneda.
+              </p>
+            )}
             <div className="flex items-center justify-between text-base font-semibold text-slate-900">
               <span>Total</span>
-              <span>{formatMoney(cartTotal, cartCurrency)}</span>
+              <span>{mixedCurrencies ? '—' : formatMoney(cartTotal, cartCurrency)}</span>
             </div>
             <button
               type="button"
               onClick={confirmSale}
-              disabled={cart.length === 0 || confirming}
+              disabled={cart.length === 0 || confirming || mixedCurrencies}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Receipt className="h-4 w-4" />
@@ -453,6 +474,8 @@ export default function SalesPage() {
               {detailSale && new Date(detailSale.soldAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
               {' · '}
               {detailSale?.member ? (personLabel(detailSale.member) || detailSale.memberId) : 'Público general'}
+              {detailSale?.paymentMethod && ` · ${PAYMENT_METHOD_LABELS[detailSale.paymentMethod] ?? detailSale.paymentMethod}`}
+              {detailSale?.createdBy && ` · Registró: ${`${detailSale.createdBy.profile?.firstName ?? ''} ${detailSale.createdBy.profile?.lastName ?? ''}`.trim() || detailSale.createdBy.email}`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -464,7 +487,7 @@ export default function SalesPage() {
             ))}
             <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-semibold text-slate-900">
               <span>Total</span>
-              <span>{formatMoney(detailSale?.total ?? 0)}</span>
+              <span>{formatMoney(detailSale?.total ?? 0, detailSale?.currency)}</span>
             </div>
           </div>
         </DialogContent>

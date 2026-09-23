@@ -54,6 +54,26 @@ type RoutineDraft = {
   notes?: string;
 };
 
+// DB-06 — convierte el borrador de la IA en ejercicios estructurados para el
+// API (limitando valores a los rangos que valida el backend).
+function draftExercises(draft: RoutineDraft | null) {
+  if (!draft?.days?.length) return undefined;
+  const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
+  return draft.days.flatMap((d) =>
+    d.exercises
+      .filter((ex) => ex.name?.trim())
+      .map((ex, i) => ({
+        name: ex.name.trim().slice(0, 100),
+        day: clamp(d.day || 1, 1, 7),
+        order: i,
+        sets: clamp(ex.sets || 1, 1, 20),
+        reps: String(ex.reps || '10').slice(0, 20),
+        ...(ex.restSeconds ? { restSeconds: clamp(ex.restSeconds, 0, 900) } : {}),
+        ...(ex.notes ? { notes: ex.notes.slice(0, 300) } : {}),
+      })),
+  ).slice(0, 80);
+}
+
 function formatDraft(draft: RoutineDraft) {
   let text = '';
   for (const day of draft.days) {
@@ -124,6 +144,7 @@ function GenerateRoutineButton({
         trainerId: form.trainerId || undefined,
         name,
         description,
+        exercises: draftExercises(draft),
       });
       toast.add({ title: 'Rutina guardada', type: 'success' });
       setOpen(false);

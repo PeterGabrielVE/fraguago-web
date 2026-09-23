@@ -48,6 +48,7 @@ import {
   Inbox,
   Share2,
   Upload,
+  ListChecks,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -123,6 +124,7 @@ const NAV = [
     items: [
       { href: '/trainers', label: 'Entrenadores', icon: User },
       { href: '/routines', label: 'Rutinas', icon: Dumbbell },
+      { href: '/exercises', label: 'Ejercicios', icon: ListChecks },
       { href: '/schedules', label: 'Horarios', icon: Calendar },
     ],
   },

@@ -6,6 +6,13 @@ export const CURRENCY_LABELS: Record<string, string> = {
 
 export const CURRENCY_OPTIONS = Object.entries(CURRENCY_LABELS).map(([value, label]) => ({ value, label }));
 
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: 'Efectivo',
+  CARD: 'Tarjeta',
+  TRANSFER: 'Transferencia',
+  OTHER: 'Otro',
+};
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
   VES: 'Bs.',

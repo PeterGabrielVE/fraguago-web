@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
-import { CreditCard, RefreshCw } from 'lucide-react';
+import { Ban, CirclePause, CirclePlay, CreditCard, RefreshCw } from 'lucide-react';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
 
 function nowAsDatetimeLocal() {
@@ -82,6 +82,33 @@ export default function Page() {
           confirmDescription: `Se renovará la membresía de ${memberFullName(row.member) || row.memberId} con el plan ${row.plan?.name || row.planId}.`,
           onClick: () => api.post(`/memberships/${row.id}/renew`, {}),
         },
+        // DB-02 — estado administrativo: suspender (congela y bloquea el
+        // check-in), reactivar o cancelar (definitivo).
+        ...(row.status === 'ACTIVE' ? [{
+          label: 'Suspender',
+          icon: CirclePause,
+          confirm: true,
+          confirmTitle: 'Suspender membresía',
+          confirmDescription: `${memberFullName(row.member) || 'El socio'} no podrá registrar asistencia hasta que la reactives.`,
+          onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'SUSPENDED' }),
+        }] : []),
+        ...(row.status === 'SUSPENDED' ? [{
+          label: 'Reactivar',
+          icon: CirclePlay,
+          confirm: true,
+          confirmTitle: 'Reactivar membresía',
+          confirmDescription: `${memberFullName(row.member) || 'El socio'} vuelve a poder registrar asistencia.`,
+          onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'ACTIVE' }),
+        }] : []),
+        ...(row.status !== 'CANCELLED' ? [{
+          label: 'Cancelar',
+          icon: Ban,
+          confirm: true,
+          confirmTitle: 'Cancelar membresía',
+          confirmDescription: 'La cancelación es definitiva: para volver a habilitar al socio habrá que asignarle una membresía nueva.',
+          className: 'text-red-600',
+          onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'CANCELLED' }),
+        }] : []),
       ]}
     />
   );

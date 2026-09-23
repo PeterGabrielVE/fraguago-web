@@ -21,7 +21,10 @@ export const MEMBERSHIP_STATUS_BADGES: Record<string, string> = {
 // El campo `status` en la BD casi siempre queda en "active" (nada lo marca
 // vencido automáticamente); calculamos el estado real a partir de start/endDate.
 export function effectiveMembershipStatus(row: { status?: string; startDate?: string | Date; endDate: string | Date }): string {
-  if (row.status && row.status !== 'active') return row.status;
+  // El API guarda el estado administrativo como enum (ACTIVE, SUSPENDED,
+  // CANCELLED); lo demás (pendiente, por vencer, vencida) sale de las fechas.
+  const stored = row.status?.toLowerCase();
+  if (stored && stored !== 'active') return stored;
   const now = new Date();
   if (row.startDate && new Date(row.startDate) > now) return 'pending';
   const end = new Date(row.endDate);

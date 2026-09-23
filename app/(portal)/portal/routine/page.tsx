@@ -5,8 +5,36 @@ import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
-import { trainerName, type Routine } from '@/lib/portal';
+import { trainerName, type Routine, type RoutineExercise } from '@/lib/portal';
 import { challengeUpdatesMessage, type ChallengeProgressUpdate } from '@/lib/challenges';
+
+// DB-06 — ejercicios de la rutina agrupados por día.
+function ExercisesByDay({ exercises }: { exercises: RoutineExercise[] }) {
+  const days = [...new Set(exercises.map((e) => e.day))].sort((a, b) => a - b);
+  return (
+    <div className="mt-3 space-y-3">
+      {days.map((day) => (
+        <div key={day}>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Día {day}</p>
+          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+            {exercises.filter((e) => e.day === day).map((e) => (
+              <li key={e.id} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-900">{e.exercise.name}</p>
+                  {e.notes && <p className="text-xs text-slate-500">{e.notes}</p>}
+                </div>
+                <div className="shrink-0 text-right text-xs text-slate-600">
+                  <p className="font-semibold text-slate-900">{e.sets} × {e.reps}</p>
+                  {e.restSeconds ? <p>Descanso {e.restSeconds}s</p> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function PortalRoutinePage() {
   const { status, data, error, refetch } = useAsync<Routine[]>(
@@ -81,9 +109,11 @@ export default function PortalRoutinePage() {
               return (
                 <div key={routine.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="text-lg font-semibold text-slate-900">{routine.name}</h2>
-                  {routine.description && (
+                  {routine.exercises?.length ? (
+                    <ExercisesByDay exercises={routine.exercises} />
+                  ) : routine.description ? (
                     <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{routine.description}</p>
-                  )}
+                  ) : null}
                   <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
                     <User className="h-3.5 w-3.5" />
                     {name ? `Entrenador: ${name}` : 'Sin entrenador asignado'}
