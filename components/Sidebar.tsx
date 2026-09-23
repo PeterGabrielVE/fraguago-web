@@ -34,6 +34,7 @@ import {
   Zap,
   Coins,
   Dumbbell,
+  ShoppingCart,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -74,6 +75,7 @@ const NAV = [
   {
     group: 'Operación',
     items: [
+      { href: '/sales', label: 'Ventas', icon: ShoppingCart },
       { href: '/concepts', label: 'Conceptos', icon: Tag },
       { href: '/products', label: 'Productos', icon: Box },
       { href: '/services', label: 'Servicios', icon: Wrench },
