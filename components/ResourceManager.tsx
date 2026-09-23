@@ -55,6 +55,8 @@ export type Field = {
   readOnly?: boolean;
   /** Copia automáticamente el valor de otro campo (por nombre) cada vez que ese otro campo cambia, p. ej. contraseña = cédula. */
   mirrorFrom?: string;
+  /** El campo ocupa el ancho completo del formulario (col-span-2 en md). */
+  fullWidth?: boolean;
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
 export type StatusConfig = {
@@ -331,7 +333,7 @@ export default function ResourceManager({
   const formFields = fields
     .filter((f) => !(f.createOnly && editingId))
     .map((f) => (
-    <div key={f.name} className={f.type === 'textarea' ? 'md:col-span-2' : ''}>
+    <div key={f.name} className={f.type === 'textarea' || f.fullWidth ? 'md:col-span-2' : ''}>
       <label className="mb-1.5 block text-sm font-medium text-slate-700">
         {f.label}{f.required && <span className="text-red-500"> *</span>}
       </label>

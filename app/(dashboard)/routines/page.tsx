@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Dumbbell, Sparkles } from 'lucide-react';
+import { Copy, Dumbbell, Sparkles } from 'lucide-react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
@@ -267,10 +267,118 @@ function GenerateRoutineButton({
   );
 }
 
+function CopyRoutineDialog({
+  row,
+  open,
+  onOpenChange,
+  memberOptions,
+  trainerOptions,
+  onSaved,
+}: {
+  row: any | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  memberOptions: SelectOption[];
+  trainerOptions: SelectOption[];
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!row) return;
+    setForm({
+      memberId: row.memberId ? String(row.memberId) : '',
+      trainerId: row.trainerId ? String(row.trainerId) : '',
+      name: row.name ? `${row.name} (copia)` : '',
+      description: row.description ?? '',
+    });
+  }, [row]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post('/routines', {
+        memberId: form.memberId,
+        trainerId: form.trainerId || undefined,
+        name: form.name,
+        description: form.description || undefined,
+      });
+      toast.add({ title: 'Rutina copiada', type: 'success' });
+      onOpenChange(false);
+      onSaved();
+    } catch (err: any) {
+      toast.add({ title: 'No se pudo copiar la rutina', description: err.message, type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={save} className="grid gap-4">
+          <DialogHeader>
+            <DialogTitle>Copiar rutina</DialogTitle>
+            <DialogDescription>Creá una copia de esta rutina para otro socio o entrenador.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Socio <span className="text-red-500">*</span></label>
+              <select required value={form.memberId ?? ''} onChange={(e) => setForm({ ...form, memberId: e.target.value })} className={inputClass}>
+                <option value="">Selecciona…</option>
+                {memberOptions.map((o) => {
+                  const value = typeof o === 'string' ? o : o.value;
+                  const label = typeof o === 'string' ? o : o.label;
+                  return <option key={value} value={value}>{label}</option>;
+                })}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Entrenador</label>
+              <select value={form.trainerId ?? ''} onChange={(e) => setForm({ ...form, trainerId: e.target.value })} className={inputClass}>
+                <option value="">Selecciona…</option>
+                {trainerOptions.map((o) => {
+                  const value = typeof o === 'string' ? o : o.value;
+                  const label = typeof o === 'string' ? o : o.label;
+                  return <option key={value} value={value}>{label}</option>;
+                })}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nombre <span className="text-red-500">*</span></label>
+            <input required value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Descripción</label>
+            <textarea
+              value={form.description ?? ''}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className={`${inputClass} min-h-32 font-mono text-xs`}
+            />
+          </div>
+          <DialogFooter>
+            <button
+              type="submit"
+              disabled={saving || !form.memberId || !form.name}
+              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
+            >
+              {saving ? 'Copiando…' : 'Copiar rutina'}
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Page() {
   const [memberOptions, setMemberOptions] = useState<SelectOption[]>([]);
   const [trainerOptions, setTrainerOptions] = useState<SelectOption[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  const [copyRow, setCopyRow] = useState<any | null>(null);
 
   useEffect(() => {
     api.list('/members').then((members) => {
@@ -288,31 +396,48 @@ export default function Page() {
   }, []);
 
   return (
-    <ResourceManager
-      key={reloadKey}
-      title="Rutinas"
-      subtitle="Planes de entrenamiento asignados a los socios."
-      icon={Dumbbell}
-      endpoint="/routines"
-      formVariant="modal"
-      headerActions={
-        <GenerateRoutineButton
-          memberOptions={memberOptions}
-          trainerOptions={trainerOptions}
-          onSaved={() => setReloadKey((k) => k + 1)}
-        />
-      }
-      columns={[
-        { key: 'name', label: 'Nombre' },
-        { key: 'member', label: 'Socio', render: (r) => personLabel(r.member) || r.memberId },
-        { key: 'trainer', label: 'Entrenador', render: (r) => personLabel(r.trainer) || '—' },
-      ]}
-      fields={[
-        { name: 'memberId', label: 'Socio', type: 'select', required: true, options: memberOptions },
-        { name: 'trainerId', label: 'Entrenador', type: 'select', options: trainerOptions },
-        { name: 'name', label: 'Nombre', required: true },
-        { name: 'description', label: 'Descripción', type: 'textarea' },
-      ]}
-    />
+    <>
+      <ResourceManager
+        key={reloadKey}
+        title="Rutinas"
+        subtitle="Planes de entrenamiento asignados a los socios."
+        icon={Dumbbell}
+        endpoint="/routines"
+        formVariant="modal"
+        headerActions={
+          <GenerateRoutineButton
+            memberOptions={memberOptions}
+            trainerOptions={trainerOptions}
+            onSaved={() => setReloadKey((k) => k + 1)}
+          />
+        }
+        columns={[
+          { key: 'name', label: 'Nombre' },
+          { key: 'member', label: 'Socio', render: (r) => personLabel(r.member) || r.memberId },
+          { key: 'trainer', label: 'Entrenador', render: (r) => personLabel(r.trainer) || '—' },
+        ]}
+        fields={[
+          { name: 'memberId', label: 'Socio', type: 'select', required: true, options: memberOptions },
+          { name: 'trainerId', label: 'Entrenador', type: 'select', options: trainerOptions },
+          { name: 'name', label: 'Nombre', required: true, fullWidth: true },
+          { name: 'description', label: 'Descripción', type: 'textarea' },
+        ]}
+        extraActions={(row) => [
+          {
+            label: 'Copiar',
+            icon: Copy,
+            onClick: () => setCopyRow(row),
+          },
+        ]}
+      />
+      <CopyRoutineDialog
+        row={copyRow}
+        open={Boolean(copyRow)}
+        onOpenChange={(nextOpen) => { if (!nextOpen) setCopyRow(null); }}
+        memberOptions={memberOptions}
+        trainerOptions={trainerOptions}
+        onSaved={() => setReloadKey((k) => k + 1)}
+      />
+    </>
   );
 }
