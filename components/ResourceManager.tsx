@@ -96,7 +96,7 @@ export type ListFilter = { label: string; endpoint: string };
 export default function ResourceManager({
   title, subtitle, icon: Icon, endpoint, columns, fields, getEditValues, renderDetails,
   renderCreateForm, renderCreate, hideListWhenCreating = false, statusConfig,
-  formVariant = 'inline', onCreate, extraActions, disableEdit, filters, headerActions, validate,
+  formVariant = 'inline', onCreate, extraActions, disableEdit, disableCreate = false, disableDelete = false, filters, headerActions, validate,
 }: {
   title: string;
   subtitle?: string;
@@ -126,6 +126,10 @@ export default function ResourceManager({
   extraActions?: (row: Record<string, any>) => RowAction[];
   /** Oculta el botón de editar (lápiz) cuando el recurso no soporta actualización genérica. */
   disableEdit?: boolean;
+  /** Oculta el botón "Nuevo"/"Cancelar" del header cuando el recurso no soporta creación (p. ej. solo lectura). */
+  disableCreate?: boolean;
+  /** Oculta la opción "Eliminar" del menú de acciones cuando el recurso no soporta borrado (p. ej. solo lectura). */
+  disableDelete?: boolean;
   /** Pestañas que cambian de qué endpoint se lee la lista (crear/editar/eliminar siguen usando `endpoint`). La primera se usa por defecto. */
   filters?: ListFilter[];
   /** Contenido extra en el header, a la izquierda del botón "Nuevo" (p. ej. un botón de generación con IA). */
@@ -469,15 +473,17 @@ export default function ResourceManager({
           </div>
           <div className="flex items-center gap-2">
             {headerActions}
-            <button
-              onClick={() => (open ? cancelForm() : startCreate())}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
-                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                : 'bg-amber-600 text-white hover:bg-amber-700'
-                }`}
-            >
-              {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
-            </button>
+            {!disableCreate && (
+              <button
+                onClick={() => (open ? cancelForm() : startCreate())}
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${open
+                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  : 'bg-amber-600 text-white hover:bg-amber-700'
+                  }`}
+              >
+                {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -681,6 +687,7 @@ export default function ResourceManager({
                 extraActions={extraActions}
                 onRunAction={requestRowAction}
                 disableEdit={disableEdit}
+                disableDelete={disableDelete}
                 statusConfig={statusConfig}
                 onStatusRequest={(row, nextStatus) => {
                   const firstColumn = columns[0];
@@ -722,6 +729,7 @@ function ResourceTable({
   extraActions,
   onRunAction,
   disableEdit,
+  disableDelete,
   statusConfig,
   onStatusRequest,
 }: {
@@ -746,6 +754,7 @@ function ResourceTable({
   extraActions?: (row: Record<string, any>) => RowAction[];
   onRunAction: (action: RowAction) => void;
   disableEdit?: boolean;
+  disableDelete?: boolean;
   statusConfig?: StatusConfig;
   onStatusRequest?: (row: Record<string, any>, nextStatus: 'ACTIVE' | 'SUSPENDED') => void;
 }) {
@@ -995,9 +1004,11 @@ function ResourceTable({
                             {statusConfig.getStatus(row) === 'ACTIVE' ? 'Suspender' : 'Reactivar'}
                           </button>
                         )}
-                        <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                          <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
-                        </button>
+                        {!disableDelete && (
+                          <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                            <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>

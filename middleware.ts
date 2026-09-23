@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const PROTECTED_PATHS = [
   '/dashboard',
   '/attendance',
+  '/audit-logs',
   '/concepts',
   '/emergency-contacts',
   '/exchange-rates',
@@ -18,8 +19,10 @@ const PROTECTED_PATHS = [
   '/routines',
   '/schedules',
   '/services',
+  '/settings',
   '/trainers',
   '/training-goals',
+  '/users',
 ];
 
 function isProtectedPath(pathname: string) {
@@ -66,6 +69,7 @@ export const config = {
     '/login',
     '/dashboard/:path*',
     '/attendance/:path*',
+    '/audit-logs/:path*',
     '/concepts/:path*',
     '/emergency-contacts/:path*',
     '/exchange-rates/:path*',
@@ -81,7 +85,9 @@ export const config = {
     '/routines/:path*',
     '/schedules/:path*',
     '/services/:path*',
+    '/settings/:path*',
     '/trainers/:path*',
     '/training-goals/:path*',
+    '/users/:path*',
   ],
 };

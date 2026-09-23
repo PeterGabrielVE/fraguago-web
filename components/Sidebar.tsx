@@ -35,6 +35,9 @@ import {
   Dumbbell,
   ShoppingCart,
   Activity,
+  ShieldCheck,
+  Settings,
+  ScrollText,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -87,6 +90,14 @@ const NAV = [
       { href: '/trainers', label: 'Entrenadores', icon: User },
       { href: '/routines', label: 'Rutinas', icon: Dumbbell },
       { href: '/schedules', label: 'Horarios', icon: Calendar },
+    ],
+  },
+  {
+    group: 'Administración',
+    items: [
+      { href: '/users', label: 'Usuarios', icon: ShieldCheck },
+      { href: '/settings', label: 'Configuración', icon: Settings },
+      { href: '/audit-logs', label: 'Auditoría', icon: ScrollText },
     ],
   },
 ];
