@@ -89,6 +89,8 @@ export function getRoleRedirect(data?: LoginResponse): string {
   switch (getRole(data)?.toUpperCase()) {
     case 'TRAINER':
       return '/routines';
+    case 'MEMBER':
+      return '/portal';
     case 'ADMIN':
     case 'OWNER':
     case 'GYM_OWNER':

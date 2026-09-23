@@ -14,6 +14,7 @@ const PROTECTED_PATHS = [
   '/membership-plans',
   '/memberships',
   '/payment-records',
+  '/portal',
   '/products',
   '/progress',
   '/routines',
@@ -57,7 +58,8 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === '/login' && hasSession) {
-    const destination = payload?.role?.toUpperCase() === 'TRAINER' ? '/routines' : '/dashboard';
+    const role = payload?.role?.toUpperCase();
+    const destination = role === 'TRAINER' ? '/routines' : role === 'MEMBER' ? '/portal' : '/dashboard';
     return NextResponse.redirect(new URL(destination, request.url));
   }
 
@@ -80,6 +82,7 @@ export const config = {
     '/membership-plans/:path*',
     '/memberships/:path*',
     '/payment-records/:path*',
+    '/portal/:path*',
     '/products/:path*',
     '/progress/:path*',
     '/routines/:path*',
