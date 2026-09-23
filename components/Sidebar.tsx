@@ -43,6 +43,10 @@ import {
   Award,
   Crown,
   Trophy,
+  MessageSquareText,
+  UserX,
+  Inbox,
+  Share2,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -93,6 +97,15 @@ const NAV = [
     group: 'Comunidad',
     items: [
       { href: '/challenges', label: 'Retos', icon: Trophy },
+    ],
+  },
+  {
+    group: 'Retención',
+    items: [
+      { href: '/automations', label: 'Mensajes automáticos', icon: MessageSquareText },
+      { href: '/inactive-members', label: 'Socios inactivos', icon: UserX },
+      { href: '/message-logs', label: 'Envíos', icon: Inbox },
+      { href: '/referrals', label: 'Referidos', icon: Share2 },
     ],
   },
   {

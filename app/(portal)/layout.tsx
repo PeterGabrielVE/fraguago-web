@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, CreditCard, Clock, Dumbbell, Activity, Gift, Trophy, User, LogOut, Loader2 } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Clock, Dumbbell, Activity, Gift, Trophy, Share2, User, LogOut, Loader2 } from 'lucide-react';
 import Flame from '@/components/Flame';
 import ThemeToggle from '@/components/ThemeToggle';
 import BadgeUnlockNotifier from '@/components/BadgeUnlockNotifier';
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/portal/progress', label: 'Progreso', icon: Activity },
   { href: '/portal/challenges', label: 'Retos', icon: Trophy },
   { href: '/portal/rewards', label: 'Recompensas', icon: Gift },
+  { href: '/portal/referrals', label: 'Referidos', icon: Share2 },
   { href: '/portal/profile', label: 'Mi perfil', icon: User },
 ];
 
