@@ -44,19 +44,25 @@ export type SelectOption = string | { value: string; label: string };
 export type Field = {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'datetime-local' | 'select' | 'email' | 'textarea' | 'checkbox' | 'phone';
+  type?: 'text' | 'number' | 'date' | 'datetime-local' | 'time' | 'select' | 'multiselect' | 'email' | 'textarea' | 'checkbox' | 'phone';
   options?: SelectOption[];
   required?: boolean;
   requiredOnEdit?: boolean;
   defaultValue?: string | (() => string);
   /** El campo solo aparece al crear; se oculta por completo al editar (y por lo tanto nunca se manda en el PATCH). */
   createOnly?: boolean;
+  /** El campo solo aparece al editar; se oculta por completo al crear. Útil junto con `createOnly` para usar un input distinto (p. ej. multiselect) en cada modo, con el mismo `name`. */
+  editOnly?: boolean;
   /** El input se muestra deshabilitado; su valor solo cambia por `mirrorFrom` de otro campo. */
   readOnly?: boolean;
   /** Copia automáticamente el valor de otro campo (por nombre) cada vez que ese otro campo cambia, p. ej. contraseña = cédula. */
   mirrorFrom?: string;
   /** El campo ocupa el ancho completo del formulario (col-span-2 en md). */
   fullWidth?: boolean;
+  /** Convierte el valor a número antes de enviarlo, aunque el tipo de input no sea "number" (p. ej. un select de opciones numéricas). */
+  numeric?: boolean;
+  /** Solo para type "multiselect": atajos que reemplazan la selección actual por un conjunto fijo de valores, p. ej. { label: 'Lunes a viernes', values: ['0','1','2','3','4'] }. */
+  presets?: { label: string; values: string[] }[];
 };
 export type Column = { key: string; label: string; render?: (row: any) => any };
 export type StatusConfig = {
@@ -88,7 +94,7 @@ export type ListFilter = { label: string; endpoint: string };
 export default function ResourceManager({
   title, subtitle, icon: Icon, endpoint, columns, fields, getEditValues, renderDetails,
   renderCreateForm, renderCreate, hideListWhenCreating = false, statusConfig,
-  formVariant = 'inline', onCreate, extraActions, disableEdit, filters, headerActions,
+  formVariant = 'inline', onCreate, extraActions, disableEdit, filters, headerActions, validate,
 }: {
   title: string;
   subtitle?: string;
@@ -122,6 +128,8 @@ export default function ResourceManager({
   filters?: ListFilter[];
   /** Contenido extra en el header, a la izquierda del botón "Nuevo" (p. ej. un botón de generación con IA). */
   headerActions?: React.ReactNode;
+  /** Validación adicional (p. ej. entre campos) antes de crear/editar. Devolver un mensaje de error la bloquea; devolver nada/null la deja pasar. */
+  validate?: (form: Record<string, any>) => string | null | undefined;
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
@@ -154,9 +162,11 @@ export default function ResourceManager({
     const payload: Record<string, any> = {};
     for (const f of fields) {
       if (f.createOnly && editingId) continue;
+      if (f.editOnly && !editingId) continue;
       let v = form[f.name];
       if (v === '' || v === undefined) continue;
-      if (f.type === 'number') v = Number(v);
+      if (f.type === 'multiselect' && Array.isArray(v) && v.length === 0) continue;
+      if ((f.type === 'number' || f.numeric) && f.type !== 'multiselect') v = Number(v);
       if (f.type === 'datetime-local') v = new Date(v).toISOString();
       if (f.type === 'checkbox' && v === false) continue;
       payload[f.name] = v;
@@ -167,6 +177,14 @@ export default function ResourceManager({
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setActionError('');
+    if (validate) {
+      const message = validate(form);
+      if (message) {
+        setActionError(message);
+        toast.add({ title: 'Revisá el formulario', description: message, type: 'error' });
+        return;
+      }
+    }
     try {
       const wasEditing = Boolean(editingId);
       if (editingId) {
@@ -331,13 +349,54 @@ export default function ResourceManager({
   }
 
   const formFields = fields
-    .filter((f) => !(f.createOnly && editingId))
+    .filter((f) => !(f.createOnly && editingId) && !(f.editOnly && !editingId))
     .map((f) => (
-    <div key={f.name} className={f.type === 'textarea' || f.fullWidth ? 'md:col-span-2' : ''}>
+    <div key={f.name} className={f.type === 'textarea' || f.type === 'multiselect' || f.fullWidth ? 'md:col-span-2' : ''}>
       <label className="mb-1.5 block text-sm font-medium text-slate-700">
         {f.label}{f.required && <span className="text-red-500"> *</span>}
       </label>
-      {f.type === 'checkbox' ? (
+      {f.type === 'multiselect' ? (
+        <div className="space-y-2">
+          {f.presets && f.presets.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {f.presets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => updateField(f.name, preset.values)}
+                  className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-lg border border-slate-300 px-3 py-2.5">
+          {f.options?.map((o) => {
+            const value = typeof o === 'string' ? o : o.value;
+            const label = typeof o === 'string' ? o : o.label;
+            const selected: string[] = Array.isArray(form[f.name]) ? form[f.name] : [];
+            const checked = selected.includes(value);
+            return (
+              <label key={value} className="flex items-center gap-1.5 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selected, value]
+                      : selected.filter((v) => v !== value);
+                    updateField(f.name, next);
+                  }}
+                  className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                />
+                {label}
+              </label>
+            );
+          })}
+          </div>
+        </div>
+      ) : f.type === 'checkbox' ? (
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
