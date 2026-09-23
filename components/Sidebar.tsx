@@ -42,6 +42,7 @@ import {
   Ticket,
   Award,
   Crown,
+  Trophy,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -86,6 +87,12 @@ const NAV = [
       { href: '/concepts', label: 'Conceptos', icon: Tag },
       { href: '/products', label: 'Productos', icon: Box },
       { href: '/services', label: 'Servicios', icon: Wrench },
+    ],
+  },
+  {
+    group: 'Comunidad',
+    items: [
+      { href: '/challenges', label: 'Retos', icon: Trophy },
     ],
   },
   {

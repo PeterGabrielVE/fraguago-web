@@ -1,15 +1,38 @@
 'use client';
-import { AlertCircle, Dumbbell, User } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, CircleCheck, Dumbbell, User } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
+import { toast } from '@/components/ui/toast';
 import { trainerName, type Routine } from '@/lib/portal';
+import { challengeUpdatesMessage, type ChallengeProgressUpdate } from '@/lib/challenges';
 
 export default function PortalRoutinePage() {
   const { status, data, error, refetch } = useAsync<Routine[]>(
     () => api.list('/me/routine') as Promise<Routine[]>,
     [],
   );
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
+
+  // COM-B03 — registrar la rutina de hoy actualiza los retos de rutinas.
+  async function complete(routine: Routine) {
+    setCompletingId(routine.id);
+    try {
+      const res = (await api.post(`/me/routine/${routine.id}/complete`, {})) as { challenges?: ChallengeProgressUpdate[] };
+      setDoneIds((prev) => new Set(prev).add(routine.id));
+      toast.add({
+        title: `"${routine.name}" completada`,
+        description: challengeUpdatesMessage(res?.challenges),
+        type: 'success',
+      });
+    } catch (e: any) {
+      toast.add({ title: 'No se pudo registrar la rutina', description: e.message, type: 'error' });
+    } finally {
+      setCompletingId(null);
+    }
+  }
 
   return (
     <div className="space-y-6 p-8">
@@ -68,6 +91,21 @@ export default function PortalRoutinePage() {
                   <p className="mt-1 text-xs text-slate-400">
                     Creada el {new Date(routine.createdAt).toLocaleDateString('es-MX')}
                   </p>
+                  {routine.completedToday || doneIds.has(routine.id) ? (
+                    <p className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+                      <CircleCheck className="h-4 w-4" /> Completada hoy
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => complete(routine)}
+                      disabled={completingId === routine.id}
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                    >
+                      <CircleCheck className="h-4 w-4" />
+                      {completingId === routine.id ? 'Registrando…' : 'Marcar como completada'}
+                    </button>
+                  )}
                 </div>
               );
             })}

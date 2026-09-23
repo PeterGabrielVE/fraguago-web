@@ -85,6 +85,8 @@ export type Routine = {
   description?: string | null;
   createdAt: string;
   trainer: RoutineTrainer | null;
+  /** El socio ya la marcó como completada hoy (solo en /me/routine). */
+  completedToday?: boolean;
 };
 
 export type Measurement = {

@@ -51,7 +51,7 @@ export type GamificationSummary = {
   badges: MemberBadge[];
 };
 
-export type PointsSource = 'MANUAL' | 'ATTENDANCE' | 'BADGE' | 'REDEMPTION' | 'REDEMPTION_REFUND';
+export type PointsSource = 'MANUAL' | 'ATTENDANCE' | 'BADGE' | 'REDEMPTION' | 'REDEMPTION_REFUND' | 'CHALLENGE';
 
 export type PointsTransaction = {
   id: string;
@@ -104,6 +104,7 @@ export const POINTS_SOURCE_LABELS: Record<PointsSource, string> = {
   BADGE: 'Insignia',
   REDEMPTION: 'Canje',
   REDEMPTION_REFUND: 'Devolución de canje',
+  CHALLENGE: 'Reto completado',
 };
 
 export const REWARD_TYPE_LABELS: Record<RewardType, string> = {

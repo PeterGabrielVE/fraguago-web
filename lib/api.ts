@@ -2,6 +2,9 @@ import { reportError } from '@/lib/errorReporter';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+// Base del API para clientes que no pasan por req() (p. ej. streams SSE).
+export const API_BASE = BASE;
+
 type TokenResponse = {
   accessToken?: string;
   access_token?: string;

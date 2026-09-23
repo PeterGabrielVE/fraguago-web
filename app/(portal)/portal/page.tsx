@@ -21,6 +21,7 @@ import {
   type Routine,
 } from '@/lib/portal';
 import { requestBadgesRefresh } from '@/lib/gamification';
+import { challengeUpdatesMessage } from '@/lib/challenges';
 
 type DashboardData = {
   profile: MeProfile;
@@ -57,9 +58,13 @@ export default function PortalDashboardPage() {
     try {
       const res = await api.post('/me/check-in', {});
       const pointsAwarded: number = res?.gamification?.pointsAwarded ?? 0;
+      const details = [
+        pointsAwarded > 0 ? `+${pointsAwarded} puntos` : undefined,
+        challengeUpdatesMessage(res?.challenges),
+      ].filter(Boolean);
       toast.add({
         title: 'Asistencia registrada',
-        description: pointsAwarded > 0 ? `+${pointsAwarded} puntos` : undefined,
+        description: details.length ? details.join(' · ') : undefined,
         type: 'success',
       });
       requestBadgesRefresh();

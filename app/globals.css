@@ -47,6 +47,8 @@
 }
 
 :root {
+  color-scheme: light;
+
   --radius: 0.5rem;
 
   --background: 220 24% 97%;
@@ -88,6 +90,10 @@
 }
 
 .dark {
+  /* Controles nativos (menú de <select>, selector de fecha, scrollbars) en
+     oscuro; sin esto el navegador los pinta claros sobre el tema oscuro. */
+  color-scheme: dark;
+
   --background: 230 20% 10%;
   --foreground: 220 20% 94%;
 
@@ -132,6 +138,16 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  /* Las opciones del <select> no heredan el fondo del control: se fijan a los
+     tokens del tema para que se lean bien en claro y en oscuro. */
+  select option,
+  select optgroup {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+  }
+  select option:disabled {
+    color: hsl(var(--muted-foreground));
   }
 }
 
