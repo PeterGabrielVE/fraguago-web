@@ -15,6 +15,7 @@ export default function Page() {
       subtitle="Categorías de ingresos y egresos."
       icon={Tags}
       endpoint="/concepts"
+      formVariant="modal"
       columns={[
         { key: 'name', label: 'Nombre' },
         {

@@ -426,6 +426,7 @@ export default function Page() {
           {
             label: 'Copiar',
             icon: Copy,
+            silent: true,
             onClick: () => setCopyRow(row),
           },
         ]}

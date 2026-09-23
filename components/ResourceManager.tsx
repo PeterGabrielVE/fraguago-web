@@ -87,6 +87,8 @@ export type RowAction = {
   confirm?: boolean;
   confirmTitle?: string;
   confirmDescription?: React.ReactNode;
+  /** Si es true, no muestra el toast automático de "Acción completada" ni refresca la lista al terminar — para acciones que solo abren un diálogo propio (que maneja su propio guardado/toast/refetch) en vez de mutar algo de inmediato. */
+  silent?: boolean;
 };
 
 export type ListFilter = { label: string; endpoint: string };
@@ -317,6 +319,7 @@ export default function ResourceManager({
     setActionError('');
     try {
       await action.onClick();
+      if (action.silent) return;
       refetch();
       toast.add({ title: 'Acción completada', description: action.label, type: 'success' });
     } catch (e: any) {
