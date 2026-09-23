@@ -19,7 +19,6 @@ import {
   Users,
   Clock,
   Stethoscope,
-  Pill,
   Phone,
   CreditCard,
   BarChart3,
@@ -35,6 +34,7 @@ import {
   Coins,
   Dumbbell,
   ShoppingCart,
+  Activity,
 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
@@ -52,7 +52,7 @@ const NAV = [
     group: 'Datos Médicos',
     items: [
       { href: '/health', label: 'Salud', icon: Stethoscope },
-      { href: '/medications', label: 'Medicamentos', icon: Pill },
+      { href: '/progress', label: 'Progreso', icon: Activity },
       { href: '/emergency-contacts', label: 'Emergencia', icon: Phone },
     ],
   },
