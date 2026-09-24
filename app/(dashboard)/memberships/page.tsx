@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
-import { Ban, CirclePause, CirclePlay, CreditCard, RefreshCw } from 'lucide-react';
+import { Ban, CirclePause, CirclePlay, CreditCard, Plus, RefreshCw } from 'lucide-react';
+import MembershipPaymentDialog, { type PlanOption } from '@/components/MembershipPaymentDialog';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
 
 function nowAsDatetimeLocal() {
@@ -20,6 +21,9 @@ function memberFullName(member: any) {
 export default function Page() {
   const [memberOptions, setMemberOptions] = useState<SelectOption[]>([]);
   const [planOptions, setPlanOptions] = useState<SelectOption[]>([]);
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [dialog, setDialog] = useState<{ open: boolean; renew: { id: string; memberName: string; planId: string } | null }>({ open: false, renew: null });
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     api.list('/members').then((members) => {
@@ -28,17 +32,31 @@ export default function Page() {
         label: `${m.user?.profile?.firstName ?? ''} ${m.user?.profile?.lastName ?? ''}`.trim() || m.user?.email || m.id,
       })));
     }).catch(() => {});
-    api.list('/membership-plans').then((plans) => {
-      setPlanOptions(plans.map((p: any) => ({ value: String(p.id), label: p.name })));
+    api.list('/membership-plans').then((rows) => {
+      setPlanOptions(rows.map((p: any) => ({ value: String(p.id), label: p.name })));
+      setPlans(rows.map((p: any) => ({ value: String(p.id), label: p.name, price: Number(p.price), currency: p.currency ?? 'USD' })));
     }).catch(() => {});
   }, []);
 
   return (
+    <>
     <ResourceManager
+      key={reloadKey}
       title="Membresías" subtitle="Asigna un plan a un socio; el vencimiento se calcula solo."
       icon={CreditCard}
       endpoint="/memberships"
       formVariant="modal"
+      // Alta con datos del pago (método, referencia, comprobante): diálogo propio.
+      disableCreate
+      headerActions={
+        <button
+          type="button"
+          onClick={() => setDialog({ open: true, renew: null })}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+        >
+          <Plus className="h-4 w-4" /> Nueva membresía
+        </button>
+      }
       filters={[
         { label: 'Todas', endpoint: '/memberships' },
         { label: 'Por vencer', endpoint: '/memberships/expiring' },
@@ -74,14 +92,16 @@ export default function Page() {
         startDate: row.startDate ? String(row.startDate).slice(0, 16) : '',
       })}
       extraActions={(row) => [
-        {
+        ...(row.status !== 'CANCELLED' ? [{
           label: 'Renovar',
           icon: RefreshCw,
-          confirm: true,
-          confirmTitle: 'Renovar membresía',
-          confirmDescription: `Se renovará la membresía de ${memberFullName(row.member) || row.memberId} con el plan ${row.plan?.name || row.planId}.`,
-          onClick: () => api.post(`/memberships/${row.id}/renew`, {}),
-        },
+          silent: true,
+          // Renovar es un cobro: se registra cómo se pagó.
+          onClick: () => setDialog({
+            open: true,
+            renew: { id: row.id, memberName: memberFullName(row.member) || 'Socio', planId: row.planId },
+          }),
+        }] : []),
         // DB-02 — estado administrativo: suspender (congela y bloquea el
         // check-in), reactivar o cancelar (definitivo).
         ...(row.status === 'ACTIVE' ? [{
@@ -111,5 +131,14 @@ export default function Page() {
         }] : []),
       ]}
     />
+    <MembershipPaymentDialog
+      open={dialog.open}
+      renew={dialog.renew}
+      plans={plans}
+      members={memberOptions.map((m) => (typeof m === 'string' ? { value: m, label: m } : m))}
+      onClose={() => setDialog({ open: false, renew: null })}
+      onDone={() => { setDialog({ open: false, renew: null }); setReloadKey((k) => k + 1); }}
+    />
+    </>
   );
 }

@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PAYMENT_METHOD_LABELS, formatMoney } from '@/lib/currency';
+import { METHOD_FIELDS, REFERENCE_REQUIRED, VE_BANKS, normalizeReference, type PaymentMethod } from '@/lib/payments';
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,9 @@ export default function SalesPage() {
 
   const [members, setMembers] = useState<any[]>([]);
   const [memberId, setMemberId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentBank, setPaymentBank] = useState('');
   const [memberQuery, setMemberQuery] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const memberBoxRef = useRef<HTMLDivElement>(null);
@@ -177,13 +180,22 @@ export default function SalesPage() {
 
   async function confirmSale() {
     if (cart.length === 0) return;
+    const reference = normalizeReference(paymentMethod, paymentReference);
+    if (REFERENCE_REQUIRED.includes(paymentMethod) && !reference) {
+      toast.add({ title: 'Falta la referencia', description: 'Indica el número de referencia del pago.', type: 'error' });
+      return;
+    }
     setConfirming(true);
     try {
       await api.post('/sales', {
         memberId: memberId || undefined,
         paymentMethod,
+        ...(METHOD_FIELDS[paymentMethod].reference && reference ? { paymentReference: reference } : {}),
+        ...(METHOD_FIELDS[paymentMethod].bank && paymentBank.trim() ? { paymentBank: paymentBank.trim() } : {}),
         items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       });
+      setPaymentReference('');
+      setPaymentBank('');
       toast.add({ title: 'Venta registrada', type: 'success' });
       setCart([]);
       clearMember();
@@ -379,7 +391,7 @@ export default function SalesPage() {
               <span className="mb-1.5 block text-xs font-medium text-slate-600">Método de pago</span>
               <select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
                 {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
@@ -387,6 +399,31 @@ export default function SalesPage() {
                 ))}
               </select>
             </label>
+            {METHOD_FIELDS[paymentMethod].reference && (
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder={METHOD_FIELDS[paymentMethod].reference + (REFERENCE_REQUIRED.includes(paymentMethod) ? ' *' : '')}
+                  aria-label="Referencia del pago"
+                  maxLength={40}
+                  inputMode={paymentMethod === 'PAGO_MOVIL' ? 'numeric' : 'text'}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                />
+                {METHOD_FIELDS[paymentMethod].bank && (
+                  <input
+                    list="sales-banks"
+                    value={paymentBank}
+                    onChange={(e) => setPaymentBank(e.target.value)}
+                    placeholder="Banco"
+                    aria-label="Banco emisor"
+                    maxLength={60}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                  />
+                )}
+                <datalist id="sales-banks">{VE_BANKS.map((b) => <option key={b} value={b} />)}</datalist>
+              </div>
+            )}
             {mixedCurrencies && (
               <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
                 El carrito mezcla productos en distintas monedas: registra una venta por moneda.

@@ -8,10 +8,14 @@ export const CURRENCY_OPTIONS = Object.entries(CURRENCY_LABELS).map(([value, lab
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: 'Efectivo',
-  CARD: 'Tarjeta',
+  PAGO_MOVIL: 'Pago móvil',
   TRANSFER: 'Transferencia',
+  ZELLE: 'Zelle',
+  CARD: 'Tarjeta',
   OTHER: 'Otro',
 };
+
+export const PAYMENT_METHOD_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => ({ value, label }));
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
