@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { GlobalErrorListener } from "@/components/GlobalErrorListener";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { Toaster } from "@/components/ui/toast";
 
 const inter = Inter({
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={cn("font-sans", inter.variable)}>
       <body>
+        <AnalyticsProvider />
         <GlobalErrorListener />
         <Toaster>{children}</Toaster>
       </body>

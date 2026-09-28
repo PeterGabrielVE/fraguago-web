@@ -1,4 +1,5 @@
 import { reportError } from '@/lib/errorReporter';
+import { resetAnalytics } from '@/lib/analytics';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -109,6 +110,7 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       localStorage.removeItem('fg_token');
       localStorage.removeItem('fg_session');
       document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
+      resetAnalytics();
       window.location.href = '/login';
     }
     throw new Error('Sesión expirada');

@@ -1,4 +1,5 @@
 import { api, getToken } from './api';
+import { identifyFromToken, resetAnalytics } from './analytics';
 
 type LoginResponse = {
   accessToken?: string;
@@ -42,6 +43,7 @@ export async function login(email: string, password: string) {
     // Fallback para el middleware durante la navegación en desarrollo.
     document.cookie = `fg_token=${encodeURIComponent(session.accessToken)}; path=/;${session.expiresAt ? ` expires=${new Date(session.expiresAt).toUTCString()};` : ''} samesite=lax`;
   }
+  identifyFromToken(accessToken);
   return { ...data, accessToken };
 }
 
@@ -83,6 +85,7 @@ export function clearSession() {
     localStorage.removeItem('fg_session');
     document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
   }
+  resetAnalytics();
 }
 
 export function getRoleRedirect(data?: LoginResponse): string {

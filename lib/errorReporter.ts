@@ -1,4 +1,6 @@
 // lib/errorReporter.ts
+import { captureException } from '@/lib/analytics';
+
 type ErrorType =
   | 'nextjs' | 'global-error' | 'uncaught'
   | 'unhandledrejection' | 'resource' | 'http';
@@ -26,6 +28,11 @@ export function reportError(raw: RawError): void {
 
   try {
     console.error('[app-error]', payload);
+    captureException(raw.error ?? raw.reason ?? new Error(payload.message), {
+      error_type: payload.type,
+      source: payload.source,
+      digest: payload.digest,
+    });
     if (process.env.NODE_ENV === 'production') {
       const body = JSON.stringify(payload);
       const sent = navigator.sendBeacon?.('/api/errors', body);
