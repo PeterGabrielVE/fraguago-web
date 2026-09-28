@@ -82,6 +82,9 @@ export default function FinancesPage() {
   const isForeignCurrency = form.currency && form.currency !== baseCurrency;
   const latestRateForCurrency = rates.find((r) => r.currency === form.currency)?.rate;
   const filtersActive = Boolean(filterType || filterConceptId || filterFrom || filterTo);
+  // Conceptos del mismo tipo que el movimiento / que el filtro de tipo.
+  const formConcepts = concepts.filter((c) => c.kind === form.type);
+  const filterConcepts = filterType ? concepts.filter((c) => c.kind === filterType) : concepts;
 
   function clearFilters() {
     setFilterType('');
@@ -195,7 +198,12 @@ export default function FinancesPage() {
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo</label>
               <select
                 value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                onChange={(e) => {
+                  // El concepto elegido deja de valer si es del otro tipo.
+                  const type = e.target.value;
+                  const keep = concepts.some((c) => c.id === form.conceptId && c.kind === type);
+                  setForm({ ...form, type, conceptId: keep ? form.conceptId : '' });
+                }}
                 className={inputClass}
               >
                 <option value="INCOME">Ingreso</option>
@@ -253,11 +261,11 @@ export default function FinancesPage() {
                 className={inputClass}
               >
                 <option value="">Sin concepto</option>
-                {concepts.map((c) => <option key={c.id} value={c.id}>{c.name} ({TYPE_LABELS[c.kind]})</option>)}
+                {formConcepts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              {concepts.length === 0 && (
+              {formConcepts.length === 0 && (
                 <p className="mt-1.5 text-xs text-slate-500">
-                  Aún no tienes conceptos registrados.{' '}
+                  Aún no tienes conceptos de {TYPE_LABELS[form.type]?.toLowerCase() ?? 'este tipo'}.{' '}
                   <Link href="/concepts" className="font-medium text-amber-700 hover:text-amber-800">Crea uno</Link> para poder clasificar este movimiento.
                 </p>
               )}
@@ -297,7 +305,12 @@ export default function FinancesPage() {
               <label className="mb-1.5 block text-xs font-medium text-slate-600">Tipo</label>
               <select
                 value={filterType}
-                onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  const type = e.target.value;
+                  setFilterType(type);
+                  if (type && concepts.some((c) => c.id === filterConceptId && c.kind !== type)) setFilterConceptId('');
+                  setPage(1);
+                }}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
                 <option value="">Todos</option>
@@ -313,7 +326,7 @@ export default function FinancesPage() {
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
                 <option value="">Todos</option>
-                {concepts.map((c) => <option key={c.id} value={c.id}>{c.name} ({TYPE_LABELS[c.kind]})</option>)}
+                {filterConcepts.map((c) => <option key={c.id} value={c.id}>{c.name} ({TYPE_LABELS[c.kind]})</option>)}
               </select>
             </div>
             <div>

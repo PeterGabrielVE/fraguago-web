@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, ClipboardCheck, CreditCard, Clock, Dumbbell, Activity } from 'lucide-react';
+import { AlertCircle, ClipboardCheck, CreditCard, Clock, Dumbbell, Activity, LogOut } from 'lucide-react';
+import OccupancyCard from '@/components/OccupancyCard';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
@@ -52,6 +53,19 @@ async function loadDashboard(): Promise<DashboardData> {
 export default function PortalDashboardPage() {
   const { status, data, error, refetch } = useAsync<DashboardData>(loadDashboard, []);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  async function handleCheckOut() {
+    setCheckingOut(true);
+    try {
+      await api.post('/me/check-out', {});
+      toast.add({ title: 'Salida registrada', description: '¡Hasta la próxima!', type: 'success' });
+    } catch (e: any) {
+      toast.add({ title: 'No se pudo registrar la salida', description: e.message, type: 'error' });
+    } finally {
+      setCheckingOut(false);
+    }
+  }
 
   async function handleCheckIn() {
     setCheckingIn(true);
@@ -99,7 +113,15 @@ export default function PortalDashboardPage() {
           </div>
         }
       >
-        {(d) => <DashboardContent data={d} onCheckIn={handleCheckIn} checkingIn={checkingIn} />}
+        {(d) => (
+          <DashboardContent
+            data={d}
+            onCheckIn={handleCheckIn}
+            checkingIn={checkingIn}
+            onCheckOut={handleCheckOut}
+            checkingOut={checkingOut}
+          />
+        )}
       </AsyncBoundary>
     </div>
   );
@@ -109,10 +131,14 @@ function DashboardContent({
   data,
   onCheckIn,
   checkingIn,
+  onCheckOut,
+  checkingOut,
 }: {
   data: DashboardData;
   onCheckIn: () => void;
   checkingIn: boolean;
+  onCheckOut: () => void;
+  checkingOut: boolean;
 }) {
   const { profile, membership, lastAttendance, activeRoutine, lastMeasurement } = data;
   const firstName = profile.profile?.firstName ?? '';
@@ -127,17 +153,30 @@ function DashboardContent({
             <h1 className="text-3xl font-bold text-slate-900">Hola, {firstName || 'socio'}</h1>
             <p className="mt-1 text-slate-600">Este es tu resumen en FraguaGo.</p>
           </div>
-          <button
-            type="button"
-            onClick={onCheckIn}
-            disabled={checkingIn}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <ClipboardCheck className="h-5 w-5" />
-            {checkingIn ? 'Registrando…' : 'Marcar asistencia'}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={onCheckIn}
+              disabled={checkingIn}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <ClipboardCheck className="h-5 w-5" />
+              {checkingIn ? 'Registrando…' : 'Marcar asistencia'}
+            </button>
+            <button
+              type="button"
+              onClick={onCheckOut}
+              disabled={checkingOut}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <LogOut className="h-5 w-5" />
+              {checkingOut ? 'Registrando…' : 'Marcar salida'}
+            </button>
+          </div>
         </div>
       </div>
+
+      <OccupancyCard scope="member" />
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {/* Membresía */}

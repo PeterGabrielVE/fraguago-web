@@ -39,7 +39,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
 
-export type SelectOption = string | { value: string; label: string };
+/** `group` se usa junto con `Field.dependsOn` para filtrar opciones según otro campo. */
+export type SelectOption = string | { value: string; label: string; group?: string };
 
 export type Field = {
   name: string;
@@ -63,7 +64,22 @@ export type Field = {
   numeric?: boolean;
   /** Solo para type "multiselect": atajos que reemplazan la selección actual por un conjunto fijo de valores, p. ej. { label: 'Lunes a viernes', values: ['0','1','2','3','4'] }. */
   presets?: { label: string; values: string[] }[];
+  /** Solo para type "select": muestra únicamente las opciones cuyo `group` coincide con el valor actual de este otro campo. Queda deshabilitado hasta elegirlo y se limpia si deja de ser válido. */
+  dependsOn?: string;
 };
+
+function optionValue(o: SelectOption) {
+  return typeof o === 'string' ? o : o.value;
+}
+
+// Opciones visibles de un select según el valor del campo del que depende.
+function visibleOptions(f: Field, form: Record<string, any>): SelectOption[] {
+  const options = f.options ?? [];
+  if (!f.dependsOn) return options;
+  const parent = form[f.dependsOn];
+  if (!parent) return [];
+  return options.filter((o) => typeof o !== 'string' && o.group === parent);
+}
 export type Column = { key: string; label: string; render?: (row: any) => any };
 export type StatusConfig = {
   getStatus: (row: Record<string, any>) => string;
@@ -350,6 +366,11 @@ export default function ResourceManager({
       for (const other of fields) {
         if (other.mirrorFrom === name) next[other.name] = value;
       }
+      // Limpia los selects dependientes cuyo valor ya no es válido.
+      for (const other of fields) {
+        if (other.dependsOn !== name || !next[other.name]) continue;
+        if (!visibleOptions(other, next).some((o) => optionValue(o) === next[other.name])) next[other.name] = '';
+      }
       return next;
     });
   }
@@ -422,12 +443,16 @@ export default function ResourceManager({
         <select
           value={form[f.name] ?? ''}
           required={editingId ? f.requiredOnEdit ?? false : f.required}
-          disabled={f.readOnly}
+          disabled={f.readOnly || (f.dependsOn !== undefined && !form[f.dependsOn])}
           onChange={(e) => updateField(f.name, e.target.value)}
-          className={inputClass}
+          className={`${inputClass} disabled:bg-slate-100 disabled:text-slate-500`}
         >
-          <option value="">Selecciona…</option>
-          {f.options?.map((o) => {
+          <option value="">
+            {f.dependsOn && !form[f.dependsOn]
+              ? `Elige primero ${fields.find((p) => p.name === f.dependsOn)?.label.toLowerCase() ?? 'el campo anterior'}`
+              : 'Selecciona…'}
+          </option>
+          {visibleOptions(f, form).map((o) => {
             const value = typeof o === 'string' ? o : o.value;
             const label = typeof o === 'string' ? o : o.label;
             return <option key={value} value={value}>{label}</option>;

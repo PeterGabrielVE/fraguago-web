@@ -21,7 +21,8 @@ export default function Page() {
       })));
     }).catch(() => {});
     api.list('/concepts').then((concepts) => {
-      setConceptOptions(concepts.map((c: any) => ({ value: String(c.id), label: c.name })));
+      // group = kind (INCOME/EXPENSE): el select solo muestra los del tipo elegido.
+      setConceptOptions(concepts.map((c: any) => ({ value: String(c.id), label: c.name, group: c.kind })));
     }).catch(() => {});
   }, []);
 
@@ -62,7 +63,7 @@ export default function Page() {
         { name: 'paymentBank', label: 'Banco emisor' },
         { name: 'payerName', label: 'Titular / quien paga' },
         { name: 'memberId', label: 'Socio (opcional)', type: 'select', options: memberOptions },
-        { name: 'conceptId', label: 'Concepto (opcional)', type: 'select', options: conceptOptions },
+        { name: 'conceptId', label: 'Concepto (opcional)', type: 'select', options: conceptOptions, dependsOn: 'type' },
         { name: 'date', label: 'Fecha', type: 'date' },
         { name: 'note', label: 'Nota', type: 'textarea' },
       ]}

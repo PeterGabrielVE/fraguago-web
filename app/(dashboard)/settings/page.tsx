@@ -10,6 +10,8 @@ type Gym = {
   id: string;
   name: string;
   baseCurrency: 'USD' | 'VES' | 'EUR';
+  maxCapacity: number | null;
+  avgVisitMinutes: number;
   createdAt: string;
   _count: { members: number; users: number; trainers: number };
 };
@@ -69,20 +71,30 @@ export default function Page() {
 function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
   const [name, setName] = useState(gym.name);
   const [baseCurrency, setBaseCurrency] = useState<Gym['baseCurrency']>(gym.baseCurrency);
+  // Vacío = sin límite de aforo.
+  const [maxCapacity, setMaxCapacity] = useState(gym.maxCapacity?.toString() ?? '');
+  const [avgVisitMinutes, setAvgVisitMinutes] = useState(String(gym.avgVisitMinutes));
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
     setName(gym.name);
     setBaseCurrency(gym.baseCurrency);
-  }, [gym.id, gym.name, gym.baseCurrency]);
+    setMaxCapacity(gym.maxCapacity?.toString() ?? '');
+    setAvgVisitMinutes(String(gym.avgVisitMinutes));
+  }, [gym.id, gym.name, gym.baseCurrency, gym.maxCapacity, gym.avgVisitMinutes]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setFormError('');
     setSaving(true);
     try {
-      await api.patch('/gym', { name, baseCurrency });
+      await api.patch('/gym', {
+        name,
+        baseCurrency,
+        maxCapacity: maxCapacity.trim() ? Number(maxCapacity) : null,
+        avgVisitMinutes: Number(avgVisitMinutes),
+      });
       toast.add({ title: 'Configuración actualizada', type: 'success' });
       onSaved();
     } catch (e: any) {
@@ -127,6 +139,37 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
           >
             {CURRENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Aforo máximo</label>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            placeholder="Sin límite"
+            value={maxCapacity}
+            onChange={(e) => setMaxCapacity(e.target.value)}
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Personas simultáneas permitidas. Al llenarse se bloquean nuevas entradas. Déjalo vacío para no limitar.
+          </p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Duración promedio de visita (min)</label>
+          <input
+            type="number"
+            required
+            min={10}
+            max={720}
+            step={1}
+            value={avgVisitMinutes}
+            onChange={(e) => setAvgVisitMinutes(e.target.value)}
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Si no se marca la salida, la persona deja de contar en el aforo pasado este tiempo.
+          </p>
         </div>
         <div className="md:col-span-2">
           <button

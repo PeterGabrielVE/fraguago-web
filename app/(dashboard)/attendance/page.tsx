@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ExportButton from '@/components/ExportButton';
+import OccupancyCard from '@/components/OccupancyCard';
 import { api } from '@/lib/api';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -250,6 +251,8 @@ export default function AttendancePage() {
           </div>
         </div>
       </div>
+
+      <OccupancyCard scope="staff" showInside />
 
       {/* Asistencias registradas */}
       <div className="grid gap-6 lg:grid-cols-[240px_1fr] lg:items-start">

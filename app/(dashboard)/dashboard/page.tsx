@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
+import OccupancyCard from '@/components/OccupancyCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -249,6 +250,8 @@ export default function DashboardPage() {
           {new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date())}
         </div>
       </div>
+
+      <OccupancyCard scope="staff" />
 
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -39,6 +39,9 @@ const relationshipOptions = [
   { value: 'OTRO', label: 'Otro' },
 ];
 
+// Mínimo que exige el API para la contraseña (la cédula, al crear el socio).
+const MIN_PASSWORD_LENGTH = 8;
+
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
   'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400';
@@ -50,7 +53,7 @@ function nowAsDatetimeLocal() {
 }
 
 type Details = {
-  firstName: string; lastName: string; email: string; password: string;
+  firstName: string; lastName: string; email: string;
   identificationNumber: string; phone: string; address: string; birthDate: string;
   activityLevel: string; preferredTime: string;
 };
@@ -66,7 +69,7 @@ type MembershipDraft = { planId: string; startDate: string };
 
 export default function MemberCreate({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
   const [details, setDetails] = useState<Details>({
-    firstName: '', lastName: '', email: '', password: '', identificationNumber: '',
+    firstName: '', lastName: '', email: '', identificationNumber: '',
     phone: '', address: '', birthDate: '', activityLevel: '', preferredTime: '',
   });
   const [membership, setMembership] = useState<MembershipDraft>({ planId: '', startDate: nowAsDatetimeLocal() });
@@ -95,6 +98,11 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
       setError('Completa nombre, teléfono y parentesco del contacto de emergencia, o deja los tres vacíos.');
       return;
     }
+    // La contraseña inicial es la cédula, y el API exige mínimo 8 caracteres.
+    if (details.identificationNumber.trim().length < MIN_PASSWORD_LENGTH) {
+      setError(`La cédula se usa como contraseña y debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+      return;
+    }
     if (details.phone && !isValidPhone(details.phone)) {
       setError('El teléfono del socio debe tener un código válido y 7 dígitos.');
       return;
@@ -110,7 +118,7 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
         firstName: details.firstName,
         lastName: details.lastName,
         email: details.email,
-        password: details.password,
+        password: details.identificationNumber.trim(),
         identificationNumber: details.identificationNumber,
         phone: details.phone || undefined,
         address: details.address || undefined,
@@ -189,8 +197,18 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
               <TextField label="Nombre" required value={details.firstName} onChange={(v) => updateDetails('firstName', v)} />
               <TextField label="Apellido" required value={details.lastName} onChange={(v) => updateDetails('lastName', v)} />
               <TextField label="Correo" type="email" required value={details.email} onChange={(v) => updateDetails('email', v)} />
-              <TextField label="Contraseña (mín. 8 caracteres)" type="password" required value={details.password} onChange={(v) => updateDetails('password', v)} />
               <TextField label="CI / Cédula" required value={details.identificationNumber} onChange={(v) => updateDetails('identificationNumber', v)} />
+              <TextField
+                label="Contraseña"
+                readOnly
+                value={details.identificationNumber.trim()}
+                onChange={() => {}}
+                hint={
+                  details.identificationNumber && details.identificationNumber.trim().length < MIN_PASSWORD_LENGTH
+                    ? { text: `La cédula debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres para usarse como contraseña.`, error: true }
+                    : { text: 'Es la cédula del socio. Podrá cambiarla después.' }
+                }
+              />
               <PhoneFieldLabel label="Teléfono" value={details.phone} onChange={(v) => updateDetails('phone', v)} />
               <TextField label="Dirección" value={details.address} onChange={(v) => updateDetails('address', v)} />
               <TextField label="Fecha de nacimiento" type="date" value={details.birthDate} onChange={(v) => updateDetails('birthDate', v)} />
@@ -260,10 +278,11 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
 }
 
 function TextField({
-  label, value, onChange, required = false, multiline = false, type = 'text', disabled = false,
+  label, value, onChange, required = false, multiline = false, type = 'text', disabled = false, readOnly = false, hint,
 }: {
   label: string; value: string; onChange: (value: string) => void; required?: boolean;
   multiline?: boolean; type?: 'text' | 'email' | 'password' | 'date' | 'datetime-local'; disabled?: boolean;
+  readOnly?: boolean; hint?: { text: string; error?: boolean };
 }) {
   return (
     <label className="mb-4 block text-sm font-medium text-slate-700">
@@ -280,10 +299,15 @@ function TextField({
           type={type}
           required={required}
           disabled={disabled}
+          readOnly={readOnly}
+          tabIndex={readOnly ? -1 : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`${inputClass} font-normal`}
+          className={`${inputClass} font-normal ${readOnly ? 'cursor-not-allowed bg-slate-100 text-slate-600' : ''}`}
         />
+      )}
+      {hint && (
+        <span className={`mt-1 block text-xs font-normal ${hint.error ? 'text-red-600' : 'text-slate-500'}`}>{hint.text}</span>
       )}
     </label>
   );
