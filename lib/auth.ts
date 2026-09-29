@@ -15,11 +15,11 @@ export type AuthSession = {
   expiresAt?: number;
 };
 
-function readTokenPayload(token: string): { role?: string; exp?: number } {
+function readTokenPayload(token: string): { role?: string; exp?: number; gymId?: string } {
   try {
     const payload = token.split('.')[1];
     if (!payload) return {};
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { role?: string; exp?: number };
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { role?: string; exp?: number; gymId?: string };
     return decoded;
   } catch {
     return {};
@@ -86,6 +86,12 @@ export function clearSession() {
     document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
   }
   resetAnalytics();
+}
+
+// gym del usuario logueado (viene en el access token).
+export function getGymId(): string | undefined {
+  const token = getToken();
+  return token ? readTokenPayload(token).gymId : undefined;
 }
 
 export function getRoleRedirect(data?: LoginResponse): string {

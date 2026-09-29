@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ExportButton from '@/components/ExportButton';
 import OccupancyCard from '@/components/OccupancyCard';
 import { api } from '@/lib/api';
+import { getGymId } from '@/lib/auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertCircle,
@@ -10,6 +11,7 @@ import {
   ClipboardCheck,
   Dumbbell,
   Filter,
+  MonitorSmartphone,
   Search,
   User,
   UserCheck,
@@ -40,6 +42,7 @@ function memberInitials(m: any) {
 }
 
 export default function AttendancePage() {
+  const [gymId, setGymId] = useState<string>();
   const [members, setMembers] = useState<any[]>([]);
   const [entries, setEntries] = useState<any[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
@@ -64,6 +67,7 @@ export default function AttendancePage() {
     }
   }
   useEffect(() => {
+    setGymId(getGymId());
     api.list('/members').then(setMembers).catch((e) => setError(e.message));
   }, []);
 
@@ -138,6 +142,17 @@ export default function AttendancePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {gymId && (
+              <a
+                href={`/check-in/${gymId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-amber-300 hover:text-amber-700"
+              >
+                <MonitorSmartphone className="h-4 w-4" />
+                Pantalla de asistencia
+              </a>
+            )}
             <ExportButton
               resource="attendance"
               label="Exportar día"
