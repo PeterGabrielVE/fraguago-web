@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { localizedRecord } from '@/lib/i18n/client';
+import { useI18n } from '@/components/I18nProvider';
 
 type ExchangeRate = { currency: string; rate: number | string };
 type Concept = { id: string; name: string; kind: 'INCOME' | 'EXPENSE' };
@@ -21,10 +23,11 @@ const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
   'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
 
-const TYPE_LABELS: Record<string, string> = { INCOME: 'Ingreso', EXPENSE: 'Egreso' };
+const TYPE_LABELS: Record<string, string> = localizedRecord({ INCOME: 'labels.conceptKind.INCOME', EXPENSE: 'labels.conceptKind.EXPENSE' });
 const PAGE_SIZE = 20;
 
 export default function FinancesPage() {
+  const { t, intlLocale } = useI18n();
   const [summary, setSummary] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -70,7 +73,7 @@ export default function FinancesPage() {
   }
 
   useEffect(() => {
-    api.list('/concepts').then(setConcepts).catch((e) => setError(`No se pudieron cargar los conceptos: ${e.message}`));
+    api.list('/concepts').then(setConcepts).catch((e) => setError(t('operations.finances.conceptsLoadFailed', { error: e.message })));
     api.list('/exchange-rates/latest').then(setRates).catch(() => {});
   }, []);
 
@@ -125,8 +128,8 @@ export default function FinancesPage() {
               <Wallet className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Finanzas</h1>
-              <p className="mt-1 text-slate-600">Ingresos y egresos del gimnasio.</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('operations.finances.title')}</h1>
+              <p className="mt-1 text-slate-600">{t('operations.finances.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -141,7 +144,7 @@ export default function FinancesPage() {
               : 'bg-amber-600 text-white hover:bg-amber-700'
               }`}
           >
-            {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
+            {open ? t('common.cancel') : <><Plus className="h-4 w-4" /> {t('common.new')}</>}
           </button>
           </div>
         </div>
@@ -158,21 +161,21 @@ export default function FinancesPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-emerald-700">Ingresos</div>
+            <div className="text-sm font-medium text-emerald-700">{t('operations.finances.income')}</div>
             <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600"><ArrowUpRight className="h-4 w-4" /></span>
           </div>
           <div className="mt-2 text-2xl font-bold text-emerald-700">{formatMoney(summary?.income || 0, baseCurrency)}</div>
         </div>
         <div className="rounded-xl border border-red-200 bg-red-50 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-red-700">Egresos</div>
+            <div className="text-sm font-medium text-red-700">{t('operations.finances.expenses')}</div>
             <span className="rounded-lg bg-red-500/10 p-2 text-red-600"><ArrowDownRight className="h-4 w-4" /></span>
           </div>
           <div className="mt-2 text-2xl font-bold text-red-700">{formatMoney(summary?.expense || 0, baseCurrency)}</div>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-amber-700">Balance</div>
+            <div className="text-sm font-medium text-amber-700">{t('operations.finances.balance')}</div>
             <span className="rounded-lg bg-amber-500/10 p-2 text-amber-600"><Wallet className="h-4 w-4" /></span>
           </div>
           <div className="mt-2 text-2xl font-bold text-amber-700">{formatMoney(summary?.balance || 0, baseCurrency)}</div>
@@ -181,7 +184,7 @@ export default function FinancesPage() {
 
       {rates.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          Tasas vigentes: {rates.map((r) => `1 ${baseCurrency} = ${r.rate} ${r.currency}`).join(' · ')}
+          {t('operations.finances.currentRates', { rates: rates.map((r) => `1 ${baseCurrency} = ${r.rate} ${r.currency}`).join(' · ') })}
         </div>
       )}
 
@@ -190,12 +193,12 @@ export default function FinancesPage() {
         <DialogContent className="sm:max-w-md">
           <form onSubmit={create} className="grid gap-4">
             <DialogHeader>
-              <DialogTitle>Nuevo movimiento</DialogTitle>
-              <DialogDescription>Registra un ingreso o egreso.</DialogDescription>
+              <DialogTitle>{t('operations.finances.newMovement')}</DialogTitle>
+              <DialogDescription>{t('operations.finances.newMovementDesc')}</DialogDescription>
             </DialogHeader>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('operations.finances.type')}</label>
               <select
                 value={form.type}
                 onChange={(e) => {
@@ -206,13 +209,13 @@ export default function FinancesPage() {
                 }}
                 className={inputClass}
               >
-                <option value="INCOME">Ingreso</option>
-                <option value="EXPENSE">Egreso</option>
+                <option value="INCOME">{t('operations.finances.incomeOne')}</option>
+                <option value="EXPENSE">{t('operations.finances.expenseOne')}</option>
               </select>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Monto <span className="text-red-500">*</span></label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('operations.finances.amount')} <span className="text-red-500">*</span></label>
               <input
                 type="number" step="0.01" required
                 value={form.amount ?? ''}
@@ -222,13 +225,13 @@ export default function FinancesPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Moneda</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('operations.finances.currency')}</label>
               <select
                 value={form.currency ?? ''}
                 onChange={(e) => setForm({ ...form, currency: e.target.value, exchangeRate: '' })}
                 className={inputClass}
               >
-                <option value="">{`Moneda base (${baseCurrency})`}</option>
+                <option value="">{t('operations.finances.baseCurrency', { currency: baseCurrency })}</option>
                 {Object.entries(CURRENCY_LABELS).filter(([value]) => value !== baseCurrency).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -238,11 +241,11 @@ export default function FinancesPage() {
             {isForeignCurrency && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Tasa (unidades de {form.currency} por 1 {baseCurrency})
+                  {t('operations.finances.rate', { currency: form.currency, base: baseCurrency })}
                 </label>
                 <input
                   type="number" step="0.000001"
-                  placeholder={latestRateForCurrency ? String(latestRateForCurrency) : 'usa la última tasa registrada'}
+                  placeholder={latestRateForCurrency ? String(latestRateForCurrency) : t('operations.finances.ratePlaceholder')}
                   value={form.exchangeRate ?? ''}
                   onChange={(e) => setForm({ ...form, exchangeRate: e.target.value })}
                   className={inputClass}
@@ -252,27 +255,27 @@ export default function FinancesPage() {
 
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="block text-sm font-medium text-slate-700">Concepto</label>
-                <Link href="/concepts" className="text-xs font-medium text-amber-700 hover:text-amber-800">Gestionar conceptos</Link>
+                <label className="block text-sm font-medium text-slate-700">{t('operations.finances.concept')}</label>
+                <Link href="/concepts" className="text-xs font-medium text-amber-700 hover:text-amber-800">{t('operations.finances.manageConcepts')}</Link>
               </div>
               <select
                 value={form.conceptId ?? ''}
                 onChange={(e) => setForm({ ...form, conceptId: e.target.value })}
                 className={inputClass}
               >
-                <option value="">Sin concepto</option>
+                <option value="">{t('operations.finances.noConcept')}</option>
                 {formConcepts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               {formConcepts.length === 0 && (
                 <p className="mt-1.5 text-xs text-slate-500">
-                  Aún no tienes conceptos de {TYPE_LABELS[form.type]?.toLowerCase() ?? 'este tipo'}.{' '}
-                  <Link href="/concepts" className="font-medium text-amber-700 hover:text-amber-800">Crea uno</Link> para poder clasificar este movimiento.
+                  {t('operations.finances.noConceptsOfType', { type: TYPE_LABELS[form.type]?.toLowerCase() ?? t('operations.finances.thisType') })}{' '}
+                  <Link href="/concepts" className="font-medium text-amber-700 hover:text-amber-800">{t('operations.finances.createOne')}</Link>{t('operations.finances.createOneHint')}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Nota</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('operations.finances.note')}</label>
               <input
                 value={form.note ?? ''}
                 onChange={(e) => setForm({ ...form, note: e.target.value })}
@@ -285,7 +288,7 @@ export default function FinancesPage() {
                 type="submit"
                 className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
               >
-                Guardar
+                {t('common.save')}
               </button>
             </DialogFooter>
           </form>
@@ -298,11 +301,11 @@ export default function FinancesPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Filter className="h-4 w-4 text-amber-600" />
-            Filtros
+            {t('operations.finances.filters')}
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Tipo</label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('operations.finances.type')}</label>
               <select
                 value={filterType}
                 onChange={(e) => {
@@ -313,24 +316,24 @@ export default function FinancesPage() {
                 }}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
-                <option value="">Todos</option>
-                <option value="INCOME">Ingresos</option>
-                <option value="EXPENSE">Egresos</option>
+                <option value="">{t('operations.finances.all')}</option>
+                <option value="INCOME">{t('operations.finances.income')}</option>
+                <option value="EXPENSE">{t('operations.finances.expenses')}</option>
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Concepto</label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('operations.finances.concept')}</label>
               <select
                 value={filterConceptId}
                 onChange={(e) => { setFilterConceptId(e.target.value); setPage(1); }}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
-                <option value="">Todos</option>
+                <option value="">{t('operations.finances.all')}</option>
                 {filterConcepts.map((c) => <option key={c.id} value={c.id}>{c.name} ({TYPE_LABELS[c.kind]})</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Desde</label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('operations.finances.from')}</label>
               <input
                 type="date"
                 value={filterFrom}
@@ -339,7 +342,7 @@ export default function FinancesPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Hasta</label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('operations.finances.to')}</label>
               <input
                 type="date"
                 value={filterTo}
@@ -353,7 +356,7 @@ export default function FinancesPage() {
                 onClick={clearFilters}
                 className="text-xs font-semibold text-amber-700 hover:text-amber-800"
               >
-                Limpiar filtros
+                {t('operations.finances.clearFilters')}
               </button>
             )}
           </div>
@@ -364,8 +367,8 @@ export default function FinancesPage() {
           <div className="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
             <Receipt className="h-5 w-5 text-amber-600" />
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Movimientos ({totalItems})</h2>
-              <p className="text-xs text-slate-500">Historial de ingresos y egresos del gimnasio.</p>
+              <h2 className="text-lg font-semibold text-slate-900">{t('operations.finances.movements', { count: totalItems })}</h2>
+              <p className="text-xs text-slate-500">{t('operations.finances.movementsHint')}</p>
             </div>
           </div>
           {itemsLoading ? (
@@ -374,38 +377,38 @@ export default function FinancesPage() {
             </div>
           ) : items.length === 0 ? (
             <div className="py-16 text-center text-slate-500">
-              {filtersActive ? 'No hay movimientos para este filtro.' : 'Aún no hay movimientos. Crea el primero con el botón "Nuevo".'}
+              {filtersActive ? t('operations.finances.noFilterResults') : t('operations.finances.empty')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left uppercase tracking-wide text-slate-500">
-                    <th className="px-5 py-3 text-xs font-semibold">Tipo</th>
-                    <th className="px-4 py-3 text-xs font-semibold">Monto</th>
-                    <th className="px-4 py-3 text-xs font-semibold">Concepto</th>
-                    <th className="px-4 py-3 text-xs font-semibold">Nota</th>
-                    <th className="px-4 py-3 text-xs font-semibold">Fecha</th>
+                    <th className="px-5 py-3 text-xs font-semibold">{t('operations.finances.type')}</th>
+                    <th className="px-4 py-3 text-xs font-semibold">{t('operations.finances.amount')}</th>
+                    <th className="px-4 py-3 text-xs font-semibold">{t('operations.finances.concept')}</th>
+                    <th className="px-4 py-3 text-xs font-semibold">{t('operations.finances.note')}</th>
+                    <th className="px-4 py-3 text-xs font-semibold">{t('operations.finances.date')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((t) => (
-                    <tr key={t.id} className="border-b border-slate-100 last:border-0 hover:bg-amber-50/30">
+                  {items.map((tx) => (
+                    <tr key={tx.id} className="border-b border-slate-100 last:border-0 hover:bg-amber-50/30">
                       <td className="px-5 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${t.type === 'INCOME' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${tx.type === 'INCOME' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                           }`}>
-                          {TYPE_LABELS[t.type] ?? t.type}
+                          {TYPE_LABELS[tx.type] ?? tx.type}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {formatMoney(t.amount, t.currency)}
-                        {t.currency && t.currency !== baseCurrency && (
-                          <span className="text-slate-400"> (≈ {formatMoney(t.amountBase, baseCurrency)})</span>
+                        {formatMoney(tx.amount, tx.currency)}
+                        {tx.currency && tx.currency !== baseCurrency && (
+                          <span className="text-slate-400"> (≈ {formatMoney(tx.amountBase, baseCurrency)})</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{t.concept?.name || '—'}</td>
-                      <td className="px-4 py-3 text-slate-500">{t.note || '—'}</td>
-                      <td className="px-4 py-3 text-slate-700">{new Date(t.date).toLocaleDateString('es-MX')}</td>
+                      <td className="px-4 py-3 text-slate-600">{tx.concept?.name || '—'}</td>
+                      <td className="px-4 py-3 text-slate-500">{tx.note || '—'}</td>
+                      <td className="px-4 py-3 text-slate-700">{new Date(tx.date).toLocaleDateString(intlLocale)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -415,14 +418,14 @@ export default function FinancesPage() {
           {!itemsLoading && items.length > 0 && (
             <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
               <span>
-                Mostrando {(page - 1) * PAGE_SIZE + 1} a {Math.min(page * PAGE_SIZE, totalItems)} de {totalItems} movimientos
+                {t('operations.finances.showing', { from: (page - 1) * PAGE_SIZE + 1, to: Math.min(page * PAGE_SIZE, totalItems), total: totalItems })}
               </span>
-              <div className="flex items-center gap-1" aria-label="Paginación">
+              <div className="flex items-center gap-1" aria-label={t('table.pagination')}>
                 <button
                   type="button"
                   disabled={page === 1}
                   onClick={() => setPage((p) => p - 1)}
-                  aria-label="Página anterior"
+                  aria-label={t('table.prevPage')}
                   className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -441,7 +444,7 @@ export default function FinancesPage() {
                   type="button"
                   disabled={page === totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  aria-label="Página siguiente"
+                  aria-label={t('table.nextPage')}
                   className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"
                 >
                   <ChevronRight className="h-4 w-4" />

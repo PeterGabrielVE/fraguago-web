@@ -7,37 +7,8 @@ import { toast } from '@/components/ui/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneField, { isValidPhone } from '@/components/PhoneField';
 import type { SelectOption } from '@/components/ResourceManager';
-
-const activityOptions = [
-  { value: 'BEGINNER', label: 'Principiante' },
-  { value: 'INTERMEDIATE', label: 'Intermedio' },
-  { value: 'ADVANCED', label: 'Avanzado' },
-];
-
-const preferredTimeOptions = [
-  { value: 'MAÑANA', label: 'Mañana' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOCHE', label: 'Noche' },
-  { value: 'OTROS', label: 'Otros' },
-  { value: 'VARIADO', label: 'Variado' },
-];
-
-const relationshipOptions = [
-  { value: 'MADRE', label: 'Madre' },
-  { value: 'PADRE', label: 'Padre' },
-  { value: 'HERMANO', label: 'Hermano' },
-  { value: 'HERMANA', label: 'Hermana' },
-  { value: 'HIJO', label: 'Hijo' },
-  { value: 'HIJA', label: 'Hija' },
-  { value: 'PAREJA', label: 'Pareja' },
-  { value: 'ESPOSO', label: 'Esposo' },
-  { value: 'ESPOSA', label: 'Esposa' },
-  { value: 'AMIGO', label: 'Amigo' },
-  { value: 'AMIGA', label: 'Amiga' },
-  { value: 'VECINO', label: 'Vecino' },
-  { value: 'VECINA', label: 'Vecina' },
-  { value: 'OTRO', label: 'Otro' },
-];
+import { activityOptions, preferredTimeOptions, relationshipOptions } from '@/lib/memberOptions';
+import { useT } from '@/components/I18nProvider';
 
 // Mínimo que exige el API para la contraseña (la cédula, al crear el socio).
 const MIN_PASSWORD_LENGTH = 8;
@@ -68,6 +39,7 @@ type ContactDraft = { name: string; phone: string; relationship: string };
 type MembershipDraft = { planId: string; startDate: string };
 
 export default function MemberCreate({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
+  const t = useT();
   const [details, setDetails] = useState<Details>({
     firstName: '', lastName: '', email: '', identificationNumber: '',
     phone: '', address: '', birthDate: '', activityLevel: '', preferredTime: '',
@@ -95,20 +67,20 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
 
     const contactStarted = Boolean(contact.name || contact.phone || contact.relationship);
     if (contactStarted && (!contact.name || !contact.phone || !contact.relationship)) {
-      setError('Completa nombre, teléfono y parentesco del contacto de emergencia, o deja los tres vacíos.');
+      setError(t('members.create.errContactIncomplete'));
       return;
     }
     // La contraseña inicial es la cédula, y el API exige mínimo 8 caracteres.
     if (details.identificationNumber.trim().length < MIN_PASSWORD_LENGTH) {
-      setError(`La cédula se usa como contraseña y debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+      setError(t('members.create.errIdShort', { min: MIN_PASSWORD_LENGTH }));
       return;
     }
     if (details.phone && !isValidPhone(details.phone)) {
-      setError('El teléfono del socio debe tener un código válido y 7 dígitos.');
+      setError(t('members.create.errPhone'));
       return;
     }
     if (contactStarted && !isValidPhone(contact.phone)) {
-      setError('El teléfono del contacto de emergencia debe tener un código válido y 7 dígitos.');
+      setError(t('members.create.errContactPhone'));
       return;
     }
 
@@ -156,11 +128,11 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
         await api.put(`/members/${memberId}/emergency-contact`, contact);
       }
 
-      toast.add({ title: 'Socio creado', type: 'success' });
+      toast.add({ title: t('members.create.created'), type: 'success' });
       onCreated();
     } catch (err: any) {
       setError(err.message);
-      toast.add({ title: 'No se pudo crear el socio', description: err.message, type: 'error' });
+      toast.add({ title: t('members.create.createFailed'), description: err.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -173,11 +145,11 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
       <section className="mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <header className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">Nuevo socio</p>
-            <h2 id="member-create-title" className="mt-1 text-2xl font-bold text-slate-900">{fullName || 'Datos del socio'}</h2>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">{t('members.create.eyebrow')}</p>
+            <h2 id="member-create-title" className="mt-1 text-2xl font-bold text-slate-900">{fullName || t('members.create.defaultTitle')}</h2>
           </div>
-          <button type="button" onClick={onCancel} aria-label="Cancelar y volver al listado" className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">
-            <X className="h-5 w-5" />Cancelar
+          <button type="button" onClick={onCancel} aria-label={t('members.create.cancelLabel')} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">
+            <X className="h-5 w-5" />{t('common.cancel')}
           </button>
         </header>
 
@@ -185,45 +157,45 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
 
         <Tabs defaultValue="details" className="flex flex-col gap-5 p-6">
           <TabsList className="grid w-full grid-cols-1 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-4">
-            <TabsTrigger value="details" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Detalles</TabsTrigger>
-            <TabsTrigger value="membership" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Membresía</TabsTrigger>
-            <TabsTrigger value="health" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Ficha médica</TabsTrigger>
-            <TabsTrigger value="emergency" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">Contacto de emergencia</TabsTrigger>
+            <TabsTrigger value="details" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">{t('members.tabs.details')}</TabsTrigger>
+            <TabsTrigger value="membership" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">{t('members.tabs.membership')}</TabsTrigger>
+            <TabsTrigger value="health" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">{t('members.tabs.health')}</TabsTrigger>
+            <TabsTrigger value="emergency" className="h-11 px-4 py-3 data-active:bg-white data-active:text-slate-900 data-active:shadow-sm">{t('members.tabs.emergency')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="pt-6">
-            <h3 className="mb-5 text-lg font-semibold text-slate-900">Datos personales</h3>
+            <h3 className="mb-5 text-lg font-semibold text-slate-900">{t('members.create.personalData')}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label="Nombre" required value={details.firstName} onChange={(v) => updateDetails('firstName', v)} />
-              <TextField label="Apellido" required value={details.lastName} onChange={(v) => updateDetails('lastName', v)} />
-              <TextField label="Correo" type="email" required value={details.email} onChange={(v) => updateDetails('email', v)} />
-              <TextField label="CI / Cédula" required value={details.identificationNumber} onChange={(v) => updateDetails('identificationNumber', v)} />
+              <TextField label={t('members.fields.firstName')} required value={details.firstName} onChange={(v) => updateDetails('firstName', v)} />
+              <TextField label={t('members.fields.lastName')} required value={details.lastName} onChange={(v) => updateDetails('lastName', v)} />
+              <TextField label={t('members.fields.email')} type="email" required value={details.email} onChange={(v) => updateDetails('email', v)} />
+              <TextField label={t('members.fields.idNumber')} required value={details.identificationNumber} onChange={(v) => updateDetails('identificationNumber', v)} />
               <TextField
-                label="Contraseña"
+                label={t('members.fields.password')}
                 readOnly
                 value={details.identificationNumber.trim()}
                 onChange={() => {}}
                 hint={
                   details.identificationNumber && details.identificationNumber.trim().length < MIN_PASSWORD_LENGTH
-                    ? { text: `La cédula debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres para usarse como contraseña.`, error: true }
-                    : { text: 'Es la cédula del socio. Podrá cambiarla después.' }
+                    ? { text: t('members.create.passwordShort', { min: MIN_PASSWORD_LENGTH }), error: true }
+                    : { text: t('members.create.passwordHint') }
                 }
               />
-              <PhoneFieldLabel label="Teléfono" value={details.phone} onChange={(v) => updateDetails('phone', v)} />
-              <TextField label="Dirección" value={details.address} onChange={(v) => updateDetails('address', v)} />
-              <TextField label="Fecha de nacimiento" type="date" value={details.birthDate} onChange={(v) => updateDetails('birthDate', v)} />
-              <SelectFieldLabel label="Nivel de actividad" value={details.activityLevel} options={activityOptions} onChange={(v) => updateDetails('activityLevel', v)} />
-              <SelectFieldLabel label="Horario preferido" value={details.preferredTime} options={preferredTimeOptions} onChange={(v) => updateDetails('preferredTime', v)} />
+              <PhoneFieldLabel label={t('members.fields.phone')} value={details.phone} onChange={(v) => updateDetails('phone', v)} />
+              <TextField label={t('members.fields.address')} value={details.address} onChange={(v) => updateDetails('address', v)} />
+              <TextField label={t('members.fields.birthDate')} type="date" value={details.birthDate} onChange={(v) => updateDetails('birthDate', v)} />
+              <SelectFieldLabel label={t('members.fields.activityLevel')} value={details.activityLevel} options={activityOptions} onChange={(v) => updateDetails('activityLevel', v)} />
+              <SelectFieldLabel label={t('members.fields.preferredTime')} value={details.preferredTime} options={preferredTimeOptions} onChange={(v) => updateDetails('preferredTime', v)} />
             </div>
           </TabsContent>
 
           <TabsContent value="membership" className="pt-6">
-            <h3 className="mb-1 text-lg font-semibold text-slate-900">Asignar membresía</h3>
-            <p className="mb-5 text-sm text-slate-500">Opcional: puedes crear el socio sin plan y asignárselo después desde "Membresías".</p>
+            <h3 className="mb-1 text-lg font-semibold text-slate-900">{t('members.create.assignMembership')}</h3>
+            <p className="mb-5 text-sm text-slate-500">{t('members.create.membershipOptional')}</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <SelectFieldLabel label="Plan" value={membership.planId} options={planOptions} onChange={(v) => setMembership({ ...membership, planId: v })} />
+              <SelectFieldLabel label={t('members.fields.plan')} value={membership.planId} options={planOptions} onChange={(v) => setMembership({ ...membership, planId: v })} />
               <TextField
-                label="Fecha de inicio"
+                label={t('members.fields.startDate')}
                 type="datetime-local"
                 value={membership.startDate}
                 disabled={!membership.planId}
@@ -232,44 +204,44 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
             </div>
             {membership.planId && (
               <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                La fecha de vencimiento se calcula sola según la duración del plan seleccionado.
+                {t('members.create.endDateHint')}
               </p>
             )}
           </TabsContent>
 
           <TabsContent value="health" className="pt-6">
-            <h3 className="mb-1 text-lg font-semibold text-slate-900">Condiciones de salud</h3>
-            <p className="mb-5 text-sm text-slate-500">Opcional.</p>
+            <h3 className="mb-1 text-lg font-semibold text-slate-900">{t('members.health.title')}</h3>
+            <p className="mb-5 text-sm text-slate-500">{t('members.create.optional')}</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <CheckboxField label="Hipertensión" checked={Boolean(health.hypertension)} onChange={(v) => updateHealth('hypertension', v)} />
-              <CheckboxField label="Diabetes" checked={Boolean(health.diabetes)} onChange={(v) => updateHealth('diabetes', v)} />
-              <CheckboxField label="Problemas cardiacos" checked={Boolean(health.heartProblems)} onChange={(v) => updateHealth('heartProblems', v)} />
-              <CheckboxField label="Asma" checked={Boolean(health.asthma)} onChange={(v) => updateHealth('asthma', v)} />
+              <CheckboxField label={t('members.health.hypertension')} checked={Boolean(health.hypertension)} onChange={(v) => updateHealth('hypertension', v)} />
+              <CheckboxField label={t('members.health.diabetes')} checked={Boolean(health.diabetes)} onChange={(v) => updateHealth('diabetes', v)} />
+              <CheckboxField label={t('members.health.heartProblems')} checked={Boolean(health.heartProblems)} onChange={(v) => updateHealth('heartProblems', v)} />
+              <CheckboxField label={t('members.health.asthma')} checked={Boolean(health.asthma)} onChange={(v) => updateHealth('asthma', v)} />
             </div>
-            <TextField label="Otras condiciones" multiline value={health.otherConditions ?? ''} onChange={(v) => updateHealth('otherConditions', v)} />
-            <CheckboxField label="Tiene lesión o limitación" checked={Boolean(health.hasInjury)} onChange={(v) => updateHealth('hasInjury', v)} />
-            {health.hasInjury && <TextField label="Descripción de la lesión" multiline value={health.injuryDescription ?? ''} onChange={(v) => updateHealth('injuryDescription', v)} />}
-            <CheckboxField label="Toma medicación continua" checked={Boolean(health.takesMedication)} onChange={(v) => updateHealth('takesMedication', v)} />
-            {health.takesMedication && <TextField label="Descripción de la medicación" multiline value={health.medicationDescription ?? ''} onChange={(v) => updateHealth('medicationDescription', v)} />}
+            <TextField label={t('members.health.otherConditions')} multiline value={health.otherConditions ?? ''} onChange={(v) => updateHealth('otherConditions', v)} />
+            <CheckboxField label={t('members.health.hasInjury')} checked={Boolean(health.hasInjury)} onChange={(v) => updateHealth('hasInjury', v)} />
+            {health.hasInjury && <TextField label={t('members.health.injuryDescription')} multiline value={health.injuryDescription ?? ''} onChange={(v) => updateHealth('injuryDescription', v)} />}
+            <CheckboxField label={t('members.health.takesMedication')} checked={Boolean(health.takesMedication)} onChange={(v) => updateHealth('takesMedication', v)} />
+            {health.takesMedication && <TextField label={t('members.health.medicationDescription')} multiline value={health.medicationDescription ?? ''} onChange={(v) => updateHealth('medicationDescription', v)} />}
           </TabsContent>
 
           <TabsContent value="emergency" className="pt-6">
-            <h3 className="mb-1 text-lg font-semibold text-slate-900">Contacto de emergencia</h3>
-            <p className="mb-5 text-sm text-slate-500">Opcional.</p>
+            <h3 className="mb-1 text-lg font-semibold text-slate-900">{t('members.tabs.emergency')}</h3>
+            <p className="mb-5 text-sm text-slate-500">{t('members.create.optional')}</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label="Nombre" value={contact.name} onChange={(v) => updateContact('name', v)} />
-              <PhoneFieldLabel label="Teléfono" value={contact.phone} onChange={(v) => updateContact('phone', v)} />
-              <SelectFieldLabel label="Parentesco" value={contact.relationship} options={relationshipOptions} onChange={(v) => updateContact('relationship', v)} />
+              <TextField label={t('members.fields.name')} value={contact.name} onChange={(v) => updateContact('name', v)} />
+              <PhoneFieldLabel label={t('members.fields.phone')} value={contact.phone} onChange={(v) => updateContact('phone', v)} />
+              <SelectFieldLabel label={t('members.fields.relationship')} value={contact.relationship} options={relationshipOptions} onChange={(v) => updateContact('relationship', v)} />
             </div>
           </TabsContent>
         </Tabs>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
           <button type="button" onClick={onCancel} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60">
-            <Save className="h-4 w-4" />{saving ? 'Guardando…' : 'Guardar socio'}
+            <Save className="h-4 w-4" />{saving ? t('members.create.saving') : t('members.create.save')}
           </button>
         </div>
       </section>
@@ -316,11 +288,12 @@ function TextField({
 function SelectFieldLabel({
   label, value, options, onChange,
 }: { label: string; value: string; options: SelectOption[]; onChange: (value: string) => void }) {
+  const t = useT();
   return (
     <label className="mb-4 block text-sm font-medium text-slate-700">
       <span className="mb-1.5 block">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} bg-white font-normal`}>
-        <option value="">Selecciona…</option>
+        <option value="">{t('common.select')}</option>
         {options.map((o) => {
           const optValue = typeof o === 'string' ? o : o.value;
           const optLabel = typeof o === 'string' ? o : o.label;

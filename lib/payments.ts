@@ -1,5 +1,6 @@
 import { ApiError, authorizedFetch } from '@/lib/api';
 import { uploadWithProgress } from '@/lib/files';
+import { tActive } from '@/lib/i18n/client';
 
 export type PaymentMethod = 'CASH' | 'PAGO_MOVIL' | 'TRANSFER' | 'ZELLE' | 'CARD' | 'OTHER';
 
@@ -31,14 +32,16 @@ export type OcrResult = {
 // Métodos con número de referencia obligatorio (igual que el API).
 export const REFERENCE_REQUIRED: PaymentMethod[] = ['PAGO_MOVIL', 'TRANSFER'];
 
-// Qué campos se piden según el método.
-export const METHOD_FIELDS: Record<PaymentMethod, { reference?: string; bank?: boolean; phone?: boolean; payer?: boolean; receipt: boolean }> = {
+type MethodFields = { reference?: string; bank?: boolean; phone?: boolean; payer?: boolean; receipt: boolean };
+
+// Qué campos se piden según el método. `reference` es la etiqueta del campo (en el idioma activo).
+export const METHOD_FIELDS: Record<PaymentMethod, MethodFields> = {
   CASH: { receipt: false },
-  PAGO_MOVIL: { reference: 'Referencia', bank: true, phone: true, receipt: true },
-  TRANSFER: { reference: 'Referencia', bank: true, payer: true, receipt: true },
-  ZELLE: { reference: 'Código de confirmación', payer: true, receipt: true },
-  CARD: { reference: 'Nº de aprobación', bank: true, receipt: true },
-  OTHER: { reference: 'Referencia', payer: true, receipt: true },
+  PAGO_MOVIL: { get reference() { return tActive('labels.paymentField.reference'); }, bank: true, phone: true, receipt: true },
+  TRANSFER: { get reference() { return tActive('labels.paymentField.reference'); }, bank: true, payer: true, receipt: true },
+  ZELLE: { get reference() { return tActive('labels.paymentField.zelleCode'); }, payer: true, receipt: true },
+  CARD: { get reference() { return tActive('labels.paymentField.approval'); }, bank: true, receipt: true },
+  OTHER: { get reference() { return tActive('labels.paymentField.reference'); }, payer: true, receipt: true },
 };
 
 // Bancos más usados en Venezuela (sugerencias; se puede escribir otro).
@@ -62,11 +65,11 @@ export function normalizeReference(method: PaymentMethod, ref: string) {
 
 export function validatePayment(p: PaymentValue): string | null {
   const ref = normalizeReference(p.paymentMethod, p.paymentReference);
-  if (REFERENCE_REQUIRED.includes(p.paymentMethod) && !ref) return 'Indica el número de referencia del pago.';
-  if (p.paymentMethod === 'PAGO_MOVIL' && ref && !/^\d{4,20}$/.test(ref)) return 'La referencia del pago móvil debe tener entre 4 y 20 dígitos.';
-  if (ref && ref.length < 4) return 'La referencia debe tener al menos 4 caracteres.';
-  if (p.amount !== '' && !(Number(p.amount) > 0)) return 'El monto debe ser mayor a 0.';
-  if (p.exchangeRate !== '' && !(Number(p.exchangeRate) > 0)) return 'La tasa debe ser mayor a 0.';
+  if (REFERENCE_REQUIRED.includes(p.paymentMethod) && !ref) return tActive('labels.paymentError.referenceRequired');
+  if (p.paymentMethod === 'PAGO_MOVIL' && ref && !/^\d{4,20}$/.test(ref)) return tActive('labels.paymentError.pagoMovilDigits');
+  if (ref && ref.length < 4) return tActive('labels.paymentError.referenceShort');
+  if (p.amount !== '' && !(Number(p.amount) > 0)) return tActive('labels.paymentError.amountPositive');
+  if (p.exchangeRate !== '' && !(Number(p.exchangeRate) > 0)) return tActive('labels.paymentError.ratePositive');
   return null;
 }
 
@@ -91,19 +94,19 @@ export function paymentPayload(p: PaymentValue, receiptId?: string) {
 // 4 MB queda en ~200-400 KB, sube rápido y el OCR la lee igual de bien.
 export async function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<Blob> {
   const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) throw new Error('No se pudo leer la imagen. Usa una foto JPG o PNG.');
+  if (!bitmap) throw new Error(tActive('labels.paymentError.imageRead'));
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('El navegador no pudo procesar la imagen.');
+  if (!ctx) throw new Error(tActive('labels.paymentError.imageProcess'));
   ctx.fillStyle = '#fff'; // fondo blanco para PNG con transparencia
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
   return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo comprimir la imagen'))), 'image/jpeg', quality),
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(tActive('labels.paymentError.imageCompress')))), 'image/jpeg', quality),
   );
 }
 
@@ -125,6 +128,6 @@ export function uploadReceipt(image: Blob) {
 // header Authorization, por eso no se usa la URL directa en un <img>.
 export async function receiptObjectUrl(id: string): Promise<string> {
   const res = await authorizedFetch(`/payments/receipts/${id}`);
-  if (!res.ok) throw new ApiError('No se pudo cargar el comprobante', res.status);
+  if (!res.ok) throw new ApiError(tActive('labels.paymentError.receiptLoad'), res.status);
   return URL.createObjectURL(await res.blob());
 }

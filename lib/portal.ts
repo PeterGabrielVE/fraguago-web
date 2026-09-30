@@ -1,21 +1,24 @@
 // Tipos y helpers compartidos por las páginas del portal del socio (app/(portal)/portal/**).
 // Contrato acordado con el backend (fraguago-api), módulo `/me`.
 
+import { localizedOptions, localizedRecord } from '@/lib/i18n/client';
+
 export type MemberShift = 'MORNING' | 'AFTERNOON' | 'NIGHT';
 
-export const SHIFT_LABELS: Record<MemberShift, string> = {
-  MORNING: 'Mañana',
-  AFTERNOON: 'Tarde',
-  NIGHT: 'Noche',
-};
+export const SHIFT_LABELS: Record<MemberShift, string> = localizedRecord({
+  MORNING: 'labels.shift.MORNING',
+  AFTERNOON: 'labels.shift.AFTERNOON',
+  NIGHT: 'labels.shift.NIGHT',
+});
 
-export const preferredTimeOptions = [
-  { value: 'MAÑANA', label: 'Mañana' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOCHE', label: 'Noche' },
-  { value: 'OTROS', label: 'Otros' },
-  { value: 'VARIADO', label: 'Variado' },
-];
+// Los valores son los del API (en español); solo cambia la etiqueta.
+export const preferredTimeOptions = localizedOptions({
+  MAÑANA: 'labels.preferredTime.MAÑANA',
+  TARDE: 'labels.preferredTime.TARDE',
+  NOCHE: 'labels.preferredTime.NOCHE',
+  OTROS: 'labels.preferredTime.OTROS',
+  VARIADO: 'labels.preferredTime.VARIADO',
+});
 
 export type MemberProfile = {
   firstName: string;

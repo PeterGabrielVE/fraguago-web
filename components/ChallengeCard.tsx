@@ -15,6 +15,7 @@ import {
   timeLeftLabel,
   type MemberChallenge,
 } from '@/lib/challenges';
+import { useT } from '@/components/I18nProvider';
 
 // COM-F01 — tarjeta de un reto en el portal: reglas, fechas, premio y el
 // progreso del socio si participa.
@@ -29,6 +30,7 @@ export default function ChallengeCard({
   onJoin?: () => void;
   joining?: boolean;
 }) {
+  const t = useT();
   const mine = challenge.myParticipation;
   const finished = challenge.status === 'FINISHED';
   const canJoin = !mine && !finished && !isFull(challenge);
@@ -49,7 +51,7 @@ export default function ChallengeCard({
       <ul className="mt-3 space-y-1 text-xs text-slate-500">
         <li className="flex items-center gap-1.5">
           <Target className="h-3.5 w-3.5" />
-          Meta: {challenge.goal} {metricUnit(challenge.metric, challenge.goal)}
+          {t('challenges.card.goal', { goal: challenge.goal, unit: metricUnit(challenge.metric, challenge.goal) })}
         </li>
         <li className="flex items-center gap-1.5">
           <CalendarDays className="h-3.5 w-3.5" />
@@ -57,13 +59,14 @@ export default function ChallengeCard({
         </li>
         <li className="flex items-center gap-1.5">
           <Users className="h-3.5 w-3.5" />
-          {challenge.participantsCount}
-          {challenge.maxParticipants ? ` / ${challenge.maxParticipants}` : ''} participantes
+          {challenge.maxParticipants
+            ? t('challenges.card.participantsOf', { count: challenge.participantsCount, max: challenge.maxParticipants })
+            : t('challenges.card.participants', { count: challenge.participantsCount })}
         </li>
         {challenge.pointsReward > 0 && (
           <li className="flex items-center gap-1.5 font-medium text-amber-700">
             <Gift className="h-3.5 w-3.5" />
-            Premio: {formatPoints(challenge.pointsReward)} pts
+            {t('challenges.card.prize', { points: formatPoints(challenge.pointsReward) })}
           </li>
         )}
       </ul>
@@ -72,14 +75,14 @@ export default function ChallengeCard({
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs font-medium text-slate-600">
             <span className="inline-flex items-center gap-1">
-              {mine.completedAt ? <><CircleCheck className="h-3.5 w-3.5 text-emerald-600" /> ¡Completado!</> : 'Tu progreso'}
+              {mine.completedAt ? <><CircleCheck className="h-3.5 w-3.5 text-emerald-600" /> {t('challenges.card.completed')}</> : t('challenges.card.yourProgress')}
             </span>
             <span>{mine.progress}/{challenge.goal}</span>
           </div>
           <div
             className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
             role="progressbar"
-            aria-label={`Progreso en ${challenge.name}`}
+            aria-label={t('challenges.card.progressLabel', { name: challenge.name })}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
@@ -89,7 +92,7 @@ export default function ChallengeCard({
         </div>
       )}
 
-      {finished && !mine && <p className="mt-4 text-xs text-slate-400">No participaste en este reto.</p>}
+      {finished && !mine && <p className="mt-4 text-xs text-slate-400">{t('challenges.card.notParticipated')}</p>}
 
       <div className="mt-auto flex gap-2 pt-4">
         {canJoin && onJoin && (
@@ -99,17 +102,17 @@ export default function ChallengeCard({
             disabled={joining}
             className="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
           >
-            {joining ? 'Uniéndote…' : 'Unirme'}
+            {joining ? t('challenges.card.joining') : t('challenges.card.join')}
           </button>
         )}
         {!mine && !finished && isFull(challenge) && (
-          <span className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-500">Sin cupos</span>
+          <span className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-500">{t('challenges.card.full')}</span>
         )}
         <Link
           href={href}
           className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
-          Ver clasificación
+          {t('challenges.viewLeaderboard')}
         </Link>
       </div>
     </article>

@@ -1,4 +1,5 @@
 import { API_BASE, ApiError, authorizedFetch, getToken, refreshSession } from '@/lib/api';
+import { tActive } from '@/lib/i18n/client';
 
 export type ExportResource = 'members' | 'attendance' | 'finances';
 export type ExportFormat = 'xlsx' | 'csv';
@@ -56,7 +57,7 @@ export function uploadWithProgress<T>(
       const token = getToken();
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100)); };
-      xhr.onerror = () => reject(new Error('No se pudo conectar con el servidor'));
+      xhr.onerror = () => reject(new Error(tActive('api.offline')));
       xhr.onload = async () => {
         if (xhr.status === 401 && retry && (await refreshSession())) {
           send(false).then(resolve, reject);
@@ -67,7 +68,7 @@ export function uploadWithProgress<T>(
         if (xhr.status >= 200 && xhr.status < 300) resolve(body as T);
         else {
           const message = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
-          reject(new ApiError(message || (xhr.status === 413 ? 'El archivo supera los 5 MB' : 'Fallo en la solicitud'), xhr.status));
+          reject(new ApiError(message || (xhr.status === 413 ? tActive('labels.files.fileTooLarge') : tActive('api.requestFailed')), xhr.status));
         }
       };
       xhr.send(form);

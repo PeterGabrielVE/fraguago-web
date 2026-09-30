@@ -1,6 +1,7 @@
 // Tipos y helpers de gamificación (puntos, niveles, insignias y recompensas).
 // Contrato con fraguago-api: `/gamification/**` (staff) y `/me/gamification`,
 // `/me/rewards`, `/me/badges/**` (portal del socio).
+import { activeIntlLocale, localizedOptions, localizedRecord, tActive } from '@/lib/i18n/client';
 import {
   Award,
   Crown,
@@ -98,31 +99,32 @@ export type Redemption = {
   member?: { id: string; user?: { profile?: { firstName?: string; lastName?: string } } };
 };
 
-export const POINTS_SOURCE_LABELS: Record<PointsSource, string> = {
-  MANUAL: 'Ajuste del staff',
-  ATTENDANCE: 'Asistencia',
-  BADGE: 'Insignia',
-  REDEMPTION: 'Canje',
-  REDEMPTION_REFUND: 'Devolución de canje',
-  CHALLENGE: 'Reto completado',
-  REFERRAL: 'Programa de referidos',
-};
+export const POINTS_SOURCE_LABELS: Record<PointsSource, string> = localizedRecord({
+  MANUAL: 'labels.pointsSource.MANUAL',
+  ATTENDANCE: 'labels.pointsSource.ATTENDANCE',
+  BADGE: 'labels.pointsSource.BADGE',
+  REDEMPTION: 'labels.pointsSource.REDEMPTION',
+  REDEMPTION_REFUND: 'labels.pointsSource.REDEMPTION_REFUND',
+  CHALLENGE: 'labels.pointsSource.CHALLENGE',
+  REFERRAL: 'labels.pointsSource.REFERRAL',
+});
 
-export const REWARD_TYPE_LABELS: Record<RewardType, string> = {
-  DISCOUNT_PERCENT: 'Descuento %',
-  DISCOUNT_AMOUNT: 'Descuento fijo',
-  PRODUCT: 'Producto',
-  SERVICE: 'Servicio',
-  OTHER: 'Otro',
-};
+const REWARD_TYPE_KEYS = {
+  DISCOUNT_PERCENT: 'labels.rewardType.DISCOUNT_PERCENT',
+  DISCOUNT_AMOUNT: 'labels.rewardType.DISCOUNT_AMOUNT',
+  PRODUCT: 'labels.rewardType.PRODUCT',
+  SERVICE: 'labels.rewardType.SERVICE',
+  OTHER: 'labels.rewardType.OTHER',
+} as const;
 
-export const REWARD_TYPE_OPTIONS = Object.entries(REWARD_TYPE_LABELS).map(([value, label]) => ({ value, label }));
+export const REWARD_TYPE_LABELS: Record<RewardType, string> = localizedRecord(REWARD_TYPE_KEYS);
+export const REWARD_TYPE_OPTIONS = localizedOptions(REWARD_TYPE_KEYS);
 
-export const REDEMPTION_STATUS_LABELS: Record<RedemptionStatus, string> = {
-  PENDING: 'Pendiente',
-  FULFILLED: 'Entregado',
-  CANCELLED: 'Anulado',
-};
+export const REDEMPTION_STATUS_LABELS: Record<RedemptionStatus, string> = localizedRecord({
+  PENDING: 'labels.redemptionStatus.PENDING',
+  FULFILLED: 'labels.redemptionStatus.FULFILLED',
+  CANCELLED: 'labels.redemptionStatus.CANCELLED',
+});
 
 export const REDEMPTION_STATUS_BADGES: Record<RedemptionStatus, string> = {
   PENDING: 'border-transparent bg-amber-100 text-amber-700',
@@ -130,11 +132,11 @@ export const REDEMPTION_STATUS_BADGES: Record<RedemptionStatus, string> = {
   CANCELLED: 'border-transparent bg-slate-100 text-slate-500',
 };
 
-export const BADGE_CRITERIA_LABELS: Record<string, string> = {
-  MANUAL: 'Manual (la otorga el staff)',
-  ATTENDANCE_COUNT: 'Cantidad de asistencias',
-  LIFETIME_POINTS: 'Puntos acumulados',
-};
+export const BADGE_CRITERIA_LABELS: Record<string, string> = localizedRecord({
+  MANUAL: 'labels.badgeCriteria.MANUAL',
+  ATTENDANCE_COUNT: 'labels.badgeCriteria.ATTENDANCE_COUNT',
+  LIFETIME_POINTS: 'labels.badgeCriteria.LIFETIME_POINTS',
+});
 
 // Claves de ícono que el backend guarda en Badge.icon.
 export const BADGE_ICONS: Record<string, LucideIcon> = {
@@ -162,13 +164,13 @@ export function tierColor(tier: TierInfo | null | undefined): string {
 }
 
 export function formatPoints(points: number): string {
-  return points.toLocaleString('es-VE');
+  return points.toLocaleString(activeIntlLocale());
 }
 
 export function rewardValueLabel(reward: Pick<Reward, 'type' | 'value'>): string {
   const value = reward.value === null || reward.value === undefined ? undefined : Number(reward.value);
-  if (reward.type === 'DISCOUNT_PERCENT' && value !== undefined) return `${value}% de descuento`;
-  if (reward.type === 'DISCOUNT_AMOUNT' && value !== undefined) return `${value.toLocaleString('es-VE')} de descuento`;
+  if (reward.type === 'DISCOUNT_PERCENT' && value !== undefined) return tActive('gamification.discountPercent', { value });
+  if (reward.type === 'DISCOUNT_AMOUNT' && value !== undefined) return tActive('gamification.discountAmount', { value: value.toLocaleString(activeIntlLocale()) });
   return REWARD_TYPE_LABELS[reward.type] ?? reward.type;
 }
 

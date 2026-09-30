@@ -9,6 +9,16 @@ import PhoneField from '@/components/PhoneField';
 import { preferredTimeOptions, type MeProfile, type MemberProfileUpdate } from '@/lib/portal';
 import GamificationCard from '@/components/GamificationCard';
 import type { GamificationSummary } from '@/lib/gamification';
+import { localizedRecord } from '@/lib/i18n/client';
+import { useT } from '@/components/I18nProvider';
+
+const ROLE_LABELS: Record<string, string> = localizedRecord({
+  OWNER: 'labels.role.OWNER',
+  ADMIN: 'labels.role.ADMIN',
+  TRAINER: 'labels.role.TRAINER',
+  STAFF: 'labels.role.STAFF',
+  MEMBER: 'labels.role.MEMBER',
+});
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
@@ -17,6 +27,7 @@ const inputClass =
 const readOnlyClass = 'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500';
 
 export default function PortalProfilePage() {
+  const t = useT();
   const { status, data, error, refetch } = useAsync<MeProfile>(
     () => api.get('/me/profile') as Promise<MeProfile>,
     [],
@@ -30,8 +41,8 @@ export default function PortalProfilePage() {
             <User className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Mi perfil</h1>
-            <p className="mt-1 text-slate-600">Actualiza tus datos de contacto y preferencias.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('portal.profile.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('portal.profile.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -53,9 +64,9 @@ export default function PortalProfilePage() {
           errorFallback={
             <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <AlertCircle className="h-8 w-8 text-red-500" />
-              <p className="text-sm text-slate-600">{error?.message ?? 'No se pudieron cargar los datos.'}</p>
+              <p className="text-sm text-slate-600">{error?.message ?? t('portal.loadError')}</p>
               <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50">
-                Reintentar
+                {t('common.retry')}
               </button>
             </div>
           }
@@ -70,6 +81,7 @@ export default function PortalProfilePage() {
 // GAM-F01 — nivel y puntos del socio. Se carga aparte del perfil para que un
 // fallo de gamificación no bloquee la edición de datos personales.
 function GamificationSection() {
+  const t = useT();
   const { status, data, error, refetch } = useAsync<GamificationSummary>(
     () => api.get('/me/gamification') as Promise<GamificationSummary>,
     [],
@@ -86,8 +98,8 @@ function GamificationSection() {
       errorFallback={
         <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          No se pudo cargar tu nivel y puntos.
-          <button onClick={refetch} className="ml-auto font-semibold underline">Reintentar</button>
+          {t('portal.profile.gamificationError')}
+          <button onClick={refetch} className="ml-auto font-semibold underline">{t('common.retry')}</button>
         </div>
       }
     >
@@ -97,6 +109,7 @@ function GamificationSection() {
 }
 
 function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => void }) {
+  const t = useT();
   const [firstName, setFirstName] = useState(profile.profile?.firstName ?? '');
   const [lastName, setLastName] = useState(profile.profile?.lastName ?? '');
   const [phone, setPhone] = useState(profile.profile?.phone ?? '');
@@ -126,11 +139,11 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
         preferredTime: preferredTime || undefined,
       };
       await api.patch('/me/profile', payload);
-      toast.add({ title: 'Perfil actualizado', type: 'success' });
+      toast.add({ title: t('portal.profile.updated'), type: 'success' });
       onSaved();
     } catch (e: any) {
       setFormError(e.message);
-      toast.add({ title: 'No se pudo guardar', description: e.message, type: 'error' });
+      toast.add({ title: t('portal.profile.saveFailed'), description: e.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -146,35 +159,35 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
       )}
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Correo electrónico</label>
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.email')}</label>
         <input type="text" value={profile.email} disabled readOnly className={readOnlyClass} />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Rol</label>
-        <input type="text" value={profile.role} disabled readOnly className={readOnlyClass} />
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.role')}</label>
+        <input type="text" value={ROLE_LABELS[profile.role] ?? profile.role} disabled readOnly className={readOnlyClass} />
       </div>
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
-          Nombre<span className="text-red-500"> *</span>
+          {t('portal.profile.firstName')}<span className="text-red-500"> *</span>
         </label>
         <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
-          Apellido<span className="text-red-500"> *</span>
+          {t('portal.profile.lastName')}<span className="text-red-500"> *</span>
         </label>
         <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Teléfono</label>
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.phone')}</label>
         <PhoneField value={phone} onChange={setPhone} />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Horario preferido</label>
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.preferredTime')}</label>
         <select value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} className={`${inputClass} bg-white`}>
-          <option value="">Selecciona…</option>
+          <option value="">{t('common.select')}</option>
           {preferredTimeOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
@@ -182,7 +195,7 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
       </div>
 
       <div className="md:col-span-2">
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">Dirección</label>
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.address')}</label>
         <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
       </div>
 
@@ -192,7 +205,7 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
           disabled={saving}
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60"
         >
-          {saving ? 'Guardando…' : 'Guardar cambios'}
+          {saving ? t('portal.saving') : t('portal.profile.saveChanges')}
         </button>
       </div>
     </form>

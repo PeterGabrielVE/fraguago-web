@@ -2,19 +2,22 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, Save, Target } from 'lucide-react';
 import { api } from '@/lib/api';
+import { localizedOptions, localizedRecord } from '@/lib/i18n/client';
+import { useT } from '@/components/I18nProvider';
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
   'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
 
 // mismo enum TrainingGoal que usa el backend (prisma/schema.prisma)
-const GOAL_OPTIONS = [
-  { value: 'MUSCLE_GAIN', label: 'Ganancia muscular' },
-  { value: 'WEIGHT_LOSS', label: 'Pérdida de peso' },
-  { value: 'GENERAL_WELLNESS', label: 'Bienestar general' },
-  { value: 'PERFORMANCE_REHABILITATION', label: 'Rendimiento / rehabilitación' },
-];
-const GOAL_LABELS: Record<string, string> = Object.fromEntries(GOAL_OPTIONS.map((o) => [o.value, o.label]));
+const GOAL_KEYS = {
+  MUSCLE_GAIN: 'records.goals.options.MUSCLE_GAIN',
+  WEIGHT_LOSS: 'records.goals.options.WEIGHT_LOSS',
+  GENERAL_WELLNESS: 'records.goals.options.GENERAL_WELLNESS',
+  PERFORMANCE_REHABILITATION: 'records.goals.options.PERFORMANCE_REHABILITATION',
+} as const;
+const GOAL_OPTIONS = localizedOptions(GOAL_KEYS);
+const GOAL_LABELS: Record<string, string> = localizedRecord(GOAL_KEYS);
 
 function personLabel(m: any) {
   const firstName = m?.user?.profile?.firstName ?? '';
@@ -23,6 +26,7 @@ function personLabel(m: any) {
 }
 
 export default function TrainingGoalsPage() {
+  const t = useT();
   const [members, setMembers] = useState<any[]>([]);
   const [selected, setSelected] = useState('');
   const [member, setMember] = useState<any>(null);
@@ -84,8 +88,8 @@ export default function TrainingGoalsPage() {
               <Target className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Objetivos de Entrenamiento</h1>
-              <p className="mt-1 text-slate-600">El objetivo principal de cada socio y su detalle.</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('records.goals.title')}</h1>
+              <p className="mt-1 text-slate-600">{t('records.goals.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -112,7 +116,7 @@ export default function TrainingGoalsPage() {
                 value={selected}
                 onChange={(e) => { setSelected(e.target.value); loadMember(e.target.value); }}
               >
-                <option value="">Selecciona un socio…</option>
+                <option value="">{t('records.selectMember')}</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>{personLabel(m) || m.id}</option>
                 ))}
@@ -126,7 +130,7 @@ export default function TrainingGoalsPage() {
                     : 'bg-amber-600 text-white hover:bg-amber-700'
                     }`}
                 >
-                  {open ? 'Cancelar' : (hasGoal ? 'Editar' : 'Definir objetivo')}
+                  {open ? t('common.cancel') : (hasGoal ? t('records.edit') : t('records.goals.define'))}
                 </button>
               )}
             </div>
@@ -134,18 +138,18 @@ export default function TrainingGoalsPage() {
 
           {selected && !hasGoal && !open && (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500">
-              Este socio todavía no tiene un objetivo de entrenamiento definido.
+              {t('records.goals.empty')}
             </div>
           )}
 
           {selected && hasGoal && !open && (
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Objetivo actual</h2>
+              <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('records.goals.current')}</h2>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-3 text-sm">
                   <Target className="h-4 w-4 shrink-0 text-amber-600" />
                   <div>
-                    <p className="text-xs text-slate-500">Objetivo principal</p>
+                    <p className="text-xs text-slate-500">{t('records.goals.primary')}</p>
                     <p className="font-medium text-slate-800">{GOAL_LABELS[member.primaryGoal] ?? '—'}</p>
                   </div>
                 </div>
@@ -158,22 +162,22 @@ export default function TrainingGoalsPage() {
 
           {open && selected && (
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-5 text-lg font-semibold text-slate-900">{hasGoal ? 'Editar objetivo' : 'Nuevo objetivo'}</h2>
+              <h2 className="mb-5 text-lg font-semibold text-slate-900">{hasGoal ? t('records.goals.editTitle') : t('records.goals.newTitle')}</h2>
               <form onSubmit={save} className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Objetivo principal</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('records.goals.primary')}</label>
                   <select value={form.primaryGoal || ''} onChange={set('primaryGoal')} className={inputClass}>
-                    <option value="">Selecciona…</option>
+                    <option value="">{t('common.select')}</option>
                     {GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Descripción detallada</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('records.goals.description')}</label>
                   <textarea
                     className={`${inputClass} min-h-24`}
                     value={form.goalDescription || ''}
                     onChange={set('goalDescription')}
-                    placeholder="Metas específicas, plazos, contexto…"
+                    placeholder={t('records.goals.descriptionPlaceholder')}
                   />
                 </div>
                 <button
@@ -181,7 +185,7 @@ export default function TrainingGoalsPage() {
                   disabled={saving}
                   className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />{saving ? 'Guardando…' : 'Guardar'}
+                  <Save className="h-4 w-4" />{saving ? t('records.saving') : t('common.save')}
                 </button>
               </form>
             </div>

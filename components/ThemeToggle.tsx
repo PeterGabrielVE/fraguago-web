@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/I18nProvider';
 
 export default function ThemeToggle() {
+  const t = useT();
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -27,8 +29,8 @@ export default function ThemeToggle() {
       type="button"
       variant="ghost"
       size="icon"
-      aria-label={dark ? 'Usar tema claro' : 'Usar tema oscuro'}
-      title={dark ? 'Tema claro' : 'Tema oscuro'}
+      aria-label={dark ? t('theme.useLight') : t('theme.useDark')}
+      title={dark ? t('theme.light') : t('theme.dark')}
       onClick={toggleTheme}
       className="text-muted-foreground hover:bg-muted"
     >

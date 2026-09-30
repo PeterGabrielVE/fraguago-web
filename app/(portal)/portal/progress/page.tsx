@@ -12,20 +12,19 @@ import {
 } from '@/components/ui/chart';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { fmtMeasurement, toNum, type Measurement, type MeasurementListResponse } from '@/lib/portal';
-
-const weightChartConfig = {
-  weightKg: { label: 'Peso (kg)', theme: { light: '#d97706', dark: '#f59e0b' } },
-} satisfies ChartConfig;
+import { activeIntlLocale } from '@/lib/i18n/client';
+import { useT } from '@/components/I18nProvider';
 
 function shortDate(iso: string) {
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' }).format(new Date(iso));
 }
 
 function fullDate(iso: string) {
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
 }
 
 export default function PortalProgressPage() {
+  const t = useT();
   const { status, data, error, refetch } = useAsync<Measurement[]>(async () => {
     const res = (await api.get('/me/progress')) as MeasurementListResponse;
     return res.data ?? [];
@@ -39,8 +38,8 @@ export default function PortalProgressPage() {
             <Activity className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Mi progreso</h1>
-            <p className="mt-1 text-slate-600">Historial de mediciones registradas por tu entrenador.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('portal.progress.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('portal.progress.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -58,16 +57,16 @@ export default function PortalProgressPage() {
         errorFallback={
           <div role="alert" className="flex flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-16 text-center shadow-sm">
             <AlertCircle className="h-8 w-8 text-red-500" />
-            <p className="text-sm text-slate-600">{error?.message ?? 'No se pudieron cargar los datos.'}</p>
+            <p className="text-sm text-slate-600">{error?.message ?? t('portal.loadError')}</p>
             <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50">
-              Reintentar
+              {t('common.retry')}
             </button>
           </div>
         }
         empty={
           <div className="flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white py-16 text-center shadow-sm">
             <Activity className="h-8 w-8 text-slate-300" />
-            <p className="text-sm text-slate-500">Todavía no tienes mediciones registradas.</p>
+            <p className="text-sm text-slate-500">{t('portal.home.noMeasurements')}</p>
           </div>
         }
       >
@@ -78,6 +77,10 @@ export default function PortalProgressPage() {
 }
 
 function ProgressContent({ measurements }: { measurements: Measurement[] }) {
+  const t = useT();
+  const weightChartConfig = {
+    weightKg: { label: t('progress.weightSeries'), theme: { light: '#d97706', dark: '#f59e0b' } },
+  } satisfies ChartConfig;
   const chronological = useMemo(() => [...measurements].reverse(), [measurements]);
   const weightSeries = useMemo(
     () =>
@@ -92,11 +95,11 @@ function ProgressContent({ measurements }: { measurements: Measurement[] }) {
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
           <TrendingUp className="h-4 w-4 text-amber-600" />
-          Evolución de peso
+          {t('portal.progress.weightTrend')}
         </h2>
         {weightSeries.length < 2 ? (
           <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-slate-300 px-4 text-center text-sm text-slate-500">
-            Aún no hay suficientes mediciones de peso para graficar (mínimo 2).
+            {t('progress.notEnoughWeight')}
           </div>
         ) : (
           <ChartContainer config={weightChartConfig} className="aspect-auto h-56 w-full">
@@ -124,14 +127,14 @@ function ProgressContent({ measurements }: { measurements: Measurement[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Peso</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Estatura</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">% Grasa</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Pecho</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Cintura</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Brazo</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Notas</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.date')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colWeight')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colHeight')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colBodyFat')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colChest')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colWaist')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colArm')}</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.notes')}</th>
               </tr>
             </thead>
             <tbody>

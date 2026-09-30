@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ACCEPTED_EXTENSIONS, MAX_FILE_MB } from '@/lib/imports';
+import { useT } from '@/components/I18nProvider';
 
 // Zona de arrastrar y soltar (también se puede hacer clic o usar el teclado).
 // Valida extensión y tamaño antes de subir nada.
@@ -13,6 +14,7 @@ export default function FileDropzone({
   onFile: (file: File) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
@@ -22,16 +24,16 @@ export default function FileDropzone({
     const lower = file.name.toLowerCase();
     if (!ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
       setError(lower.endsWith('.xls')
-        ? 'El formato .xls (Excel 97-2003) no está soportado: ábrelo en Excel y guárdalo como .xlsx.'
-        : 'Formato no soportado: sube un archivo .xlsx o .csv.');
+        ? t('setup.import.dropzone.xls')
+        : t('setup.import.dropzone.unsupported'));
       return;
     }
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      setError(`El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB; el máximo es ${MAX_FILE_MB} MB.`);
+      setError(t('setup.import.dropzone.tooLarge', { size: (file.size / 1024 / 1024).toFixed(1), max: MAX_FILE_MB }));
       return;
     }
     if (file.size === 0) {
-      setError('El archivo está vacío.');
+      setError(t('setup.import.dropzone.empty'));
       return;
     }
     setError('');
@@ -44,7 +46,7 @@ export default function FileDropzone({
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
-        aria-label="Subir archivo Excel o CSV"
+        aria-label={t('setup.import.dropzone.label')}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={(e) => {
           if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); inputRef.current?.click(); }
@@ -68,9 +70,9 @@ export default function FileDropzone({
         </div>
         <div>
           <p className="text-base font-semibold text-slate-900">
-            {dragging ? 'Suelta el archivo aquí' : 'Arrastra tu planilla o haz clic para elegirla'}
+            {dragging ? t('setup.import.dropzone.drop') : t('setup.import.dropzone.drag')}
           </p>
-          <p className="mt-1 text-sm text-slate-500">Excel (.xlsx) o CSV · máximo {MAX_FILE_MB} MB · hasta 5.000 filas</p>
+          <p className="mt-1 text-sm text-slate-500">{t('setup.import.dropzone.hint', { max: MAX_FILE_MB })}</p>
         </div>
         <input
           ref={inputRef}

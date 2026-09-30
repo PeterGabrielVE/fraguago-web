@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Columns3 } from 'lucide-react';
 import type { ImportPreview } from '@/lib/imports';
+import { useT } from '@/components/I18nProvider';
 
 // MIG-B02 (UI) — el mapeo automático de columnas se puede corregir a mano.
 export default function ColumnMapping({
@@ -13,6 +14,7 @@ export default function ColumnMapping({
   busy: boolean;
   onApply: (mapping: Record<string, number | null>) => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(preview.mapping);
   useEffect(() => setDraft(preview.mapping), [preview.mapping]);
 
@@ -25,12 +27,12 @@ export default function ColumnMapping({
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3">
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
           <Columns3 className="h-4 w-4 text-amber-600" />
-          Mapeo de columnas
+          {t('setup.import.mapping.title')}
           <span className="font-normal text-slate-500">
-            · {Object.values(preview.mapping).filter((v) => v !== null).length} de {preview.fields.length} campos detectados
+            {t('setup.import.mapping.detected', { count: Object.values(preview.mapping).filter((v) => v !== null).length, total: preview.fields.length })}
           </span>
         </span>
-        <span className="text-xs text-slate-500 group-open:hidden">Revisar / corregir</span>
+        <span className="text-xs text-slate-500 group-open:hidden">{t('setup.import.mapping.review')}</span>
       </summary>
 
       <div className="border-t border-slate-100 p-5">
@@ -48,7 +50,7 @@ export default function ColumnMapping({
                   onChange={(e) => setDraft((d) => ({ ...d, [field.key]: e.target.value === '' ? null : Number(e.target.value) }))}
                   className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                 >
-                  <option value="">— No importar —</option>
+                  <option value="">{t('setup.import.mapping.skip')}</option>
                   {preview.columns.map((c) => (
                     <option key={c.index} value={c.index} disabled={used.has(c.index) && used.get(c.index) !== field.key}>
                       {c.header}
@@ -56,7 +58,7 @@ export default function ColumnMapping({
                   ))}
                 </select>
                 {col?.samples.length ? (
-                  <span className="mt-0.5 block truncate text-xs text-slate-400">Ej.: {col.samples.join(' · ')}</span>
+                  <span className="mt-0.5 block truncate text-xs text-slate-400">{t('setup.import.mapping.example', { samples: col.samples.join(' · ') })}</span>
                 ) : null}
               </label>
             );
@@ -65,7 +67,7 @@ export default function ColumnMapping({
         <div className="mt-4 flex justify-end gap-2">
           {changed && (
             <button type="button" onClick={() => setDraft(preview.mapping)} className="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-              Descartar
+              {t('setup.import.mapping.discard')}
             </button>
           )}
           <button
@@ -74,7 +76,7 @@ export default function ColumnMapping({
             onClick={() => onApply(draft)}
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
           >
-            {busy ? 'Revalidando…' : 'Aplicar y revalidar'}
+            {busy ? t('setup.import.mapping.revalidating') : t('setup.import.mapping.apply')}
           </button>
         </div>
       </div>

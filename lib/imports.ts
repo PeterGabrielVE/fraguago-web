@@ -1,5 +1,7 @@
 // Tipos de la importación masiva (MIG-B01/B02). Contrato con fraguago-api: `/imports/**`.
 
+import { localizedRecord } from '@/lib/i18n/client';
+
 export type ImportType = 'MEMBERS_PAYMENTS' | 'ATTENDANCE';
 export type RowStatus = 'NEW' | 'EXISTING' | 'DUPLICATE' | 'ERROR' | 'IGNORED';
 export type CommitStatus = 'CREATED' | 'UPDATED' | 'SKIPPED' | 'FAILED';
@@ -84,18 +86,18 @@ export type ImportJob = {
   finishedAt: string | null;
 };
 
-export const IMPORT_TYPE_LABELS: Record<ImportType, string> = {
-  MEMBERS_PAYMENTS: 'Socios y pagos',
-  ATTENDANCE: 'Asistencia',
-};
+export const IMPORT_TYPE_LABELS: Record<ImportType, string> = localizedRecord({
+  MEMBERS_PAYMENTS: 'labels.importType.MEMBERS_PAYMENTS',
+  ATTENDANCE: 'labels.importType.ATTENDANCE',
+});
 
-export const ROW_STATUS_LABELS: Record<RowStatus, string> = {
-  NEW: 'Nuevo',
-  EXISTING: 'Existente',
-  DUPLICATE: 'Duplicado',
-  ERROR: 'Error',
-  IGNORED: 'Ignorado',
-};
+export const ROW_STATUS_LABELS: Record<RowStatus, string> = localizedRecord({
+  NEW: 'labels.importRowStatus.NEW',
+  EXISTING: 'labels.importRowStatus.EXISTING',
+  DUPLICATE: 'labels.importRowStatus.DUPLICATE',
+  ERROR: 'labels.importRowStatus.ERROR',
+  IGNORED: 'labels.importRowStatus.IGNORED',
+});
 
 export const ROW_STATUS_BADGES: Record<RowStatus, string> = {
   NEW: 'border-transparent bg-emerald-100 text-emerald-700',
@@ -105,12 +107,12 @@ export const ROW_STATUS_BADGES: Record<RowStatus, string> = {
   IGNORED: 'border-transparent bg-slate-100 text-slate-500',
 };
 
-export const COMMIT_STATUS_LABELS: Record<CommitStatus, string> = {
-  CREATED: 'Creado',
-  UPDATED: 'Actualizado',
-  SKIPPED: 'Omitido',
-  FAILED: 'Falló',
-};
+export const COMMIT_STATUS_LABELS: Record<CommitStatus, string> = localizedRecord({
+  CREATED: 'labels.importCommitStatus.CREATED',
+  UPDATED: 'labels.importCommitStatus.UPDATED',
+  SKIPPED: 'labels.importCommitStatus.SKIPPED',
+  FAILED: 'labels.importCommitStatus.FAILED',
+});
 
 // Solo se envían las filas válidas (nuevas o existentes).
 export function importableRows(preview: ImportPreview) {

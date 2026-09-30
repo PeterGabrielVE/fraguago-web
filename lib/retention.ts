@@ -2,6 +2,8 @@
 // historial de envíos y referidos. Contrato con fraguago-api: `/retention/**`,
 // `/referrals/**` y `/me/referral`.
 
+import { localizedOptions, localizedRecord, tActive } from '@/lib/i18n/client';
+
 export type MessageChannel = 'EMAIL' | 'WHATSAPP';
 export type AutomationTrigger = 'INACTIVITY' | 'MEMBERSHIP_EXPIRING';
 export type MessageStatus = 'SENT' | 'FAILED' | 'SKIPPED';
@@ -90,26 +92,26 @@ export type MyReferral = {
   referrals: { id: string; name: string; status: ReferralStatus; createdAt: string; rewardedAt: string | null; points: number }[];
 };
 
-export const CHANNEL_LABELS: Record<MessageChannel, string> = { EMAIL: 'Email', WHATSAPP: 'WhatsApp' };
-export const CHANNEL_OPTIONS = Object.entries(CHANNEL_LABELS).map(([value, label]) => ({ value, label }));
+const CHANNEL_KEYS = { EMAIL: 'labels.channel.EMAIL', WHATSAPP: 'labels.channel.WHATSAPP' } as const;
+export const CHANNEL_LABELS: Record<MessageChannel, string> = localizedRecord(CHANNEL_KEYS);
+export const CHANNEL_OPTIONS = localizedOptions(CHANNEL_KEYS);
 
-export const TRIGGER_LABELS: Record<AutomationTrigger, string> = {
-  INACTIVITY: 'Inasistencia',
-  MEMBERSHIP_EXPIRING: 'Membresía por vencer',
-};
-export const TRIGGER_OPTIONS = Object.entries(TRIGGER_LABELS).map(([value, label]) => ({ value, label }));
+const TRIGGER_KEYS = {
+  INACTIVITY: 'labels.trigger.INACTIVITY',
+  MEMBERSHIP_EXPIRING: 'labels.trigger.MEMBERSHIP_EXPIRING',
+} as const;
+export const TRIGGER_LABELS: Record<AutomationTrigger, string> = localizedRecord(TRIGGER_KEYS);
+export const TRIGGER_OPTIONS = localizedOptions(TRIGGER_KEYS);
 
 export function triggerRule(m: Pick<AutomatedMessage, 'trigger' | 'triggerDays'>): string {
-  return m.trigger === 'INACTIVITY'
-    ? `Más de ${m.triggerDays} ${m.triggerDays === 1 ? 'día' : 'días'} sin asistir`
-    : `Vence en ${m.triggerDays} ${m.triggerDays === 1 ? 'día' : 'días'} o menos`;
+  return tActive(m.trigger === 'INACTIVITY' ? 'labels.triggerRule.inactivity' : 'labels.triggerRule.expiring', { count: m.triggerDays });
 }
 
-export const MESSAGE_STATUS_LABELS: Record<MessageStatus, string> = {
-  SENT: 'Enviado',
-  FAILED: 'Falló',
-  SKIPPED: 'Omitido',
-};
+export const MESSAGE_STATUS_LABELS: Record<MessageStatus, string> = localizedRecord({
+  SENT: 'labels.messageStatus.SENT',
+  FAILED: 'labels.messageStatus.FAILED',
+  SKIPPED: 'labels.messageStatus.SKIPPED',
+});
 
 export const MESSAGE_STATUS_BADGES: Record<MessageStatus, string> = {
   SENT: 'border-transparent bg-emerald-100 text-emerald-700',
@@ -117,10 +119,10 @@ export const MESSAGE_STATUS_BADGES: Record<MessageStatus, string> = {
   SKIPPED: 'border-transparent bg-slate-100 text-slate-500',
 };
 
-export const REFERRAL_STATUS_LABELS: Record<ReferralStatus, string> = {
-  PENDING: 'Pendiente',
-  REWARDED: 'Premiado',
-};
+export const REFERRAL_STATUS_LABELS: Record<ReferralStatus, string> = localizedRecord({
+  PENDING: 'labels.referralStatus.PENDING',
+  REWARDED: 'labels.referralStatus.REWARDED',
+});
 
 export const REFERRAL_STATUS_BADGES: Record<ReferralStatus, string> = {
   PENDING: 'border-transparent bg-amber-100 text-amber-700',
@@ -130,6 +132,8 @@ export const REFERRAL_STATUS_BADGES: Record<ReferralStatus, string> = {
 // Mismo formato que valida el backend (ej. ANA-7K2QX9).
 export const REFERRAL_CODE_RE = /^[A-Z]{2,4}-[A-HJ-NP-Z2-9]{6}$/;
 
-export const DEFAULT_INACTIVITY_BODY =
-  '¡Hola {{nombre}}! Hace {{dias_inactivo}} días que no te vemos en {{gimnasio}}. ' +
-  'Tu plan {{plan}} sigue activo hasta el {{vence}}: ¡te esperamos para seguir entrenando!';
+// Plantilla sugerida para el mensaje de inasistencia, en el idioma activo.
+// Las variables {{...}} las reemplaza el backend al enviar.
+export function defaultInactivityBody(): string {
+  return tActive('labels.defaultInactivityBody');
+}

@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, Save, Stethoscope } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useT } from '@/components/I18nProvider';
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
   'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition';
 
 export default function HealthPage() {
+  const t = useT();
   const [members, setMembers] = useState<any[]>([]);
   const [selected, setSelected] = useState('');
   const [health, setHealth] = useState<any>(null);
@@ -83,8 +85,8 @@ export default function HealthPage() {
               <Stethoscope className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Ficha Médica</h1>
-              <p className="mt-1 text-slate-600">Datos de salud y condiciones médicas de los socios.</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('records.health.title')}</h1>
+              <p className="mt-1 text-slate-600">{t('records.health.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -111,7 +113,7 @@ export default function HealthPage() {
                 value={selected}
                 onChange={(e) => { setSelected(e.target.value); loadHealth(e.target.value); }}
               >
-                <option value="">Selecciona un socio…</option>
+                <option value="">{t('records.selectMember')}</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.user?.profile?.firstName} {m.user?.profile?.lastName}
@@ -127,7 +129,7 @@ export default function HealthPage() {
                     : 'bg-amber-600 text-white hover:bg-amber-700'
                     }`}
                 >
-                  {open ? 'Cancelar' : (health ? 'Editar' : 'Crear ficha')}
+                  {open ? t('common.cancel') : (health ? t('records.edit') : t('records.health.create'))}
                 </button>
               )}
             </div>
@@ -135,24 +137,24 @@ export default function HealthPage() {
 
           {selected && !health && !open && (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500">
-              Este socio aún no tiene ficha médica registrada.
+              {t('records.health.empty')}
             </div>
           )}
 
           {selected && health && !open && (
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-5 text-lg font-semibold text-slate-900">Información actual</h2>
+              <h2 className="mb-5 text-lg font-semibold text-slate-900">{t('records.health.current')}</h2>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Stat label="Hipertensión" on={health.hypertension} />
-                <Stat label="Diabetes" on={health.diabetes} />
-                <Stat label="Problemas cardiacos" on={health.heartProblems} />
-                <Stat label="Asma" on={health.asthma} />
+                <Stat label={t('members.health.hypertension')} on={health.hypertension} />
+                <Stat label={t('members.health.diabetes')} on={health.diabetes} />
+                <Stat label={t('members.health.heartProblems')} on={health.heartProblems} />
+                <Stat label={t('members.health.asthma')} on={health.asthma} />
               </div>
               {(health.otherConditions || health.hasInjury || health.takesMedication) && (
                 <div className="mt-4 space-y-1.5 text-sm text-slate-700">
-                  {health.otherConditions && <p><span className="font-medium">Otras condiciones:</span> {health.otherConditions}</p>}
-                  {health.hasInjury && <p><span className="font-medium">Lesión / limitación:</span> {health.injuryDescription || 'Sí'}</p>}
-                  {health.takesMedication && <p><span className="font-medium">Medicación continua:</span> {health.medicationDescription || 'Sí'}</p>}
+                  {health.otherConditions && <p><span className="font-medium">{t('records.health.otherConditions')}</span> {health.otherConditions}</p>}
+                  {health.hasInjury && <p><span className="font-medium">{t('records.health.injury')}</span> {health.injuryDescription || t('records.health.yes')}</p>}
+                  {health.takesMedication && <p><span className="font-medium">{t('records.health.medication')}</span> {health.medicationDescription || t('records.health.yes')}</p>}
                 </div>
               )}
             </div>
@@ -160,39 +162,39 @@ export default function HealthPage() {
 
           {open && selected && (
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-5 text-lg font-semibold text-slate-900">{health ? 'Editar ficha médica' : 'Nueva ficha médica'}</h2>
+              <h2 className="mb-5 text-lg font-semibold text-slate-900">{health ? t('records.health.editTitle') : t('records.health.newTitle')}</h2>
               <form onSubmit={save} className="space-y-5">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Check label="Hipertensión" checked={form.hypertension} onChange={set('hypertension')} />
-                  <Check label="Diabetes" checked={form.diabetes} onChange={set('diabetes')} />
-                  <Check label="Problemas cardiacos" checked={form.heartProblems} onChange={set('heartProblems')} />
-                  <Check label="Asma" checked={form.asthma} onChange={set('asthma')} />
+                  <Check label={t('members.health.hypertension')} checked={form.hypertension} onChange={set('hypertension')} />
+                  <Check label={t('members.health.diabetes')} checked={form.diabetes} onChange={set('diabetes')} />
+                  <Check label={t('members.health.heartProblems')} checked={form.heartProblems} onChange={set('heartProblems')} />
+                  <Check label={t('members.health.asthma')} checked={form.asthma} onChange={set('asthma')} />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Otras condiciones</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('members.health.otherConditions')}</label>
                   <textarea
                     className={`${inputClass} min-h-20`}
                     value={form.otherConditions || ''}
                     onChange={set('otherConditions')}
-                    placeholder="Describe otras condiciones si existen…"
+                    placeholder={t('records.health.otherPlaceholder')}
                   />
                 </div>
 
                 <hr className="border-slate-200" />
 
-                <Check label="Tiene lesión o limitación" checked={form.hasInjury} onChange={set('hasInjury')} />
+                <Check label={t('members.health.hasInjury')} checked={form.hasInjury} onChange={set('hasInjury')} />
                 {form.hasInjury && (
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Descripción de la lesión</label>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('members.health.injuryDescription')}</label>
                     <textarea className={`${inputClass} min-h-20`} value={form.injuryDescription || ''} onChange={set('injuryDescription')} />
                   </div>
                 )}
 
-                <Check label="Toma medicación de uso continuo" checked={form.takesMedication} onChange={set('takesMedication')} />
+                <Check label={t('records.health.takesMedication')} checked={form.takesMedication} onChange={set('takesMedication')} />
                 {form.takesMedication && (
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Descripción de la medicación</label>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('members.health.medicationDescription')}</label>
                     <textarea className={`${inputClass} min-h-20`} value={form.medicationDescription || ''} onChange={set('medicationDescription')} />
                   </div>
                 )}
@@ -202,7 +204,7 @@ export default function HealthPage() {
                   disabled={saving}
                   className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />{saving ? 'Guardando…' : 'Guardar'}
+                  <Save className="h-4 w-4" />{saving ? t('records.saving') : t('common.save')}
                 </button>
               </form>
             </div>

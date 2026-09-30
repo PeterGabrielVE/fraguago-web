@@ -15,132 +15,14 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import {
-  LayoutDashboard,
-  Users,
-  Clock,
-  Stethoscope,
-  Phone,
-  CreditCard,
-  BarChart3,
-  DollarSign,
-  Tag,
-  Box,
-  Wrench,
-  User,
-  Calendar,
-  LogOut,
-  Loader2,
-  Zap,
-  Coins,
-  Dumbbell,
-  ShoppingCart,
-  Activity,
-  ShieldCheck,
-  Settings,
-  ScrollText,
-  Gift,
-  Ticket,
-  Award,
-  Crown,
-  Trophy,
-  MessageSquareText,
-  UserX,
-  Inbox,
-  Share2,
-  Upload,
-  ListChecks,
-} from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
-
-const NAV = [
-  {
-    group: 'General',
-    items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/members', label: 'Socios', icon: Users },
-      { href: '/attendance', label: 'Asistencia', icon: Clock },
-    ],
-  },
-  {
-    group: 'Datos Médicos',
-    items: [
-      { href: '/health', label: 'Salud', icon: Stethoscope },
-      { href: '/progress', label: 'Progreso', icon: Activity },
-      { href: '/emergency-contacts', label: 'Emergencia', icon: Phone },
-    ],
-  },
-  {
-    group: 'Membresías',
-    items: [
-      { href: '/memberships', label: 'Membresías', icon: CreditCard },
-      { href: '/membership-plans', label: 'Planes', icon: Tag },
-      { href: '/training-goals', label: 'Objetivos', icon: Zap },
-    ],
-  },
-  {
-    group: 'Pagos',
-    items: [
-      { href: '/payment-records', label: 'Pagos', icon: DollarSign },
-      { href: '/finances', label: 'Finanzas', icon: BarChart3 },
-      { href: '/exchange-rates', label: 'Tasas de cambio', icon: Coins },
-    ],
-  },
-  {
-    group: 'Operación',
-    items: [
-      { href: '/sales', label: 'Ventas', icon: ShoppingCart },
-      { href: '/concepts', label: 'Conceptos', icon: Tag },
-      { href: '/products', label: 'Productos', icon: Box },
-      { href: '/services', label: 'Servicios', icon: Wrench },
-    ],
-  },
-  {
-    group: 'Comunidad',
-    items: [
-      { href: '/challenges', label: 'Retos', icon: Trophy },
-    ],
-  },
-  {
-    group: 'Retención',
-    items: [
-      { href: '/automations', label: 'Mensajes automáticos', icon: MessageSquareText },
-      { href: '/inactive-members', label: 'Socios inactivos', icon: UserX },
-      { href: '/message-logs', label: 'Envíos', icon: Inbox },
-      { href: '/referrals', label: 'Referidos', icon: Share2 },
-    ],
-  },
-  {
-    group: 'Gamificación',
-    items: [
-      { href: '/rewards', label: 'Recompensas', icon: Gift },
-      { href: '/redemptions', label: 'Canjes', icon: Ticket },
-      { href: '/badges', label: 'Insignias', icon: Award },
-      { href: '/tiers', label: 'Niveles', icon: Crown },
-    ],
-  },
-  {
-    group: 'Equipo',
-    items: [
-      { href: '/trainers', label: 'Entrenadores', icon: User },
-      { href: '/routines', label: 'Rutinas', icon: Dumbbell },
-      { href: '/exercises', label: 'Ejercicios', icon: ListChecks },
-      { href: '/schedules', label: 'Horarios', icon: Calendar },
-    ],
-  },
-  {
-    group: 'Administración',
-    items: [
-      { href: '/users', label: 'Usuarios', icon: ShieldCheck },
-      { href: '/import', label: 'Importar datos', icon: Upload },
-      { href: '/settings', label: 'Configuración', icon: Settings },
-      { href: '/audit-logs', label: 'Auditoría', icon: ScrollText },
-    ],
-  },
-];
+import { NAV } from '@/lib/navigation';
+import { useT } from '@/components/I18nProvider';
 
 export default function SidebarNav() {
+  const t = useT();
   const path = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -193,7 +75,7 @@ export default function SidebarNav() {
           return (
             <SidebarGroup key={group.group}>
               <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                {group.group}
+                {t(`nav.groups.${group.group}`)}
               </SidebarGroupLabel>
               <SidebarMenu className="px-2">
                 {group.items.map((item) => {
@@ -211,7 +93,7 @@ export default function SidebarNav() {
                       >
                         <>
                           <ItemIcon className="h-4 w-4" />
-                          <span>{item.label}</span>
+                          <span>{t(`nav.items.${item.key}`)}</span>
                         </>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -232,7 +114,7 @@ export default function SidebarNav() {
           className="w-full justify-start text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           {loggingOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
-          {loggingOut ? 'Saliendo...' : 'Cerrar sesión'}
+          {loggingOut ? t('common.loggingOut') : t('common.logout')}
         </Button>
       </SidebarFooter>
     </Sidebar>

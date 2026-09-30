@@ -1,5 +1,6 @@
 import { reportError } from '@/lib/errorReporter';
 import { resetAnalytics } from '@/lib/analytics';
+import { getActiveLocale, tActive } from '@/lib/i18n/client';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -82,6 +83,8 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        // El API aún responde en español; así puede localizar sus mensajes cuando lo soporte.
+        'Accept-Language': getActiveLocale(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(opts.headers || {}),
       },
@@ -94,7 +97,7 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       source: `${opts.method ?? 'GET'} ${path}`,
       error,
     });
-    throw new Error('No se pudo conectar con el servidor');
+    throw new Error(tActive('api.offline'));
   }
 
   if (res.status === 401) {
@@ -113,14 +116,14 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       resetAnalytics();
       window.location.href = '/login';
     }
-    throw new Error('Sesión expirada');
+    throw new Error(tActive('api.sessionExpired'));
   }
 
   if (res.status === 403) {
     if (typeof window !== 'undefined' && window.location.pathname !== '/403') {
       window.location.href = '/403';
     }
-    throw new Error('No tienes permisos para realizar esta acción');
+    throw new Error(tActive('api.forbidden'));
   }
 
   if (!res.ok) {
@@ -135,7 +138,7 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       });
     }
 
-    throw new ApiError(body.message || 'Fallo en la solicitud', res.status);
+    throw new ApiError(body.message || tActive('api.requestFailed'), res.status);
   }
 
   if (res.status === 204) return null;

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Inbox, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT } from '@/components/I18nProvider';
 
 type Status = 'loading' | 'error' | 'success';
 
@@ -58,27 +59,29 @@ function DefaultLoading() {
 }
 
 function DefaultEmpty() {
+  const t = useT();
   return (
     <div className="flex flex-col items-center justify-center gap-2 p-10 text-center">
       <Inbox className="h-8 w-8 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">No hay nada por aquí todavía.</p>
+      <p className="text-sm text-muted-foreground">{t('async.empty')}</p>
     </div>
   );
 }
 
 function DefaultError({ error, onRetry }: { error?: Error | null; onRetry?: () => void }) {
+  const t = useT();
   return (
     <div role="alert" className="flex flex-col items-center justify-center gap-3 p-10 text-center">
       <AlertTriangle className="h-8 w-8 text-destructive" />
       <p className="text-sm text-muted-foreground">
-        {error?.message ?? 'No se pudieron cargar los datos.'}
+        {error?.message ?? t('async.error')}
       </p>
       {onRetry && (
         <button
           onClick={onRetry}
           className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
         >
-          Reintentar
+          {t('common.retry')}
         </button>
       )}
     </div>

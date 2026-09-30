@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useI18n } from '@/components/I18nProvider';
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -57,6 +58,7 @@ function initials(name: string) {
 }
 
 export default function SalesPage() {
+  const { t, intlLocale } = useI18n();
   const [products, setProducts] = useState<Product[]>([]);
   const [productQuery, setProductQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -80,7 +82,7 @@ export default function SalesPage() {
     try {
       setProducts(await api.list('/products?pageSize=100'));
     } catch (err: any) {
-      toast.add({ title: 'No se pudieron cargar los productos', description: err.message, type: 'error' });
+      toast.add({ title: t('operations.sales.loadProductsFailed'), description: err.message, type: 'error' });
     }
   }
 
@@ -89,7 +91,7 @@ export default function SalesPage() {
     try {
       setSales(await api.list('/sales?pageSize=20'));
     } catch (err: any) {
-      toast.add({ title: 'No se pudo cargar el historial', description: err.message, type: 'error' });
+      toast.add({ title: t('operations.sales.loadHistoryFailed'), description: err.message, type: 'error' });
     } finally {
       setSalesLoading(false);
     }
@@ -137,14 +139,14 @@ export default function SalesPage() {
 
   function addToCart(product: Product) {
     if (product.stock <= 0) {
-      toast.add({ title: `"${product.name}" no tiene stock disponible`, type: 'error' });
+      toast.add({ title: t('operations.sales.noStock', { name: product.name }), type: 'error' });
       return;
     }
     setCart((current) => {
       const existing = current.find((i) => i.productId === product.id);
       if (existing) {
         if (existing.quantity >= product.stock) {
-          toast.add({ title: `Solo hay ${product.stock} unidades de "${product.name}"`, type: 'error' });
+          toast.add({ title: t('operations.sales.onlyUnits', { count: product.stock, name: product.name }), type: 'error' });
           return current;
         }
         return current.map((i) => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
@@ -182,7 +184,7 @@ export default function SalesPage() {
     if (cart.length === 0) return;
     const reference = normalizeReference(paymentMethod, paymentReference);
     if (REFERENCE_REQUIRED.includes(paymentMethod) && !reference) {
-      toast.add({ title: 'Falta la referencia', description: 'Indica el número de referencia del pago.', type: 'error' });
+      toast.add({ title: t('operations.sales.missingReference'), description: t('operations.sales.missingReferenceDesc'), type: 'error' });
       return;
     }
     setConfirming(true);
@@ -196,12 +198,12 @@ export default function SalesPage() {
       });
       setPaymentReference('');
       setPaymentBank('');
-      toast.add({ title: 'Venta registrada', type: 'success' });
+      toast.add({ title: t('operations.sales.saleRecorded'), type: 'success' });
       setCart([]);
       clearMember();
       await Promise.all([loadProducts(), loadSales()]);
     } catch (err: any) {
-      toast.add({ title: 'No se pudo registrar la venta', description: err.message, type: 'error' });
+      toast.add({ title: t('operations.sales.saleFailed'), description: err.message, type: 'error' });
     } finally {
       setConfirming(false);
     }
@@ -216,8 +218,8 @@ export default function SalesPage() {
             <ShoppingCart className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Punto de venta</h1>
-            <p className="mt-1 text-slate-600">Registra ventas de productos a socios o al público.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('operations.sales.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('operations.sales.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -230,14 +232,14 @@ export default function SalesPage() {
             <input
               value={productQuery}
               onChange={(e) => setProductQuery(e.target.value)}
-              placeholder="Buscar producto por nombre o SKU…"
+              placeholder={t('operations.sales.searchProduct')}
               className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
             />
             {productQuery && (
               <button
                 type="button"
                 onClick={() => setProductQuery('')}
-                aria-label="Limpiar búsqueda"
+                aria-label={t('operations.sales.clearSearch')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <X className="h-4 w-4" />
@@ -249,7 +251,7 @@ export default function SalesPage() {
             <div className="flex flex-col items-center gap-2 py-16 text-center">
               <Search className="h-8 w-8 text-slate-300" />
               <p className="text-sm text-slate-500">
-                {products.length === 0 ? 'No hay productos cargados en el inventario.' : 'Sin resultados para esa búsqueda.'}
+                {products.length === 0 ? t('operations.sales.noProducts') : t('operations.sales.noResults')}
               </p>
             </div>
           ) : (
@@ -277,7 +279,7 @@ export default function SalesPage() {
                       }`}
                     >
                       {lowStock && !outOfStock && <TriangleAlert className="h-3 w-3" />}
-                      {outOfStock ? 'Sin stock' : `Stock: ${p.stock}`}
+                      {outOfStock ? t('operations.sales.outOfStock') : t('operations.sales.stockLabel', { stock: p.stock })}
                     </span>
                   </button>
                 );
@@ -290,26 +292,26 @@ export default function SalesPage() {
         <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
             <ShoppingCart className="h-5 w-5 text-amber-600" />
-            Carrito
+            {t('operations.sales.cart')}
           </h2>
 
           {/* Socio opcional */}
           <div ref={memberBoxRef} className="relative">
-            <label className="mb-1.5 block text-xs font-medium text-slate-600">Socio (opcional)</label>
+            <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('operations.sales.memberOptional')}</label>
             <div className="relative">
               <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={memberQuery}
                 onChange={(e) => { setMemberQuery(e.target.value); setMemberId(''); setMemberDropdownOpen(true); }}
                 onFocus={() => setMemberDropdownOpen(true)}
-                placeholder="Venta al público, o buscá un socio…"
+                placeholder={t('operations.sales.memberPlaceholder')}
                 className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               />
               {memberQuery && (
                 <button
                   type="button"
                   onClick={clearMember}
-                  aria-label="Quitar socio"
+                  aria-label={t('operations.sales.removeMember')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   <X className="h-4 w-4" />
@@ -319,7 +321,7 @@ export default function SalesPage() {
             {memberDropdownOpen && (
               <div className="absolute z-20 mt-1.5 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                 {filteredMembers.length === 0 ? (
-                  <p className="px-3 py-3 text-sm text-slate-500">Sin resultados.</p>
+                  <p className="px-3 py-3 text-sm text-slate-500">{t('operations.sales.noMemberResults')}</p>
                 ) : (
                   filteredMembers.map((m) => (
                     <button
@@ -342,7 +344,7 @@ export default function SalesPage() {
           {/* Items */}
           {cart.length === 0 ? (
             <p className="rounded-lg bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
-              Agregá productos desde el catálogo.
+              {t('operations.sales.emptyCart')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -350,14 +352,14 @@ export default function SalesPage() {
                 <div key={item.productId} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-800">{item.name}</p>
-                    <p className="text-xs text-slate-500">{formatMoney(item.price, item.currency)} c/u</p>
+                    <p className="text-xs text-slate-500">{t('operations.sales.each', { price: formatMoney(item.price, item.currency) })}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setQuantity(item.productId, item.quantity - 1)}
                       className="rounded-md border border-slate-200 p-1 text-slate-600 hover:bg-slate-100"
-                      aria-label="Restar"
+                      aria-label={t('operations.sales.decrease')}
                     >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
@@ -367,7 +369,7 @@ export default function SalesPage() {
                       onClick={() => setQuantity(item.productId, item.quantity + 1)}
                       disabled={item.quantity >= item.stock}
                       className="rounded-md border border-slate-200 p-1 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Sumar"
+                      aria-label={t('operations.sales.increase')}
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </button>
@@ -376,7 +378,7 @@ export default function SalesPage() {
                     type="button"
                     onClick={() => removeFromCart(item.productId)}
                     className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                    aria-label="Quitar del carrito"
+                    aria-label={t('operations.sales.removeItem')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -388,7 +390,7 @@ export default function SalesPage() {
           {/* Total y confirmar */}
           <div className="space-y-3 border-t border-slate-200 pt-3">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-slate-600">Método de pago</span>
+              <span className="mb-1.5 block text-xs font-medium text-slate-600">{t('operations.sales.paymentMethod')}</span>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
@@ -405,7 +407,7 @@ export default function SalesPage() {
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
                   placeholder={METHOD_FIELDS[paymentMethod].reference + (REFERENCE_REQUIRED.includes(paymentMethod) ? ' *' : '')}
-                  aria-label="Referencia del pago"
+                  aria-label={t('operations.sales.referenceLabel')}
                   maxLength={40}
                   inputMode={paymentMethod === 'PAGO_MOVIL' ? 'numeric' : 'text'}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
@@ -415,8 +417,8 @@ export default function SalesPage() {
                     list="sales-banks"
                     value={paymentBank}
                     onChange={(e) => setPaymentBank(e.target.value)}
-                    placeholder="Banco"
-                    aria-label="Banco emisor"
+                    placeholder={t('operations.sales.bank')}
+                    aria-label={t('operations.sales.bankLabel')}
                     maxLength={60}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                   />
@@ -426,11 +428,11 @@ export default function SalesPage() {
             )}
             {mixedCurrencies && (
               <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-                El carrito mezcla productos en distintas monedas: registra una venta por moneda.
+                {t('operations.sales.mixedCurrencies')}
               </p>
             )}
             <div className="flex items-center justify-between text-base font-semibold text-slate-900">
-              <span>Total</span>
+              <span>{t('operations.sales.total')}</span>
               <span>{mixedCurrencies ? '—' : formatMoney(cartTotal, cartCurrency)}</span>
             </div>
             <button
@@ -440,7 +442,7 @@ export default function SalesPage() {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Receipt className="h-4 w-4" />
-              {confirming ? 'Confirmando…' : 'Confirmar venta'}
+              {confirming ? t('operations.sales.confirming') : t('operations.sales.confirm')}
             </button>
           </div>
         </div>
@@ -450,7 +452,7 @@ export default function SalesPage() {
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b border-slate-200 px-5 py-4">
           <History className="h-5 w-5 text-amber-600" />
-          <h2 className="text-lg font-semibold text-slate-900">Historial de ventas</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('operations.sales.history')}</h2>
         </div>
         {salesLoading ? (
           <div className="flex items-center justify-center py-16">
@@ -459,17 +461,17 @@ export default function SalesPage() {
         ) : sales.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Receipt className="h-8 w-8 text-slate-300" />
-            <p className="text-sm text-slate-500">Todavía no se registraron ventas.</p>
+            <p className="text-sm text-slate-500">{t('operations.sales.noSales')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                  <th className="px-4 py-3 font-semibold text-slate-700">Fecha</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Socio</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Ítems</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Total</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t('operations.sales.colDate')}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t('operations.sales.colMember')}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t('operations.sales.colItems')}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t('operations.sales.colTotal')}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -479,10 +481,10 @@ export default function SalesPage() {
                   return (
                     <tr key={s.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
                       <td className="px-4 py-3 text-slate-600">
-                        {new Date(s.soldAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+                        {new Date(s.soldAt).toLocaleString(intlLocale, { dateStyle: 'medium', timeStyle: 'short' })}
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{s.member ? (personLabel(s.member) || s.memberId) : 'Público general'}</td>
-                      <td className="px-4 py-3 text-slate-600">{itemCount} unidad{itemCount === 1 ? '' : 'es'}</td>
+                      <td className="px-4 py-3 text-slate-700">{s.member ? (personLabel(s.member) || s.memberId) : t('operations.sales.walkIn')}</td>
+                      <td className="px-4 py-3 text-slate-600">{t('operations.sales.units', { count: itemCount })}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">{formatMoney(s.total)}</td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -490,7 +492,7 @@ export default function SalesPage() {
                           onClick={() => setDetailSale(s)}
                           className="text-xs font-semibold text-amber-700 hover:text-amber-800"
                         >
-                          Ver detalle
+                          {t('operations.sales.viewDetail')}
                         </button>
                       </td>
                     </tr>
@@ -506,13 +508,13 @@ export default function SalesPage() {
       <Dialog open={Boolean(detailSale)} onOpenChange={(open) => !open && setDetailSale(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Detalle de venta</DialogTitle>
+            <DialogTitle>{t('operations.sales.detailTitle')}</DialogTitle>
             <DialogDescription>
-              {detailSale && new Date(detailSale.soldAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+              {detailSale && new Date(detailSale.soldAt).toLocaleString(intlLocale, { dateStyle: 'medium', timeStyle: 'short' })}
               {' · '}
-              {detailSale?.member ? (personLabel(detailSale.member) || detailSale.memberId) : 'Público general'}
+              {detailSale?.member ? (personLabel(detailSale.member) || detailSale.memberId) : t('operations.sales.walkIn')}
               {detailSale?.paymentMethod && ` · ${PAYMENT_METHOD_LABELS[detailSale.paymentMethod] ?? detailSale.paymentMethod}`}
-              {detailSale?.createdBy && ` · Registró: ${`${detailSale.createdBy.profile?.firstName ?? ''} ${detailSale.createdBy.profile?.lastName ?? ''}`.trim() || detailSale.createdBy.email}`}
+              {detailSale?.createdBy && t('operations.sales.registeredBy', { name: `${detailSale.createdBy.profile?.firstName ?? ''} ${detailSale.createdBy.profile?.lastName ?? ''}`.trim() || detailSale.createdBy.email })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -523,7 +525,7 @@ export default function SalesPage() {
               </div>
             ))}
             <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-semibold text-slate-900">
-              <span>Total</span>
+              <span>{t('operations.sales.total')}</span>
               <span>{formatMoney(detailSale?.total ?? 0, detailSale?.currency)}</span>
             </div>
           </div>

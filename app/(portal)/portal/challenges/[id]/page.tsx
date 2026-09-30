@@ -33,9 +33,11 @@ import {
   type Leaderboard,
   type MemberChallenge,
 } from '@/lib/challenges';
+import { richText, useT } from '@/components/I18nProvider';
 
 // COM-F02 — detalle de un reto con su leaderboard en tiempo real.
 export default function PortalChallengeDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { status, data, error, refetch } = useAsync<MemberChallenge>(
     () => api.get(`/me/challenges/${id}`) as Promise<MemberChallenge>,
@@ -45,7 +47,7 @@ export default function PortalChallengeDetailPage() {
   return (
     <div className="space-y-6 p-8">
       <Link href="/portal/challenges" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
-        <ArrowLeft className="h-4 w-4" /> Volver a retos
+        <ArrowLeft className="h-4 w-4" /> {t('challenges.back')}
       </Link>
 
       <AsyncBoundary
@@ -58,8 +60,8 @@ export default function PortalChallengeDetailPage() {
         errorFallback={
           <div role="alert" className="flex flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-16 text-center">
             <AlertCircle className="h-8 w-8 text-red-500" />
-            <p className="text-sm text-slate-600">{error?.message ?? 'No se pudo cargar el reto.'}</p>
-            <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">Reintentar</button>
+            <p className="text-sm text-slate-600">{error?.message ?? t('challenges.loadError')}</p>
+            <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">{t('common.retry')}</button>
           </div>
         }
       >
@@ -70,6 +72,7 @@ export default function PortalChallengeDetailPage() {
 }
 
 function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge; onChanged: () => void }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   // Mi progreso se actualiza en vivo con cada versión del leaderboard.
@@ -88,10 +91,10 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
     setBusy(true);
     try {
       await api.post(`/me/challenges/${challenge.id}/join`, {});
-      toast.add({ title: `Te uniste a "${challenge.name}"`, type: 'success' });
+      toast.add({ title: t('challenges.portal.joined', { name: challenge.name }), type: 'success' });
       onChanged();
     } catch (e: any) {
-      toast.add({ title: 'No pudiste unirte', description: e.message, type: 'error' });
+      toast.add({ title: t('challenges.portal.joinFailed'), description: e.message, type: 'error' });
     } finally {
       setBusy(false);
     }
@@ -101,12 +104,12 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
     setBusy(true);
     try {
       await api.del(`/me/challenges/${challenge.id}/join`);
-      toast.add({ title: 'Saliste del reto', type: 'success' });
+      toast.add({ title: t('challenges.portal.left'), type: 'success' });
       setConfirmLeave(false);
       setLive(null);
       onChanged();
     } catch (e: any) {
-      toast.add({ title: 'No pudiste salir del reto', description: e.message, type: 'error' });
+      toast.add({ title: t('challenges.portal.leaveFailed'), description: e.message, type: 'error' });
     } finally {
       setBusy(false);
     }
@@ -127,10 +130,10 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
               </div>
               {challenge.description && <p className="mt-1 max-w-2xl text-slate-600">{challenge.description}</p>}
               <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-500">
-                <li className="inline-flex items-center gap-1.5"><Target className="h-4 w-4" />{challenge.goal} {metricUnit(challenge.metric, challenge.goal)} ({METRIC_LABELS[challenge.metric].toLowerCase()})</li>
+                <li className="inline-flex items-center gap-1.5"><Target className="h-4 w-4" />{t('challenges.portal.goalDetail', { goal: challenge.goal, unit: metricUnit(challenge.metric, challenge.goal), metric: METRIC_LABELS[challenge.metric].toLowerCase() })}</li>
                 <li className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4" />{formatRange(challenge)} · {timeLeftLabel(challenge)}</li>
                 {challenge.pointsReward > 0 && (
-                  <li className="inline-flex items-center gap-1.5 font-medium text-amber-700"><Gift className="h-4 w-4" />{formatPoints(challenge.pointsReward)} pts de premio</li>
+                  <li className="inline-flex items-center gap-1.5 font-medium text-amber-700"><Gift className="h-4 w-4" />{t('challenges.portal.prizeDetail', { points: formatPoints(challenge.pointsReward) })}</li>
                 )}
               </ul>
             </div>
@@ -139,7 +142,7 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
           <div className="shrink-0">
             {!mine && !finished && (
               isFull(challenge)
-                ? <span className="inline-block rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-500">Sin cupos</span>
+                ? <span className="inline-block rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-500">{t('challenges.card.full')}</span>
                 : (
                   <button
                     type="button"
@@ -147,7 +150,7 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
                     disabled={busy}
                     className="rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
                   >
-                    {busy ? 'Uniéndote…' : 'Unirme al reto'}
+                    {busy ? t('challenges.card.joining') : t('challenges.portal.joinChallenge')}
                   </button>
                 )
             )}
@@ -158,7 +161,7 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
                 disabled={busy}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
               >
-                Salir del reto
+                {t('challenges.portal.leave')}
               </button>
             )}
           </div>
@@ -169,15 +172,15 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
             <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
               <span className="inline-flex items-center gap-1.5">
                 {completedAt
-                  ? <><CircleCheck className="h-4 w-4 text-emerald-600" /> ¡Reto completado!</>
-                  : 'Tu progreso'}
+                  ? <><CircleCheck className="h-4 w-4 text-emerald-600" /> {t('challenges.portal.completed')}</>
+                  : t('challenges.card.yourProgress')}
               </span>
               <span>{progress}/{challenge.goal} {metricUnit(challenge.metric, challenge.goal)}</span>
             </div>
             <div
               className="h-3 w-full overflow-hidden rounded-full bg-slate-200"
               role="progressbar"
-              aria-label="Tu progreso en el reto"
+              aria-label={t('challenges.portal.progressLabel')}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={percent}
@@ -185,7 +188,7 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
               <div className={cn('h-full rounded-full transition-all duration-500', completedAt ? 'bg-emerald-500' : 'bg-amber-500')} style={{ width: `${percent}%` }} />
             </div>
             {challenge.status === 'UPCOMING' && (
-              <p className="mt-2 text-xs text-slate-500">El progreso empieza a contar cuando inicie el reto.</p>
+              <p className="mt-2 text-xs text-slate-500">{t('challenges.portal.startsLater')}</p>
             )}
           </div>
         )}
@@ -200,16 +203,15 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
       <AlertDialog open={confirmLeave} onOpenChange={(open) => !open && !busy && setConfirmLeave(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Salir del reto</AlertDialogTitle>
+            <AlertDialogTitle>{t('challenges.portal.leaveTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Dejarás de aparecer en la clasificación de <span className="font-medium text-foreground">{challenge.name}</span>.
-              Si vuelves a unirte, tu progreso se recalcula desde el inicio del reto.
+              {richText(t('challenges.portal.leaveDesc'), { name: <span className="font-medium text-foreground">{challenge.name}</span> })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={leave} disabled={busy}>
-              {busy ? 'Saliendo…' : 'Salir'}
+              {busy ? t('challenges.portal.leaving') : t('challenges.portal.leaveConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

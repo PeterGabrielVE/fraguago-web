@@ -5,6 +5,8 @@ import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
+import { useT } from '@/components/I18nProvider';
+import type { MessageKey } from '@/lib/i18n/translate';
 
 type Gym = {
   id: string;
@@ -16,13 +18,14 @@ type Gym = {
   _count: { members: number; users: number; trainers: number };
 };
 
-const CURRENCY_OPTIONS: { value: Gym['baseCurrency']; label: string }[] = [
-  { value: 'USD', label: 'USD - Dólar estadounidense' },
-  { value: 'VES', label: 'VES - Bolívar' },
-  { value: 'EUR', label: 'EUR - Euro' },
+const CURRENCY_OPTIONS: { value: Gym['baseCurrency']; label: MessageKey }[] = [
+  { value: 'USD', label: 'setup.settings.currencyUSD' },
+  { value: 'VES', label: 'setup.settings.currencyVES' },
+  { value: 'EUR', label: 'setup.settings.currencyEUR' },
 ];
 
 export default function Page() {
+  const t = useT();
   const { status, data, error, refetch } = useAsync<Gym>(() => api.get('/gym'), []);
 
   return (
@@ -33,8 +36,8 @@ export default function Page() {
             <Settings className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Configuración</h1>
-            <p className="mt-1 text-slate-600">Datos generales del gimnasio.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('setup.settings.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('setup.settings.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -54,9 +57,9 @@ export default function Page() {
           errorFallback={
             <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <AlertCircle className="h-8 w-8 text-red-500" />
-              <p className="text-sm text-slate-600">{error?.message ?? 'No se pudieron cargar los datos.'}</p>
+              <p className="text-sm text-slate-600">{error?.message ?? t('setup.settings.loadError')}</p>
               <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 transition">
-                Reintentar
+                {t('common.retry')}
               </button>
             </div>
           }
@@ -69,6 +72,7 @@ export default function Page() {
 }
 
 function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
+  const t = useT();
   const [name, setName] = useState(gym.name);
   const [baseCurrency, setBaseCurrency] = useState<Gym['baseCurrency']>(gym.baseCurrency);
   // Vacío = sin límite de aforo.
@@ -95,11 +99,11 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
         maxCapacity: maxCapacity.trim() ? Number(maxCapacity) : null,
         avgVisitMinutes: Number(avgVisitMinutes),
       });
-      toast.add({ title: 'Configuración actualizada', type: 'success' });
+      toast.add({ title: t('setup.settings.updated'), type: 'success' });
       onSaved();
     } catch (e: any) {
       setFormError(e.message);
-      toast.add({ title: 'No se pudo guardar', description: e.message, type: 'error' });
+      toast.add({ title: t('setup.settings.saveFailed'), description: e.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -120,7 +124,7 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
         )}
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Nombre del gimnasio<span className="text-red-500"> *</span>
+            {t('setup.settings.gymName')}<span className="text-red-500"> *</span>
           </label>
           <input
             type="text"
@@ -131,32 +135,32 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Moneda base</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('setup.settings.baseCurrency')}</label>
           <select
             value={baseCurrency}
             onChange={(e) => setBaseCurrency(e.target.value as Gym['baseCurrency'])}
             className={inputClass}
           >
-            {CURRENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {CURRENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.label)}</option>)}
           </select>
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Aforo máximo</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('setup.settings.maxCapacity')}</label>
           <input
             type="number"
             min={1}
             step={1}
-            placeholder="Sin límite"
+            placeholder={t('setup.settings.noLimit')}
             value={maxCapacity}
             onChange={(e) => setMaxCapacity(e.target.value)}
             className={inputClass}
           />
           <p className="mt-1 text-xs text-slate-500">
-            Personas simultáneas permitidas. Al llenarse se bloquean nuevas entradas. Déjalo vacío para no limitar.
+            {t('setup.settings.maxCapacityHint')}
           </p>
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Duración promedio de visita (min)</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('setup.settings.avgVisit')}</label>
           <input
             type="number"
             required
@@ -168,7 +172,7 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
             className={inputClass}
           />
           <p className="mt-1 text-xs text-slate-500">
-            Si no se marca la salida, la persona deja de contar en el aforo pasado este tiempo.
+            {t('setup.settings.avgVisitHint')}
           </p>
         </div>
         <div className="md:col-span-2">
@@ -177,15 +181,15 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
             disabled={saving}
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
           >
-            {saving ? 'Guardando…' : 'Guardar cambios'}
+            {saving ? t('setup.settings.saving') : t('setup.settings.saveChanges')}
           </button>
         </div>
       </form>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Socios" value={gym._count.members} />
-        <StatCard label="Usuarios" value={gym._count.users} />
-        <StatCard label="Entrenadores" value={gym._count.trainers} />
+        <StatCard label={t('setup.settings.members')} value={gym._count.members} />
+        <StatCard label={t('setup.settings.users')} value={gym._count.users} />
+        <StatCard label={t('setup.settings.trainers')} value={gym._count.trainers} />
       </div>
     </div>
   );

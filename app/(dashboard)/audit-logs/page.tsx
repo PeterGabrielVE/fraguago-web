@@ -1,6 +1,8 @@
 'use client';
 import { ScrollText, X } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
+import { useI18n } from '@/components/I18nProvider';
+import type { Translate } from '@/lib/i18n/translate';
 
 type AuditLogUser = {
   id: string;
@@ -20,15 +22,16 @@ type AuditLog = {
   user: AuditLogUser | null;
 };
 
-function userLabel(user: AuditLogUser | null): string {
-  if (!user) return 'Sistema';
+function userLabel(user: AuditLogUser | null, t: Translate): string {
+  if (!user) return t('admin.audit.system');
   return `${user.profile?.firstName ?? ''} ${user.profile?.lastName ?? ''}`.trim() || user.email;
 }
 
 export default function Page() {
+  const { t, intlLocale } = useI18n();
   return (
     <ResourceManager
-      title="Auditoría"
+      title={t('admin.audit.title')}
       icon={ScrollText}
       endpoint="/audit-logs"
       disableCreate
@@ -36,11 +39,11 @@ export default function Page() {
       disableDelete
       fields={[]}
       columns={[
-        { key: 'createdAt', label: 'Fecha', render: (r: AuditLog) => new Date(r.createdAt).toLocaleString('es-MX') },
-        { key: 'user', label: 'Usuario', render: (r: AuditLog) => userLabel(r.user) },
-        { key: 'action', label: 'Acción' },
-        { key: 'entity', label: 'Entidad' },
-        { key: 'entityId', label: 'ID afectado', render: (r: AuditLog) => r.entityId || '—' },
+        { key: 'createdAt', label: t('admin.audit.date'), render: (r: AuditLog) => new Date(r.createdAt).toLocaleString(intlLocale) },
+        { key: 'user', label: t('admin.audit.user'), render: (r: AuditLog) => userLabel(r.user, t) },
+        { key: 'action', label: t('admin.audit.action') },
+        { key: 'entity', label: t('admin.audit.entity') },
+        { key: 'entityId', label: t('admin.audit.entityId'), render: (r: AuditLog) => r.entityId || '—' },
       ]}
       renderDetails={(rawRow, onClose) => {
         const row = rawRow as AuditLog;
@@ -49,7 +52,7 @@ export default function Page() {
             <section className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <header className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">Detalle de auditoría</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">{t('admin.audit.eyebrow')}</p>
                   <h2 id="audit-log-details-title" className="mt-1 text-2xl font-bold text-slate-900">
                     {row.action}
                   </h2>
@@ -57,26 +60,26 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={onClose}
-                  aria-label="Volver al listado de auditoría"
+                  aria-label={t('admin.audit.backLabel')}
                   className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   <X className="h-5 w-5" />
-                  Volver
+                  {t('admin.audit.back')}
                 </button>
               </header>
 
               <div className="grid gap-4 p-6 sm:grid-cols-2">
-                <DetailItem label="Fecha y hora" value={new Date(row.createdAt).toLocaleString('es-MX')} />
-                <DetailItem label="Usuario" value={userLabel(row.user)} />
-                <DetailItem label="Acción" value={row.action} />
-                <DetailItem label="Entidad" value={row.entity} />
-                <DetailItem label="ID afectado" value={row.entityId || '—'} />
+                <DetailItem label={t('admin.audit.dateTime')} value={new Date(row.createdAt).toLocaleString(intlLocale)} />
+                <DetailItem label={t('admin.audit.user')} value={userLabel(row.user, t)} />
+                <DetailItem label={t('admin.audit.action')} value={row.action} />
+                <DetailItem label={t('admin.audit.entity')} value={row.entity} />
+                <DetailItem label={t('admin.audit.entityId')} value={row.entityId || '—'} />
               </div>
 
               <div className="border-t border-slate-200 p-6">
-                <p className="mb-2 text-sm font-medium text-slate-700">Detalle (meta)</p>
+                <p className="mb-2 text-sm font-medium text-slate-700">{t('admin.audit.meta')}</p>
                 <pre className="max-h-96 overflow-auto rounded-lg bg-slate-50 p-4 text-xs font-mono text-slate-700">
-                  {row.meta ? JSON.stringify(row.meta, null, 2) : 'Sin datos adicionales.'}
+                  {row.meta ? JSON.stringify(row.meta, null, 2) : t('admin.audit.noMeta')}
                 </pre>
               </div>
             </section>

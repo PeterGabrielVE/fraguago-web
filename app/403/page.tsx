@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import Flame from '@/components/Flame';
+import { getServerTranslator } from '@/lib/i18n/server';
 
 export default function ForbiddenPage() {
+  const t = getServerTranslator();
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 text-slate-900 sm:px-8">
       <div className="absolute -left-32 top-24 h-80 w-80 rounded-full bg-amber-100/70 sm:-left-20 sm:h-112 sm:w-md" />
@@ -18,21 +20,21 @@ export default function ForbiddenPage() {
               FraguaGo
             </Link>
 
-            <p className="mb-5 text-sm font-bold uppercase tracking-[0.28em] text-orange-500">Permiso insuficiente</p>
+            <p className="mb-5 text-sm font-bold uppercase tracking-[0.28em] text-orange-500">{t('errors.forbidden.eyebrow')}</p>
             <h1 className="text-6xl font-black tracking-tighter text-slate-900 sm:text-8xl">403</h1>
-            <h2 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">No puedes acceder aquí</h2>
+            <h2 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">{t('errors.forbidden.title')}</h2>
             <p className="mt-4 max-w-md text-base leading-7 text-slate-600">
-              Tu cuenta está activa, pero no tiene permisos suficientes para ver este contenido. Regresa al dashboard o contacta al administrador.
+              {t('errors.forbidden.body')}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/dashboard" className="inline-flex h-12 items-center gap-2 rounded-xl bg-amber-500 px-6 font-bold text-slate-950 shadow-lg shadow-amber-500/20 transition-colors hover:bg-amber-600">
                 <ArrowLeft className="h-4 w-4" />
-                Volver al dashboard
+                {t('common.backToDashboard')}
               </Link>
               <Link href="/login" className="inline-flex h-12 items-center gap-2 rounded-xl px-4 font-semibold text-slate-700 transition-colors hover:bg-amber-50 hover:text-amber-700">
                 <ShieldAlert className="h-4 w-4" />
-                Cambiar de cuenta
+                {t('errors.forbidden.switchAccount')}
               </Link>
             </div>
           </div>

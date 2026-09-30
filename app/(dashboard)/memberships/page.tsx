@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Ban, CirclePause, CirclePlay, CreditCard, Plus, RefreshCw } from 'lucide-react';
 import MembershipPaymentDialog, { type PlanOption } from '@/components/MembershipPaymentDialog';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
+import { useI18n } from '@/components/I18nProvider';
 
 function nowAsDatetimeLocal() {
   const now = new Date();
@@ -19,6 +20,7 @@ function memberFullName(member: any) {
 }
 
 export default function Page() {
+  const { t, intlLocale } = useI18n();
   const [memberOptions, setMemberOptions] = useState<SelectOption[]>([]);
   const [planOptions, setPlanOptions] = useState<SelectOption[]>([]);
   const [plans, setPlans] = useState<PlanOption[]>([]);
@@ -42,7 +44,7 @@ export default function Page() {
     <>
     <ResourceManager
       key={reloadKey}
-      title="Membresías" subtitle="Asigna un plan a un socio; el vencimiento se calcula solo."
+      title={t('payments.memberships.title')} subtitle={t('payments.memberships.subtitle')}
       icon={CreditCard}
       endpoint="/memberships"
       formVariant="modal"
@@ -54,20 +56,20 @@ export default function Page() {
           onClick={() => setDialog({ open: true, renew: null })}
           className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
         >
-          <Plus className="h-4 w-4" /> Nueva membresía
+          <Plus className="h-4 w-4" /> {t('payments.memberships.newMembership')}
         </button>
       }
       filters={[
-        { label: 'Todas', endpoint: '/memberships' },
-        { label: 'Por vencer', endpoint: '/memberships/expiring' },
-        { label: 'Vencidas', endpoint: '/memberships/expired' },
+        { label: t('payments.memberships.filterAll'), endpoint: '/memberships' },
+        { label: t('payments.memberships.filterExpiring'), endpoint: '/memberships/expiring' },
+        { label: t('payments.memberships.filterExpired'), endpoint: '/memberships/expired' },
       ]}
       columns={[
-        { key: 'member', label: 'Socio', render: (r) => memberFullName(r.member) || r.memberId },
-        { key: 'plan', label: 'Plan', render: (r) => r.plan?.name || r.planId },
-        { key: 'endDate', label: 'Vence', render: (r) => new Date(r.endDate).toLocaleDateString('es-MX') },
+        { key: 'member', label: t('payments.memberships.member'), render: (r) => memberFullName(r.member) || r.memberId },
+        { key: 'plan', label: t('payments.memberships.plan'), render: (r) => r.plan?.name || r.planId },
+        { key: 'endDate', label: t('payments.memberships.expires'), render: (r) => new Date(r.endDate).toLocaleDateString(intlLocale) },
         {
-          key: 'status', label: 'Estado', render: (r) => {
+          key: 'status', label: t('payments.memberships.status'), render: (r) => {
             const s = effectiveMembershipStatus(r);
             return (
               <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${MEMBERSHIP_STATUS_BADGES[s] ?? 'bg-slate-100 text-slate-600'}`}>
@@ -78,9 +80,9 @@ export default function Page() {
         },
       ]}
       fields={[
-        { name: 'memberId', label: 'Socio', type: 'select', required: true, options: memberOptions },
-        { name: 'planId', label: 'Plan', type: 'select', required: true, options: planOptions },
-        { name: 'startDate', label: 'Fecha de inicio', type: 'datetime-local', defaultValue: nowAsDatetimeLocal },
+        { name: 'memberId', label: t('payments.memberships.member'), type: 'select', required: true, options: memberOptions },
+        { name: 'planId', label: t('payments.memberships.plan'), type: 'select', required: true, options: planOptions },
+        { name: 'startDate', label: t('payments.memberships.startDate'), type: 'datetime-local', defaultValue: nowAsDatetimeLocal },
       ]}
       onCreate={(payload) => api.post(`/members/${payload.memberId}/memberships`, {
         planId: payload.planId,
@@ -93,39 +95,39 @@ export default function Page() {
       })}
       extraActions={(row) => [
         ...(row.status !== 'CANCELLED' ? [{
-          label: 'Renovar',
+          label: t('payments.memberships.renew'),
           icon: RefreshCw,
           silent: true,
           // Renovar es un cobro: se registra cómo se pagó.
           onClick: () => setDialog({
             open: true,
-            renew: { id: row.id, memberName: memberFullName(row.member) || 'Socio', planId: row.planId },
+            renew: { id: row.id, memberName: memberFullName(row.member) || t('payments.memberships.memberFallback'), planId: row.planId },
           }),
         }] : []),
         // DB-02 — estado administrativo: suspender (congela y bloquea el
         // check-in), reactivar o cancelar (definitivo).
         ...(row.status === 'ACTIVE' ? [{
-          label: 'Suspender',
+          label: t('payments.memberships.suspend'),
           icon: CirclePause,
           confirm: true,
-          confirmTitle: 'Suspender membresía',
-          confirmDescription: `${memberFullName(row.member) || 'El socio'} no podrá registrar asistencia hasta que la reactives.`,
+          confirmTitle: t('payments.memberships.suspendTitle'),
+          confirmDescription: t('payments.memberships.suspendDesc', { name: memberFullName(row.member) || t('payments.memberships.theMember') }),
           onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'SUSPENDED' }),
         }] : []),
         ...(row.status === 'SUSPENDED' ? [{
-          label: 'Reactivar',
+          label: t('payments.memberships.reactivate'),
           icon: CirclePlay,
           confirm: true,
-          confirmTitle: 'Reactivar membresía',
-          confirmDescription: `${memberFullName(row.member) || 'El socio'} vuelve a poder registrar asistencia.`,
+          confirmTitle: t('payments.memberships.reactivateTitle'),
+          confirmDescription: t('payments.memberships.reactivateDesc', { name: memberFullName(row.member) || t('payments.memberships.theMember') }),
           onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'ACTIVE' }),
         }] : []),
         ...(row.status !== 'CANCELLED' ? [{
-          label: 'Cancelar',
+          label: t('payments.memberships.cancel'),
           icon: Ban,
           confirm: true,
-          confirmTitle: 'Cancelar membresía',
-          confirmDescription: 'La cancelación es definitiva: para volver a habilitar al socio habrá que asignarle una membresía nueva.',
+          confirmTitle: t('payments.memberships.cancelTitle'),
+          confirmDescription: t('payments.memberships.cancelDesc'),
           className: 'text-red-600',
           onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'CANCELLED' }),
         }] : []),

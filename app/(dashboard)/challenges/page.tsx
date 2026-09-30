@@ -15,6 +15,7 @@ import {
   toDatetimeLocal,
   type Challenge,
 } from '@/lib/challenges';
+import { useT } from '@/components/I18nProvider';
 
 const LIST = '/challenges?pageSize=100';
 
@@ -33,48 +34,49 @@ function defaultEnd() {
 
 // COM-B01/COM-F01 (staff) — gestión de retos temporales.
 export default function Page() {
+  const t = useT();
   const router = useRouter();
 
   return (
     <ResourceManager
-      title="Retos" subtitle="Desafíos temporales para la comunidad del gym."
+      title={t('challenges.title')} subtitle={t('challenges.staffSubtitle')}
       icon={Trophy}
       endpoint="/challenges"
       formVariant="modal"
       filters={[
-        { label: 'En curso', endpoint: `${LIST}&status=ACTIVE` },
-        { label: 'Próximos', endpoint: `${LIST}&status=UPCOMING` },
-        { label: 'Finalizados', endpoint: `${LIST}&status=FINISHED` },
-        { label: 'Todos', endpoint: LIST },
+        { label: t('challenges.tabActive'), endpoint: `${LIST}&status=ACTIVE` },
+        { label: t('challenges.tabUpcoming'), endpoint: `${LIST}&status=UPCOMING` },
+        { label: t('challenges.tabFinished'), endpoint: `${LIST}&status=FINISHED` },
+        { label: t('challenges.tabAll'), endpoint: LIST },
       ]}
       columns={[
-        { key: 'name', label: 'Reto' },
-        { key: 'metric', label: 'Mide', render: (r: Challenge) => `${METRIC_LABELS[r.metric]} · meta ${r.goal}` },
-        { key: 'startsAt', label: 'Fechas', render: (r: Challenge) => formatRange(r) },
+        { key: 'name', label: t('challenges.challenge') },
+        { key: 'metric', label: t('challenges.measures'), render: (r: Challenge) => t('challenges.metricGoal', { metric: METRIC_LABELS[r.metric], goal: r.goal }) },
+        { key: 'startsAt', label: t('challenges.dates'), render: (r: Challenge) => formatRange(r) },
         {
-          key: 'participantsCount', label: 'Participantes',
+          key: 'participantsCount', label: t('challenges.participants'),
           render: (r: Challenge) => `${r.participantsCount}${r.maxParticipants ? ` / ${r.maxParticipants}` : ''}`,
         },
-        { key: 'pointsReward', label: 'Premio', render: (r: Challenge) => (r.pointsReward ? `${formatPoints(r.pointsReward)} pts` : '—') },
+        { key: 'pointsReward', label: t('challenges.prize'), render: (r: Challenge) => (r.pointsReward ? t('challenges.prizeValue', { points: formatPoints(r.pointsReward) }) : '—') },
         {
-          key: 'status', label: 'Estado',
+          key: 'status', label: t('challenges.status'),
           render: (r: Challenge) => (
             <span className="inline-flex flex-wrap gap-1">
               <Badge variant="outline" className={STATUS_BADGES[r.status]}>{STATUS_LABELS[r.status]}</Badge>
-              {!r.active && <Badge variant="outline" className="border-transparent bg-red-100 text-red-700">Oculto</Badge>}
+              {!r.active && <Badge variant="outline" className="border-transparent bg-red-100 text-red-700">{t('challenges.hidden')}</Badge>}
             </span>
           ),
         },
       ]}
       fields={[
-        { name: 'name', label: 'Nombre', required: true },
-        { name: 'metric', label: 'Qué se mide', type: 'select', required: true, options: METRIC_OPTIONS, defaultValue: 'ATTENDANCE_DAYS' },
-        { name: 'goal', label: 'Meta', type: 'number', required: true },
-        { name: 'pointsReward', label: 'Premio en puntos', type: 'number' },
-        { name: 'startsAt', label: 'Inicio', type: 'datetime-local', required: true, defaultValue: defaultStart },
-        { name: 'endsAt', label: 'Fin', type: 'datetime-local', required: true, defaultValue: defaultEnd },
-        { name: 'maxParticipants', label: 'Cupo (vacío = sin límite)', type: 'number' },
-        { name: 'description', label: 'Descripción', type: 'textarea', fullWidth: true },
+        { name: 'name', label: t('challenges.name'), required: true },
+        { name: 'metric', label: t('challenges.metricField'), type: 'select', required: true, options: METRIC_OPTIONS, defaultValue: 'ATTENDANCE_DAYS' },
+        { name: 'goal', label: t('challenges.goal'), type: 'number', required: true },
+        { name: 'pointsReward', label: t('challenges.pointsReward'), type: 'number' },
+        { name: 'startsAt', label: t('challenges.start'), type: 'datetime-local', required: true, defaultValue: defaultStart },
+        { name: 'endsAt', label: t('challenges.end'), type: 'datetime-local', required: true, defaultValue: defaultEnd },
+        { name: 'maxParticipants', label: t('challenges.maxParticipants'), type: 'number' },
+        { name: 'description', label: t('challenges.description'), type: 'textarea', fullWidth: true },
       ]}
       getEditValues={(row) => ({
         name: row.name,
@@ -88,58 +90,58 @@ export default function Page() {
       })}
       validate={(form) => {
         const name = String(form.name ?? '').trim();
-        if (name.length < 3) return 'El nombre debe tener al menos 3 caracteres.';
+        if (name.length < 3) return t('challenges.errName');
         const goal = Number(form.goal);
-        if (!Number.isInteger(goal) || goal < 1 || goal > 1000) return 'La meta debe ser un entero entre 1 y 1000.';
+        if (!Number.isInteger(goal) || goal < 1 || goal > 1000) return t('challenges.errGoal');
         if (form.pointsReward !== '' && form.pointsReward !== undefined && (Number(form.pointsReward) < 0 || !Number.isInteger(Number(form.pointsReward)))) {
-          return 'El premio debe ser un entero mayor o igual a 0.';
+          return t('challenges.errPrize');
         }
         if (form.maxParticipants !== '' && form.maxParticipants !== undefined && !(Number(form.maxParticipants) >= 1)) {
-          return 'El cupo debe ser al menos 1.';
+          return t('challenges.errCapacity');
         }
         const start = new Date(form.startsAt);
         const end = new Date(form.endsAt);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Revisa las fechas de inicio y fin.';
-        if (end <= start) return 'La fecha de fin debe ser posterior a la de inicio.';
-        if (end <= new Date()) return 'La fecha de fin debe ser futura.';
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return t('challenges.errDates');
+        if (end <= start) return t('challenges.errEndAfterStart');
+        if (end <= new Date()) return t('challenges.errEndFuture');
         if (form.metric === 'ATTENDANCE_DAYS') {
           const days = Math.ceil((end.getTime() - start.getTime()) / 86_400_000);
-          if (goal > days) return `La meta (${goal} días) supera la duración del reto (${days} días).`;
+          if (goal > days) return t('challenges.errGoalTooLong', { goal, days });
         }
         return null;
       }}
       extraActions={(row) => [
         {
-          label: 'Ver clasificación',
+          label: t('challenges.viewLeaderboard'),
           icon: ListOrdered,
           silent: true,
           onClick: () => router.push(`/challenges/${row.id}`),
         },
         {
-          label: 'Recalcular progreso',
+          label: t('challenges.recalculate'),
           icon: RefreshCw,
           silent: true,
           onClick: async () => {
             try {
               const res = await api.post(`/challenges/${row.id}/recalculate`, {});
               toast.add({
-                title: 'Progreso recalculado',
-                description: `${res.recalculated} participantes · ${res.newlyCompleted} completaron`,
+                title: t('challenges.recalculated'),
+                description: t('challenges.recalculatedDesc', { participants: res.recalculated, completed: res.newlyCompleted }),
                 type: 'success',
               });
             } catch (e: any) {
-              toast.add({ title: 'No se pudo recalcular', description: e.message, type: 'error' });
+              toast.add({ title: t('challenges.recalculateFailed'), description: e.message, type: 'error' });
             }
           },
         },
         ...(row.status === 'FINISHED' ? [] : [{
-          label: row.active ? 'Ocultar' : 'Publicar',
+          label: row.active ? t('challenges.hide') : t('challenges.publish'),
           icon: Power,
           confirm: true,
-          confirmTitle: row.active ? 'Ocultar reto' : 'Publicar reto',
+          confirmTitle: row.active ? t('challenges.hideTitle') : t('challenges.publishTitle'),
           confirmDescription: row.active
-            ? `"${row.name}" dejará de verse en el portal y su progreso dejará de actualizarse.`
-            : `"${row.name}" volverá a verse en el portal de los socios.`,
+            ? t('challenges.hideDesc', { name: row.name })
+            : t('challenges.publishDesc', { name: row.name }),
           onClick: () => api.patch(`/challenges/${row.id}`, { active: !row.active }),
         }]),
       ]}

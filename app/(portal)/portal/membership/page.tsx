@@ -5,8 +5,18 @@ import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { isMembershipActive, type Membership, type PaginatedResponse } from '@/lib/portal';
+import { useI18n } from '@/components/I18nProvider';
+import { localizedRecord } from '@/lib/i18n/client';
+
+const PLAN_TYPE_LABELS: Record<string, string> = localizedRecord({
+  DAILY: 'labels.planType.DAILY',
+  MONTHLY: 'labels.planType.MONTHLY',
+  QUARTERLY: 'labels.planType.QUARTERLY',
+  ANNUAL: 'labels.planType.ANNUAL',
+});
 
 export default function PortalMembershipPage() {
+  const { t, intlLocale } = useI18n();
   const { status, data, error, refetch } = useAsync<PaginatedResponse<Membership>>(
     () => api.get('/me/membership') as Promise<PaginatedResponse<Membership>>,
     [],
@@ -20,8 +30,8 @@ export default function PortalMembershipPage() {
             <CreditCard className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Mi membresía</h1>
-            <p className="mt-1 text-slate-600">Historial de planes contratados y su vigencia.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('portal.membership.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('portal.membership.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -41,16 +51,16 @@ export default function PortalMembershipPage() {
           errorFallback={
             <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <AlertCircle className="h-8 w-8 text-red-500" />
-              <p className="text-sm text-slate-600">{error?.message ?? 'No se pudieron cargar los datos.'}</p>
+              <p className="text-sm text-slate-600">{error?.message ?? t('portal.loadError')}</p>
               <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50">
-                Reintentar
+                {t('common.retry')}
               </button>
             </div>
           }
           empty={
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <CreditCard className="h-8 w-8 text-slate-300" />
-              <p className="text-sm text-slate-500">Todavía no tienes membresías registradas.</p>
+              <p className="text-sm text-slate-500">{t('portal.membership.empty')}</p>
             </div>
           }
         >
@@ -59,11 +69,11 @@ export default function PortalMembershipPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                    <th className="px-4 py-3 font-semibold text-slate-700">Plan</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Precio</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Inicio</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Fin</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Estado</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.membership.plan')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.membership.price')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.membership.start')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.membership.end')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.membership.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -73,23 +83,23 @@ export default function PortalMembershipPage() {
                       <tr key={m.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-slate-800">{m.plan?.name ?? '—'}</p>
-                          <p className="text-xs text-slate-500">{m.plan?.type ?? ''}</p>
+                          <p className="text-xs text-slate-500">{m.plan?.type ? PLAN_TYPE_LABELS[m.plan.type] ?? m.plan.type : ''}</p>
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           {m.plan?.price != null ? `$${Number(m.plan.price).toFixed(2)}` : '—'}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
-                          {m.startDate ? new Date(m.startDate).toLocaleDateString('es-MX') : '—'}
+                          {m.startDate ? new Date(m.startDate).toLocaleDateString(intlLocale) : '—'}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
-                          {m.endDate ? new Date(m.endDate).toLocaleDateString('es-MX') : '—'}
+                          {m.endDate ? new Date(m.endDate).toLocaleDateString(intlLocale) : '—'}
                         </td>
                         <td className="px-4 py-3">
                           <Badge
                             variant="outline"
                             className={active ? 'border-transparent bg-emerald-100 text-emerald-700' : 'border-transparent bg-red-100 text-red-700'}
                           >
-                            {active ? 'Vigente' : 'Vencida'}
+                            {active ? t('portal.home.active') : t('portal.home.expired')}
                           </Badge>
                         </td>
                       </tr>

@@ -9,9 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { receiptObjectUrl } from '@/lib/payments';
+import { useT } from '@/components/I18nProvider';
 
 // Botón "ver comprobante": descarga la foto con autenticación y la muestra.
 export default function ReceiptButton({ id }: { id: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -29,21 +31,21 @@ export default function ReceiptButton({ id }: { id: string }) {
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(true); }}
         className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-50"
-        aria-label="Ver comprobante"
+        aria-label={t('payments.receipt.viewLabel')}
       >
-        <ImageIcon className="h-3.5 w-3.5" /> Ver
+        <ImageIcon className="h-3.5 w-3.5" /> {t('payments.receipt.view')}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Comprobante de pago</DialogTitle>
-            <DialogDescription>Foto guardada al registrar el pago.</DialogDescription>
+            <DialogTitle>{t('payments.receipt.title')}</DialogTitle>
+            <DialogDescription>{t('payments.receipt.description')}</DialogDescription>
           </DialogHeader>
           {error && <p className="text-sm text-red-600">{error}</p>}
           {!url && !error && <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-amber-600" /></div>}
           {url && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={url} alt="Comprobante de pago" className="max-h-[70vh] w-full rounded-lg object-contain" />
+            <img src={url} alt={t('payments.fields.receiptAlt')} className="max-h-[70vh] w-full rounded-lg object-contain" />
           )}
         </DialogContent>
       </Dialog>

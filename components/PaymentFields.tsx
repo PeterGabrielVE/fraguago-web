@@ -13,6 +13,7 @@ import {
   type PaymentMethod,
   type PaymentValue,
 } from '@/lib/payments';
+import { useT } from '@/components/I18nProvider';
 
 export type ReceiptState = { image: Blob | null; previewUrl: string | null; save: boolean };
 
@@ -33,6 +34,7 @@ export default function PaymentFields({
   receipt: ReceiptState;
   onReceiptChange: (r: ReceiptState) => void;
 }) {
+  const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
   const [ocr, setOcr] = useState<OcrResult | null>(null);
@@ -75,7 +77,7 @@ export default function PaymentFields({
         ...(result.currency ? { currency: result.currency } : {}),
       });
     } catch (e: any) {
-      setOcrError(e.message ?? 'No se pudo leer el comprobante. Completa los datos a mano.');
+      setOcrError(e.message ?? t('payments.fields.ocrFailed'));
     } finally {
       setReading(false);
     }
@@ -91,11 +93,11 @@ export default function PaymentFields({
 
   return (
     <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
-      <legend className="px-1 text-sm font-semibold text-slate-800">Pago</legend>
+      <legend className="px-1 text-sm font-semibold text-slate-800">{t('payments.fields.legend')}</legend>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm sm:col-span-1">
-          <span className="mb-1 block font-medium text-slate-700">Método</span>
+          <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.method')}</span>
           <select
             value={value.paymentMethod}
             onChange={(e) => set({ paymentMethod: e.target.value as PaymentMethod })}
@@ -105,11 +107,11 @@ export default function PaymentFields({
           </select>
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium text-slate-700">Monto pagado</span>
-          <input type="number" min="0" step="0.01" value={value.amount} onChange={(e) => set({ amount: e.target.value })} className={inputClass} placeholder="Precio del plan" />
+          <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.amountPaid')}</span>
+          <input type="number" min="0" step="0.01" value={value.amount} onChange={(e) => set({ amount: e.target.value })} className={inputClass} placeholder={t('payments.fields.amountPlaceholder')} />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium text-slate-700">Moneda</span>
+          <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.currency')}</span>
           <select value={value.currency} onChange={(e) => set({ currency: e.target.value })} className={inputClass}>
             {CURRENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -118,8 +120,8 @@ export default function PaymentFields({
 
       {foreignCurrency && (
         <label className="block text-sm">
-          <span className="mb-1 block font-medium text-slate-700">Tasa del día (opcional)</span>
-          <input type="number" min="0" step="0.0001" value={value.exchangeRate} onChange={(e) => set({ exchangeRate: e.target.value })} className={inputClass} placeholder="Si se deja vacío, se usa la última tasa registrada" />
+          <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.rate')}</span>
+          <input type="number" min="0" step="0.0001" value={value.exchangeRate} onChange={(e) => set({ exchangeRate: e.target.value })} className={inputClass} placeholder={t('payments.fields.ratePlaceholder')} />
         </label>
       )}
 
@@ -131,31 +133,31 @@ export default function PaymentFields({
               onClick={() => fileRef.current?.click()}
               className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-amber-700 hover:bg-amber-50"
             >
-              <Camera className="h-4 w-4" /> Cargar captura del comprobante (lee los datos automáticamente)
+              <Camera className="h-4 w-4" /> {t('payments.fields.uploadReceipt')}
             </button>
           ) : (
             <div className="flex items-start gap-3">
               {receipt.previewUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={receipt.previewUrl} alt="Comprobante de pago" className="h-24 w-20 shrink-0 rounded-md border border-slate-200 object-cover" />
+                <img src={receipt.previewUrl} alt={t('payments.fields.receiptAlt')} className="h-24 w-20 shrink-0 rounded-md border border-slate-200 object-cover" />
               )}
               <div className="min-w-0 flex-1 space-y-1.5 text-xs">
-                {reading && <p className="inline-flex items-center gap-1.5 text-slate-600"><Loader2 className="h-3.5 w-3.5 animate-spin" />Leyendo el comprobante…</p>}
+                {reading && <p className="inline-flex items-center gap-1.5 text-slate-600"><Loader2 className="h-3.5 w-3.5 animate-spin" />{t('payments.fields.reading')}</p>}
                 {ocr && !reading && (
                   <p className={cn('inline-flex items-center gap-1.5', ocr.confidence >= 0.7 ? 'text-emerald-700' : 'text-amber-700')}>
                     <Sparkles className="h-3.5 w-3.5" />
-                    Datos leídos de la captura{ocr.confidence < 0.7 ? ' (baja confianza)' : ''}: revísalos antes de guardar.
-                    {ocr.date && ` Fecha del pago: ${ocr.date.split('-').reverse().join('/')}.`}
+                    {ocr.confidence < 0.7 ? t('payments.fields.ocrReadLow') : t('payments.fields.ocrRead')}
+                    {ocr.date && t('payments.fields.ocrDate', { date: ocr.date.split('-').reverse().join('/') })}
                   </p>
                 )}
                 {ocrError && <p className="text-amber-700">{ocrError}</p>}
                 <label className="flex items-center gap-2 text-slate-700">
                   <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={receipt.save} onChange={(e) => onReceiptChange({ ...receipt, save: e.target.checked })} />
-                  Guardar la foto del comprobante
+                  {t('payments.fields.saveReceipt')}
                 </label>
                 <div className="flex gap-3">
-                  <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1 text-amber-700 hover:underline"><ScanText className="h-3.5 w-3.5" />Cambiar</button>
-                  <button type="button" onClick={removeImage} className="inline-flex items-center gap-1 text-slate-500 hover:underline"><Trash2 className="h-3.5 w-3.5" />Quitar</button>
+                  <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1 text-amber-700 hover:underline"><ScanText className="h-3.5 w-3.5" />{t('payments.fields.change')}</button>
+                  <button type="button" onClick={removeImage} className="inline-flex items-center gap-1 text-slate-500 hover:underline"><Trash2 className="h-3.5 w-3.5" />{t('payments.fields.remove')}</button>
                 </div>
               </div>
             </div>
@@ -184,26 +186,26 @@ export default function PaymentFields({
                 inputMode={value.paymentMethod === 'PAGO_MOVIL' ? 'numeric' : 'text'}
                 maxLength={40}
                 className={`${inputClass} font-mono`}
-                placeholder={value.paymentMethod === 'PAGO_MOVIL' ? 'Ej. 004512345678' : ''}
+                placeholder={value.paymentMethod === 'PAGO_MOVIL' ? t('payments.fields.referencePlaceholder') : ''}
               />
             </label>
           )}
           {fields.bank && (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Banco emisor</span>
+              <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.bank')}</span>
               <input list="ve-banks" value={value.paymentBank} onChange={(e) => set({ paymentBank: e.target.value })} maxLength={60} className={inputClass} />
               <datalist id="ve-banks">{VE_BANKS.map((b) => <option key={b} value={b} />)}</datalist>
             </label>
           )}
           {fields.phone && (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Teléfono del pagador</span>
+              <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.payerPhone')}</span>
               <input value={value.payerPhone} onChange={(e) => set({ payerPhone: e.target.value })} inputMode="tel" maxLength={20} className={inputClass} placeholder="0414-1234567" />
             </label>
           )}
           {fields.payer && (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Titular / quien paga</span>
+              <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.payer')}</span>
               <input value={value.payerName} onChange={(e) => set({ payerName: e.target.value })} maxLength={100} className={inputClass} />
             </label>
           )}

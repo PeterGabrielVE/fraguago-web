@@ -1,7 +1,12 @@
 // Objetivo de constancia: asistir al menos estos días (lunes a viernes) cada semana.
 export const WEEKLY_ATTENDANCE_GOAL = 4;
 
-const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+import { tActive } from '@/lib/i18n/client';
+
+const WEEKDAY_KEYS = [
+  'labels.weekdayShort.d0', 'labels.weekdayShort.d1', 'labels.weekdayShort.d2', 'labels.weekdayShort.d3',
+  'labels.weekdayShort.d4', 'labels.weekdayShort.d5', 'labels.weekdayShort.d6',
+] as const;
 
 export type AttendanceRecord = { checkedInAt: string | Date };
 
@@ -75,21 +80,18 @@ export function computeAttendanceStreak(records: AttendanceRecord[], weeksToShow
 }
 
 export function attendanceWeekdayLabel(date: Date): string {
-  return WEEKDAY_LABELS[date.getDay()];
+  return tActive(WEEKDAY_KEYS[date.getDay()]);
 }
 
 export function attendanceStreakMessage(streak: AttendanceStreak): string {
   const missing = WEEKLY_ATTENDANCE_GOAL - streak.currentWeekDays;
 
   if (streak.streakWeeks === 0) {
-    if (streak.currentWeekDays === 0) return 'Aún no hay asistencias esta semana. ¡Empieza hoy la racha!';
-    if (streak.currentWeekGoalMet) return '¡Cumplió el objetivo de esta semana! Así se empieza una racha.';
-    return `Lleva ${streak.currentWeekDays}/${WEEKLY_ATTENDANCE_GOAL} días esta semana. Le faltan ${missing} para lograr su primera racha.`;
+    if (streak.currentWeekDays === 0) return tActive('labels.streak.noneYet');
+    if (streak.currentWeekGoalMet) return tActive('labels.streak.firstGoalMet');
+    return tActive('labels.streak.firstProgress', { days: streak.currentWeekDays, goal: WEEKLY_ATTENDANCE_GOAL, missing });
   }
 
-  const weeksLabel = streak.streakWeeks === 1 ? 'semana' : 'semanas';
-  if (streak.currentWeekGoalMet) {
-    return `Racha de ${streak.streakWeeks} ${weeksLabel} cumpliendo ${WEEKLY_ATTENDANCE_GOAL}+ días entre semana. ¡Sigue así!`;
-  }
-  return `Racha de ${streak.streakWeeks} ${weeksLabel} cumpliendo ${WEEKLY_ATTENDANCE_GOAL}+ días entre semana. Le faltan ${missing} días esta semana para extenderla.`;
+  const vars = { count: streak.streakWeeks, goal: WEEKLY_ATTENDANCE_GOAL, missing };
+  return tActive(streak.currentWeekGoalMet ? 'labels.streak.keepGoing' : 'labels.streak.extend', vars);
 }
