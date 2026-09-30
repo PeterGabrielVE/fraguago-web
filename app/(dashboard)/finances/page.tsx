@@ -16,7 +16,7 @@ import {
 import { localizedRecord } from '@/lib/i18n/client';
 import { useI18n } from '@/components/I18nProvider';
 
-type ExchangeRate = { currency: string; rate: number | string };
+type ExchangeRate = { currency: string; rate: number | string; source?: string | null };
 type Concept = { id: string; name: string; kind: 'INCOME' | 'EXPENSE' };
 
 const inputClass =
@@ -184,7 +184,7 @@ export default function FinancesPage() {
 
       {rates.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          {t('operations.finances.currentRates', { rates: rates.map((r) => `1 ${baseCurrency} = ${r.rate} ${r.currency}`).join(' · ') })}
+          {t('operations.finances.currentRates', { rates: rates.map((r) => `1 ${baseCurrency} = ${Number(r.rate)} ${r.currency}${r.source === 'BCV' ? ' (BCV)' : ''}`).join(' · ') })}
         </div>
       )}
 

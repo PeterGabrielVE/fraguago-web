@@ -3,6 +3,13 @@ import { defineMessages } from '../../define';
 // Registro de pagos, campos de pago con OCR, comprobantes y alta/renovación de membresías.
 export const payments = defineMessages({
   es: {
+    bankSelect: {
+      nationalBanks: 'Bancos nacionales',
+      platforms: 'Plataformas y billeteras',
+      other: 'Otro (escribirlo)',
+      otherPlaceholder: 'Nombre del banco o plataforma',
+      backToList: 'Ver lista',
+    },
     records: {
       title: 'Registro de Pagos',
       subtitle: 'Ingresos y egresos registrados.',
@@ -14,7 +21,7 @@ export const payments = defineMessages({
       currency: 'Moneda',
       paymentMethod: 'Método de pago',
       referenceField: 'Referencia (pago móvil, transferencia, Zelle…)',
-      bank: 'Banco emisor',
+      bank: 'Banco o plataforma',
       payer: 'Titular / quien paga',
       memberOptional: 'Socio (opcional)',
       conceptOptional: 'Concepto (opcional)',
@@ -28,6 +35,9 @@ export const payments = defineMessages({
       currency: 'Moneda',
       rate: 'Tasa del día (opcional)',
       ratePlaceholder: 'Si se deja vacío, se usa la última tasa registrada',
+      currentRate: 'Tasa vigente: {rate} ({source})',
+      useRate: 'Usar esta',
+      noRate: 'No hay tasa registrada para esta moneda: escríbela manualmente.',
       uploadReceipt: 'Cargar captura del comprobante (lee los datos automáticamente)',
       receiptAlt: 'Comprobante de pago',
       reading: 'Leyendo el comprobante…',
@@ -39,7 +49,7 @@ export const payments = defineMessages({
       change: 'Cambiar',
       remove: 'Quitar',
       referencePlaceholder: 'Ej. 004512345678',
-      bank: 'Banco emisor',
+      bank: 'Banco o plataforma',
       payerPhone: 'Teléfono del pagador',
       payer: 'Titular / quien paga',
     },
@@ -92,6 +102,13 @@ export const payments = defineMessages({
     },
   },
   en: {
+    bankSelect: {
+      nationalBanks: 'Venezuelan banks',
+      platforms: 'Platforms and wallets',
+      other: 'Other (type it)',
+      otherPlaceholder: 'Bank or platform name',
+      backToList: 'Show list',
+    },
     records: {
       title: 'Payment log',
       subtitle: 'Recorded income and expenses.',
@@ -103,7 +120,7 @@ export const payments = defineMessages({
       currency: 'Currency',
       paymentMethod: 'Payment method',
       referenceField: 'Reference (Pago Móvil, transfer, Zelle…)',
-      bank: 'Issuing bank',
+      bank: 'Bank or platform',
       payer: 'Account holder / payer',
       memberOptional: 'Member (optional)',
       conceptOptional: 'Category (optional)',
@@ -117,6 +134,9 @@ export const payments = defineMessages({
       currency: 'Currency',
       rate: 'Today’s rate (optional)',
       ratePlaceholder: 'Leave empty to use the latest recorded rate',
+      currentRate: 'Current rate: {rate} ({source})',
+      useRate: 'Use it',
+      noRate: 'No rate recorded for this currency: enter it manually.',
       uploadReceipt: 'Upload a receipt screenshot (details are read automatically)',
       receiptAlt: 'Payment receipt',
       reading: 'Reading the receipt…',
@@ -128,7 +148,7 @@ export const payments = defineMessages({
       change: 'Change',
       remove: 'Remove',
       referencePlaceholder: 'E.g. 004512345678',
-      bank: 'Issuing bank',
+      bank: 'Bank or platform',
       payerPhone: 'Payer’s phone',
       payer: 'Account holder / payer',
     },

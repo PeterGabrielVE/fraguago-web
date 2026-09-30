@@ -68,7 +68,22 @@ export type Field = {
   presets?: { label: string; values: string[] }[];
   /** Solo para type "select": muestra únicamente las opciones cuyo `group` coincide con el valor actual de este otro campo. Queda deshabilitado hasta elegirlo y se limpia si deja de ser válido. */
   dependsOn?: string;
+  /** Input propio en lugar del estándar (p. ej. un select agrupado con opción "Otro"). */
+  renderInput?: (props: { value: string; onChange: (value: string) => void; className: string }) => React.ReactNode;
+  /** El campo solo se muestra (y se envía) si devuelve true, p. ej. según el método de pago elegido. */
+  visibleWhen?: (form: Record<string, any>) => boolean;
+  /** Etiqueta que cambia según el formulario (reemplaza a `label` al mostrarla). */
+  labelWhen?: (form: Record<string, any>) => string;
+  /** Obligatoriedad que depende del formulario (reemplaza a `required`/`requiredOnEdit`). */
+  requiredWhen?: (form: Record<string, any>) => boolean;
+  placeholder?: string | ((form: Record<string, any>) => string | undefined);
+  /** Texto de ayuda bajo el campo. */
+  hint?: string | ((form: Record<string, any>) => string | undefined);
 };
+
+function fieldVisible(f: Field, form: Record<string, any>) {
+  return f.visibleWhen ? f.visibleWhen(form) : true;
+}
 
 function optionValue(o: SelectOption) {
   return typeof o === 'string' ? o : o.value;
@@ -114,7 +129,7 @@ export type ListFilter = { label: string; endpoint: string };
 export default function ResourceManager({
   title, subtitle, icon: Icon, endpoint, columns, fields, getEditValues, renderDetails,
   renderCreateForm, renderCreate, hideListWhenCreating = false, statusConfig,
-  formVariant = 'inline', onCreate, extraActions, disableEdit, disableCreate = false, disableDelete = false, filters, headerActions, validate,
+  formVariant = 'inline', onCreate, extraActions, disableEdit, disableCreate = false, disableDelete = false, filters, headerActions, intro, validate,
 }: {
   title: string;
   subtitle?: string;
@@ -152,6 +167,8 @@ export default function ResourceManager({
   filters?: ListFilter[];
   /** Contenido extra en el header, a la izquierda del botón "Nuevo" (p. ej. un botón de generación con IA). */
   headerActions?: React.ReactNode;
+  /** Contenido propio entre el encabezado y la tabla (p. ej. un panel de estado del módulo). */
+  intro?: React.ReactNode;
   /** Validación adicional (p. ej. entre campos) antes de crear/editar. Devolver un mensaje de error la bloquea; devolver nada/null la deja pasar. */
   validate?: (form: Record<string, any>) => string | null | undefined;
 }) {
@@ -212,6 +229,7 @@ export default function ResourceManager({
     for (const f of fields) {
       if (f.createOnly && editingId) continue;
       if (f.editOnly && !editingId) continue;
+      if (!fieldVisible(f, form)) continue;
       let v = form[f.name];
       if (v === '' || v === undefined) continue;
       if (f.type === 'multiselect' && Array.isArray(v) && v.length === 0) continue;
@@ -403,14 +421,20 @@ export default function ResourceManager({
     });
   }
 
+  const isRequired = (f: Field) => (f.requiredWhen ? f.requiredWhen(form) : editingId ? f.requiredOnEdit ?? false : f.required);
+  const byForm = (value: string | ((form: Record<string, any>) => string | undefined) | undefined) =>
+    typeof value === 'function' ? value(form) : value;
+
   const formFields = fields
-    .filter((f) => !(f.createOnly && editingId) && !(f.editOnly && !editingId))
+    .filter((f) => !(f.createOnly && editingId) && !(f.editOnly && !editingId) && fieldVisible(f, form))
     .map((f) => (
     <div key={f.name} className={f.type === 'textarea' || f.type === 'multiselect' || f.fullWidth ? 'md:col-span-2' : ''}>
       <label className="mb-1.5 block text-sm font-medium text-slate-700">
-        {f.label}{f.required && <span className="text-red-500"> *</span>}
+        {f.labelWhen?.(form) ?? f.label}{isRequired(f) && <span className="text-red-500"> *</span>}
       </label>
-      {f.type === 'multiselect' ? (
+      {f.renderInput ? (
+        f.renderInput({ value: form[f.name] ?? '', onChange: (value) => updateField(f.name, value), className: inputClass })
+      ) : f.type === 'multiselect' ? (
         <div className="space-y-2">
           {f.presets && f.presets.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -464,13 +488,13 @@ export default function ResourceManager({
       ) : f.type === 'phone' ? (
         <PhoneField
           value={form[f.name] ?? ''}
-          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          required={isRequired(f)}
           onChange={(value) => updateField(f.name, value)}
         />
       ) : f.type === 'select' ? (
         <select
           value={form[f.name] ?? ''}
-          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          required={isRequired(f)}
           disabled={f.readOnly || (f.dependsOn !== undefined && !form[f.dependsOn])}
           onChange={(e) => updateField(f.name, e.target.value)}
           className={`${inputClass} disabled:bg-slate-100 disabled:text-slate-500`}
@@ -488,22 +512,25 @@ export default function ResourceManager({
         </select>
       ) : f.type === 'textarea' ? (
         <textarea
-          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          required={isRequired(f)}
           value={form[f.name] ?? ''}
           readOnly={f.readOnly}
           onChange={(e) => updateField(f.name, e.target.value)}
+          placeholder={byForm(f.placeholder)}
           className={`${inputClass} min-h-24`}
         />
       ) : (
         <input
           type={f.type || 'text'}
-          required={editingId ? f.requiredOnEdit ?? false : f.required}
+          required={isRequired(f)}
           value={form[f.name] ?? ''}
           readOnly={f.readOnly}
           onChange={(e) => updateField(f.name, e.target.value)}
+          placeholder={byForm(f.placeholder)}
           className={`${inputClass} ${f.readOnly ? 'bg-slate-100 text-slate-600' : ''}`}
         />
       )}
+      {byForm(f.hint) && <p className="mt-1 text-xs text-slate-500">{byForm(f.hint)}</p>}
     </div>
   ));
 
@@ -539,6 +566,8 @@ export default function ResourceManager({
           </div>
         </div>
       </div>
+
+      {intro}
 
       {/* Pestañas de filtro: cambian de qué endpoint se lee la lista */}
       {filters && filters.length > 1 && (

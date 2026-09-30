@@ -16,7 +16,8 @@ import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PAYMENT_METHOD_LABELS, formatMoney } from '@/lib/currency';
-import { METHOD_FIELDS, REFERENCE_REQUIRED, VE_BANKS, normalizeReference, type PaymentMethod } from '@/lib/payments';
+import { METHOD_FIELDS, REFERENCE_REQUIRED, normalizeReference, type PaymentMethod } from '@/lib/payments';
+import BankSelect from '@/components/BankSelect';
 import {
   Dialog,
   DialogContent,
@@ -413,17 +414,13 @@ export default function SalesPage() {
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                 />
                 {METHOD_FIELDS[paymentMethod].bank && (
-                  <input
-                    list="sales-banks"
+                  <BankSelect
                     value={paymentBank}
-                    onChange={(e) => setPaymentBank(e.target.value)}
-                    placeholder={t('operations.sales.bank')}
+                    onChange={setPaymentBank}
                     aria-label={t('operations.sales.bankLabel')}
-                    maxLength={60}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                   />
                 )}
-                <datalist id="sales-banks">{VE_BANKS.map((b) => <option key={b} value={b} />)}</datalist>
               </div>
             )}
             {mixedCurrencies && (

@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { CURRENCY_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/lib/currency';
 import {
   METHOD_FIELDS,
-  VE_BANKS,
+  matchBank,
+  referencePlaceholder,
   compressImage,
   normalizeReference,
   readReceipt,
@@ -13,7 +14,9 @@ import {
   type PaymentMethod,
   type PaymentValue,
 } from '@/lib/payments';
-import { useT } from '@/components/I18nProvider';
+import { useI18n } from '@/components/I18nProvider';
+import BankSelect from '@/components/BankSelect';
+import { fetchLatestRates, isBcvRate, type ExchangeRate } from '@/lib/exchangeRates';
 
 export type ReceiptState = { image: Blob | null; previewUrl: string | null; save: boolean };
 
@@ -34,7 +37,10 @@ export default function PaymentFields({
   receipt: ReceiptState;
   onReceiptChange: (r: ReceiptState) => void;
 }) {
-  const t = useT();
+  const { t, formatNumber } = useI18n();
+  // Tasa vigente por moneda (la del BCV si está sincronizada, si no la última manual).
+  const [latestRates, setLatestRates] = useState<ExchangeRate[]>([]);
+  useEffect(() => { fetchLatestRates().then(setLatestRates).catch(() => {}); }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
   const [ocr, setOcr] = useState<OcrResult | null>(null);
@@ -70,7 +76,7 @@ export default function PaymentFields({
         ...value,
         paymentMethod: method,
         paymentReference: result.reference ? normalizeReference(method, result.reference) : value.paymentReference,
-        paymentBank: result.bank ?? value.paymentBank,
+        paymentBank: result.bank ? matchBank(result.bank) : value.paymentBank,
         payerPhone: result.payerPhone ?? value.payerPhone,
         payerName: result.payerName ?? value.payerName,
         ...(result.amount ? { amount: String(result.amount) } : {}),
@@ -90,6 +96,7 @@ export default function PaymentFields({
   }
 
   const foreignCurrency = value.currency && value.currency !== 'USD';
+  const currentRate = latestRates.find((r) => r.currency === value.currency);
 
   return (
     <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
@@ -122,6 +129,21 @@ export default function PaymentFields({
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.rate')}</span>
           <input type="number" min="0" step="0.0001" value={value.exchangeRate} onChange={(e) => set({ exchangeRate: e.target.value })} className={inputClass} placeholder={t('payments.fields.ratePlaceholder')} />
+          {currentRate ? (
+            <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+              {t('payments.fields.currentRate', {
+                rate: formatNumber(Number(currentRate.rate), { maximumFractionDigits: 6 }),
+                source: isBcvRate(currentRate) ? t('catalog.exchangeRates.sourceBcv') : currentRate.source || t('catalog.exchangeRates.sourceManual'),
+              })}
+              {value.exchangeRate !== String(Number(currentRate.rate)) && (
+                <button type="button" onClick={() => set({ exchangeRate: String(Number(currentRate.rate)) })} className="font-medium text-amber-700 hover:underline">
+                  {t('payments.fields.useRate')}
+                </button>
+              )}
+            </span>
+          ) : (
+            <span className="mt-1 block text-xs text-amber-700">{t('payments.fields.noRate')}</span>
+          )}
         </label>
       )}
 
@@ -186,15 +208,14 @@ export default function PaymentFields({
                 inputMode={value.paymentMethod === 'PAGO_MOVIL' ? 'numeric' : 'text'}
                 maxLength={40}
                 className={`${inputClass} font-mono`}
-                placeholder={value.paymentMethod === 'PAGO_MOVIL' ? t('payments.fields.referencePlaceholder') : ''}
+                placeholder={referencePlaceholder(value.paymentMethod) ?? ''}
               />
             </label>
           )}
           {fields.bank && (
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-slate-700">{t('payments.fields.bank')}</span>
-              <input list="ve-banks" value={value.paymentBank} onChange={(e) => set({ paymentBank: e.target.value })} maxLength={60} className={inputClass} />
-              <datalist id="ve-banks">{VE_BANKS.map((b) => <option key={b} value={b} />)}</datalist>
+              <BankSelect value={value.paymentBank} onChange={(paymentBank) => set({ paymentBank })} className={inputClass} />
             </label>
           )}
           {fields.phone && (

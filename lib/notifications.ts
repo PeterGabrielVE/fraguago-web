@@ -151,24 +151,33 @@ const SOURCES: Source[] = [
       }];
     },
   },
-  // Tasa de cambio sin registrar hoy: los cobros en otra moneda usarían una tasa vieja.
+  // Tasa de cambio: el backend sincroniza la del BCV cada 12 horas. Solo se avisa si
+  // no hay ninguna tasa, o si el BCV no responde y la guardada es de un día
+  // anterior (hay que registrarla a mano). Mientras el BCV responde, la tasa
+  // guardada es la oficial aunque no haya cambiado hoy (fines de semana, feriados).
   {
     roles: STAFF_ROLES,
     load: async () => {
-      const rates = rows(await api.get('/exchange-rates/latest'));
+      const [ratesResult, bcvResult] = await Promise.allSettled([
+        api.get('/exchange-rates/latest'),
+        api.get('/exchange-rates/bcv'),
+      ]);
+      if (ratesResult.status === 'rejected') throw ratesResult.reason;
+      const rates = rows(ratesResult.value);
+      const bcvUp = bcvResult.status === 'fulfilled';
       const today = startOfDay(new Date()).getTime();
       const stale = rates.filter((rate) => new Date(rate.effectiveAt ?? rate.createdAt).getTime() < today);
-      if (rates.length > 0 && stale.length === 0) return [];
+      if (rates.length > 0 && (bcvUp || stale.length === 0)) return [];
       return [{
         id: 'exchange:today',
         category: 'exchange',
         severity: 'warning',
-        title: (t) => t(rates.length === 0 ? 'notifications.items.noRates' : 'notifications.items.rateMissing'),
+        title: (t) => t(rates.length === 0 ? 'notifications.items.noRates' : 'notifications.items.bcvDown'),
         description: (t) => stale.length
           ? t('notifications.items.rateStale', { currencies: stale.map((rate) => rate.currency).join(', ') })
           : t('notifications.items.rateHint'),
         href: '/exchange-rates',
-        fingerprint: new Date().toDateString(),
+        fingerprint: `${new Date().toDateString()}:${bcvUp ? 'up' : 'down'}`,
       }];
     },
   },
