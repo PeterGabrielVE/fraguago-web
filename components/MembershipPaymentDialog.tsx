@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/toast';
 import PaymentFields, { type ReceiptState } from '@/components/PaymentFields';
 import { api } from '@/lib/api';
 import { emptyPayment, paymentPayload, uploadReceipt, validatePayment, type PaymentValue } from '@/lib/payments';
+import { useT } from '@/components/I18nProvider';
 
 export type PlanOption = { value: string; label: string; price: number; currency: string };
 export type MemberOption = { value: string; label: string };
@@ -40,6 +41,7 @@ function nowLocal() {
 // referencia (pago móvil, transferencia, Zelle…), foto del comprobante con
 // lectura automática y, si aplica, el monto real en otra moneda.
 export default function MembershipPaymentDialog({ open, onClose, onDone, plans, members, renew }: Props) {
+  const t = useT();
   const [memberId, setMemberId] = useState('');
   const [planId, setPlanId] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -72,8 +74,8 @@ export default function MembershipPaymentDialog({ open, onClose, onDone, plans, 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!renew && !memberId) return setError('Elige el socio.');
-    if (!planId) return setError('Elige el plan.');
+    if (!renew && !memberId) return setError(t('payments.membershipDialog.chooseMember'));
+    if (!planId) return setError(t('payments.membershipDialog.choosePlan'));
     const invalid = validatePayment(payment);
     if (invalid) return setError(invalid);
 
@@ -96,7 +98,7 @@ export default function MembershipPaymentDialog({ open, onClose, onDone, plans, 
       // 2) Membresía + ingreso + comprobante en una sola operación del API.
       if (renew) await api.post(`/memberships/${renew.id}/renew`, body);
       else await api.post(`/members/${memberId}/memberships`, body);
-      toast.add({ title: renew ? 'Membresía renovada' : 'Membresía asignada', type: 'success' });
+      toast.add({ title: renew ? t('payments.membershipDialog.renewed') : t('payments.membershipDialog.assigned'), type: 'success' });
       onDone();
     } catch (err: any) {
       // Ej.: referencia ya registrada (409). El diálogo queda abierto para corregir.
@@ -111,38 +113,38 @@ export default function MembershipPaymentDialog({ open, onClose, onDone, plans, 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>{renew ? 'Renovar membresía' : 'Nueva membresía'}</DialogTitle>
+            <DialogTitle>{renew ? t('payments.membershipDialog.renewTitle') : t('payments.membershipDialog.newTitle')}</DialogTitle>
             <DialogDescription>
-              {renew ? `Socio: ${renew.memberName}. ` : ''}Registra el plan y cómo se pagó.
+              {renew ? t('payments.membershipDialog.memberPrefix', { name: renew.memberName }) : ''}{t('payments.membershipDialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {!renew && (
               <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">Socio <span className="text-red-500">*</span></span>
+                <span className="mb-1 block font-medium text-slate-700">{t('payments.membershipDialog.member')} <span className="text-red-500">*</span></span>
                 <select required value={memberId} onChange={(e) => setMemberId(e.target.value)} className={inputClass}>
-                  <option value="">Selecciona…</option>
+                  <option value="">{t('common.select')}</option>
                   {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
               </label>
             )}
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Plan <span className="text-red-500">*</span></span>
+              <span className="mb-1 block font-medium text-slate-700">{t('payments.membershipDialog.plan')} <span className="text-red-500">*</span></span>
               <select required value={planId} onChange={(e) => setPlanId(e.target.value)} className={inputClass}>
-                <option value="">Selecciona…</option>
+                <option value="">{t('common.select')}</option>
                 {plans.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Fecha de inicio</span>
+              <span className="mb-1 block font-medium text-slate-700">{t('payments.membershipDialog.startDate')}</span>
               <input
                 type="datetime-local"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className={inputClass}
               />
-              {renew && !startDate && <span className="mt-0.5 block text-xs text-slate-500">Vacío: continúa desde el vencimiento actual.</span>}
+              {renew && !startDate && <span className="mt-0.5 block text-xs text-slate-500">{t('payments.membershipDialog.continuesHint')}</span>}
             </label>
           </div>
 
@@ -160,7 +162,7 @@ export default function MembershipPaymentDialog({ open, onClose, onDone, plans, 
               disabled={saving}
               className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
             >
-              {saving ? 'Guardando…' : renew ? 'Renovar' : 'Guardar'}
+              {saving ? t('payments.membershipDialog.saving') : renew ? t('payments.membershipDialog.renew') : t('common.save')}
             </button>
           </DialogFooter>
         </form>

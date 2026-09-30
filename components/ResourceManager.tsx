@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
+import { richText, useT } from '@/components/I18nProvider';
 import { AsyncBoundary } from '@/components/async-boundary';
 import PhoneField from '@/components/PhoneField';
 import {
@@ -154,6 +155,7 @@ export default function ResourceManager({
   /** Validación adicional (p. ej. entre campos) antes de crear/editar. Devolver un mensaje de error la bloquea; devolver nada/null la deja pasar. */
   validate?: (form: Record<string, any>) => string | null | undefined;
 }) {
+  const t = useT();
   const [form, setForm] = useState<Record<string, any>>({});
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -228,7 +230,7 @@ export default function ResourceManager({
       const message = validate(form);
       if (message) {
         setActionError(message);
-        toast.add({ title: 'Revisá el formulario', description: message, type: 'error' });
+        toast.add({ title: t('table.toast.checkForm'), description: message, type: 'error' });
         return;
       }
     }
@@ -245,10 +247,10 @@ export default function ResourceManager({
       }
       setForm({}); setOpen(false); setEditingId(null);
       refetch();
-      toast.add({ title: wasEditing ? 'Registro actualizado' : 'Registro creado', type: 'success' });
+      toast.add({ title: wasEditing ? t('table.toast.updated') : t('table.toast.created'), type: 'success' });
     } catch (e: any) {
       setActionError(e.message);
-      toast.add({ title: 'No se pudo guardar', description: e.message, type: 'error' });
+      toast.add({ title: t('table.toast.saveFailed'), description: e.message, type: 'error' });
     }
   }
 
@@ -301,11 +303,11 @@ export default function ResourceManager({
       await api.del(`${endpoint}/${id}`);
       setDeleteTarget(null);
       refetch();
-      toast.add({ title: 'Registro eliminado', type: 'success' });
+      toast.add({ title: t('table.toast.deleted'), type: 'success' });
     } catch (e: any) {
       setActionError(e.message);
       setDeleteTarget(null);
-      toast.add({ title: 'No se pudo eliminar', description: e.message, type: 'error' });
+      toast.add({ title: t('table.toast.deleteFailed'), description: e.message, type: 'error' });
     }
   }
 
@@ -343,7 +345,7 @@ export default function ResourceManager({
   function requestDelete(row: Record<string, any>) {
     const firstColumn = columns[0];
     const rawValue = firstColumn ? (firstColumn.render ? firstColumn.render(row) : row[firstColumn.key]) : row.id;
-    const label = resolveCellText(rawValue) || String(row.id ?? 'este registro');
+    const label = resolveCellText(rawValue) || String(row.id ?? t('table.thisRecord'));
     setDeleteTarget({ id: String(row.id), label });
     setMenuId(null);
     setMenuAnchor(null);
@@ -366,10 +368,10 @@ export default function ResourceManager({
       await action.onClick();
       if (action.silent) return;
       refetch();
-      toast.add({ title: 'Acción completada', description: action.label, type: 'success' });
+      toast.add({ title: t('table.toast.actionDone'), description: action.label, type: 'success' });
     } catch (e: any) {
       setActionError(e.message);
-      toast.add({ title: 'No se pudo completar la acción', description: e.message, type: 'error' });
+      toast.add({ title: t('table.toast.actionFailed'), description: e.message, type: 'error' });
     }
   }
 
@@ -475,8 +477,8 @@ export default function ResourceManager({
         >
           <option value="">
             {f.dependsOn && !form[f.dependsOn]
-              ? `Elige primero ${fields.find((p) => p.name === f.dependsOn)?.label.toLowerCase() ?? 'el campo anterior'}`
-              : 'Selecciona…'}
+              ? t('table.chooseFirst', { field: fields.find((p) => p.name === f.dependsOn)?.label.toLowerCase() ?? t('table.previousField') })
+              : t('common.select')}
           </option>
           {visibleOptions(f, form).map((o) => {
             const value = typeof o === 'string' ? o : o.value;
@@ -531,7 +533,7 @@ export default function ResourceManager({
                   : 'bg-amber-600 text-white hover:bg-amber-700'
                   }`}
               >
-                {open ? 'Cancelar' : <><Plus className="h-4 w-4" /> Nuevo</>}
+                {open ? t('common.cancel') : <><Plus className="h-4 w-4" /> {t('common.new')}</>}
               </button>
             )}
           </div>
@@ -568,18 +570,18 @@ export default function ResourceManager({
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar registro</AlertDialogTitle>
+            <AlertDialogTitle>{t('table.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Seguro que deseas eliminar <span className="font-medium text-foreground">{deleteTarget?.label}</span>? Esta acción no se puede deshacer.
+              {richText(t('table.deleteConfirm'), { label: <span className="font-medium text-foreground">{deleteTarget?.label}</span> })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => deleteTarget && remove(deleteTarget.id)}
             >
-              Eliminar
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -588,15 +590,15 @@ export default function ResourceManager({
       <AlertDialog open={Boolean(statusTarget)} onOpenChange={(open) => !open && setStatusTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{statusTarget?.nextStatus === 'SUSPENDED' ? 'Suspender socio' : 'Reactivar socio'}</AlertDialogTitle>
+            <AlertDialogTitle>{statusTarget?.nextStatus === 'SUSPENDED' ? t('table.suspendTitle') : t('table.reactivateTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de {statusTarget?.nextStatus === 'SUSPENDED' ? 'suspender' : 'reactivar'} a <span className="font-medium text-foreground">{statusTarget?.label}</span>?
+              {richText(t(statusTarget?.nextStatus === 'SUSPENDED' ? 'table.suspendConfirm' : 'table.reactivateConfirm'), { label: <span className="font-medium text-foreground">{statusTarget?.label}</span> })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={updateStatus}>
-              {statusTarget?.nextStatus === 'SUSPENDED' ? 'Suspender' : 'Reactivar'}
+              {statusTarget?.nextStatus === 'SUSPENDED' ? t('table.suspend') : t('table.reactivate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -617,7 +619,7 @@ export default function ResourceManager({
               onClick={() => setConfirmTarget(null)}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -625,7 +627,7 @@ export default function ResourceManager({
               onClick={confirmRowAction}
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
             >
-              {confirmBusy ? 'Procesando…' : confirmTarget?.label}
+              {confirmBusy ? t('common.processing') : confirmTarget?.label}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -637,7 +639,7 @@ export default function ResourceManager({
           <DialogContent className="sm:max-w-lg">
             <form onSubmit={create} className="grid gap-4">
               <DialogHeader>
-                <DialogTitle>{editingId ? 'Editar registro' : 'Nuevo registro'}</DialogTitle>
+                <DialogTitle>{editingId ? t('table.editRecord') : t('table.newRecord')}</DialogTitle>
                 <DialogDescription>{title}</DialogDescription>
               </DialogHeader>
               {actionError && (
@@ -654,7 +656,7 @@ export default function ResourceManager({
                   type="submit"
                   className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
                 >
-                  {editingId ? 'Actualizar' : 'Guardar'}
+                  {editingId ? t('common.update') : t('common.save')}
                 </button>
               </DialogFooter>
             </form>
@@ -670,7 +672,7 @@ export default function ResourceManager({
                   type="submit"
                   className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition"
                 >
-                  {editingId ? 'Actualizar' : 'Guardar'}
+                  {editingId ? t('common.update') : t('common.save')}
                 </button>
               </div>
             </form>
@@ -693,20 +695,20 @@ export default function ResourceManager({
             }
             empty={
               <div className="py-16 text-center text-slate-500">
-                Aún no hay registros. Crea el primero con el botón "Nuevo".
+                {t('table.empty')}
               </div>
             }
             errorFallback={
               <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <AlertCircle className="h-8 w-8 text-red-500" />
                 <p className="text-sm text-slate-600">
-                  {error?.message ?? 'No se pudieron cargar los datos.'}
+                  {error?.message ?? t('table.loadError')}
                 </p>
                 <button
                   onClick={refetch}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 transition"
                 >
-                  Reintentar
+                  {t('common.retry')}
                 </button>
               </div>
             }
@@ -742,7 +744,7 @@ export default function ResourceManager({
                 onStatusRequest={(row, nextStatus) => {
                   const firstColumn = columns[0];
                   const rawValue = firstColumn ? (firstColumn.render ? firstColumn.render(row) : row[firstColumn.key]) : row.id;
-                  const label = resolveCellText(rawValue) || String(row.id ?? 'este socio');
+                  const label = resolveCellText(rawValue) || String(row.id ?? t('table.thisMember'));
                   setStatusTarget({ id: String(row.id), label, nextStatus });
                   setMenuId(null);
                   setMenuAnchor(null);
@@ -808,6 +810,7 @@ function ResourceTable({
   statusConfig?: StatusConfig;
   onStatusRequest?: (row: Record<string, any>, nextStatus: 'ACTIVE' | 'SUSPENDED') => void;
 }) {
+  const t = useT();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [filterSearch, setFilterSearch] = useState<Record<string, string>>({});
@@ -858,11 +861,11 @@ function ResourceTable({
     <div>
       <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span>Mostrar</span>
+          <span>{t('table.show')}</span>
           <label className="relative">
             <select
               value={pageSize}
-              aria-label="Cantidad de registros por página"
+              aria-label={t('table.pageSizeLabel')}
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
               className="h-10 appearance-none rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-9 text-sm text-slate-700 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
             >
@@ -870,12 +873,12 @@ function ResourceTable({
             </select>
             <ChevronDown className="pointer-events-none absolute right-2 top-3 h-4 w-4 text-slate-500" />
           </label>
-          <span>registros</span>
+          <span>{t('table.records')}</span>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <button type="button" onClick={onExport} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 text-sm font-semibold text-amber-700 transition hover:bg-amber-100">
             <Download className="h-4 w-4" />
-            Exportar
+            {t('table.export')}
           </button>
           <label className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -883,8 +886,8 @@ function ResourceTable({
               type="search"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Buscar..."
-              aria-label="Buscar registros"
+              placeholder={t('table.search')}
+              aria-label={t('table.searchLabel')}
               className="h-10 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 sm:w-64"
             />
           </label>
@@ -907,17 +910,17 @@ function ResourceTable({
               </button>
               {openFilter === column.key && (
                 <div className="absolute left-0 top-full z-40 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-xl">
-                  <p className="mb-2 text-xs font-semibold text-slate-500">Filtrar por {column.label}</p>
+                  <p className="mb-2 text-xs font-semibold text-slate-500">{t('table.filterBy', { column: column.label })}</p>
                   <input
                     type="search"
                     value={filterSearch[column.key] ?? ''}
                     onChange={(event) => setFilterSearch((current) => ({ ...current, [column.key]: event.target.value }))}
-                    placeholder={`Buscar ${column.label.toLowerCase()}...`}
-                    aria-label={`Buscar opciones de ${column.label}`}
+                    placeholder={t('table.searchColumn', { column: column.label.toLowerCase() })}
+                    aria-label={t('table.searchColumnLabel', { column: column.label })}
                     className="mb-2 h-9 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                   />
                   <div className="max-h-52 space-y-1 overflow-y-auto">
-                    {(filterOptions[column.key] ?? []).filter((option) => option.toLowerCase().includes((filterSearch[column.key] ?? '').trim().toLowerCase())).length === 0 ? <p className="py-2 text-xs text-slate-400">Sin opciones</p> : (filterOptions[column.key] ?? []).filter((option) => option.toLowerCase().includes((filterSearch[column.key] ?? '').trim().toLowerCase())).map((option) => {
+                    {(filterOptions[column.key] ?? []).filter((option) => option.toLowerCase().includes((filterSearch[column.key] ?? '').trim().toLowerCase())).length === 0 ? <p className="py-2 text-xs text-slate-400">{t('table.noOptions')}</p> : (filterOptions[column.key] ?? []).filter((option) => option.toLowerCase().includes((filterSearch[column.key] ?? '').trim().toLowerCase())).map((option) => {
                       const checked = activeFilters[column.key]?.includes(option) ?? false;
                       return <button key={option} type="button" onClick={() => setActiveFilters((current) => {
                           const selected = current[column.key] ?? [];
@@ -927,7 +930,7 @@ function ResourceTable({
                       </button>;
                     })}
                   </div>
-                  <button type="button" onClick={() => setOpenFilter(null)} className="mt-3 w-full rounded-md bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">Aplicar</button>
+                  <button type="button" onClick={() => setOpenFilter(null)} className="mt-3 w-full rounded-md bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">{t('common.apply')}</button>
                 </div>
               )}
             </div>
@@ -937,7 +940,7 @@ function ResourceTable({
           <div className="flex flex-wrap gap-1">
             {activeFilterEntries.map(({ key, value }) => <button key={`${key}-${value}`} type="button" onClick={() => setActiveFilters((current) => ({ ...current, [key]: (current[key] ?? []).filter((item) => item !== value) }))} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-800 hover:bg-amber-200"><span>{value}</span><X className="h-3 w-3" /></button>)}
           </div>
-          <button type="button" onClick={() => setActiveFilters({})} className="ml-auto text-xs font-semibold text-slate-500 hover:text-red-600">Limpiar filtros</button>
+          <button type="button" onClick={() => setActiveFilters({})} className="ml-auto text-xs font-semibold text-slate-500 hover:text-red-600">{t('table.clearFilters')}</button>
         </>}
       </div>
 
@@ -946,11 +949,11 @@ function ResourceTable({
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left uppercase tracking-wide text-slate-500">
               <th className="w-12 px-5 py-4">
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label="Seleccionar registros visibles" className="h-4 w-4 rounded border-slate-300 accent-amber-600" />
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label={t('table.selectVisible')} className="h-4 w-4 rounded border-slate-300 accent-amber-600" />
               </th>
               {columns.map((column) => <th key={column.key} className="px-4 py-4 text-xs font-semibold">{column.label}</th>)}
-              {statusConfig && <th className="px-4 py-4 text-xs font-semibold">Estado</th>}
-              <th className="w-20 px-4 py-4 text-right text-xs font-semibold">Acciones</th>
+              {statusConfig && <th className="px-4 py-4 text-xs font-semibold">{t('table.status')}</th>}
+              <th className="w-20 px-4 py-4 text-right text-xs font-semibold">{t('table.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -964,7 +967,7 @@ function ResourceTable({
                   className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-amber-50/30"
                 >
                   <td className="px-5 py-4" onClick={(event) => event.stopPropagation()}>
-                    <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelection(id)} aria-label={`Seleccionar registro ${id}`} className="h-4 w-4 rounded border-slate-300 accent-amber-600" />
+                    <input type="checkbox" checked={selectedIds.includes(id)} onChange={() => toggleSelection(id)} aria-label={t('table.selectRow', { id })} className="h-4 w-4 rounded border-slate-300 accent-amber-600" />
                   </td>
                   {columns.map((column, index) => (
                     <td key={column.key} className="px-4 py-4 text-slate-700" onClick={(event) => {
@@ -1006,7 +1009,7 @@ function ResourceTable({
                             }
                             onEdit(row);
                           }}
-                          aria-label={`Ver detalles de ${id}`}
+                          aria-label={t('table.viewDetails', { id })}
                           className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                         >
                           <Pencil className="h-4 w-4" />
@@ -1020,7 +1023,7 @@ function ResourceTable({
                           setMenuAnchor(nextAnchor);
                           onMenuChange(nextAnchor ? id : null);
                         }}
-                        aria-label={`Acciones para ${id}`}
+                        aria-label={t('table.rowActions', { id })}
                         className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                       >
                         <MoreVertical className="h-4 w-4" />
@@ -1051,12 +1054,12 @@ function ResourceTable({
                             className="w-full px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50"
                           >
                             <RefreshCw className="mr-2 inline h-3.5 w-3.5" />
-                            {statusConfig.getStatus(row) === 'ACTIVE' ? 'Suspender' : 'Reactivar'}
+                            {statusConfig.getStatus(row) === 'ACTIVE' ? t('table.suspend') : t('table.reactivate')}
                           </button>
                         )}
                         {!disableDelete && (
                           <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                            <Trash2 className="mr-2 inline h-3.5 w-3.5" />Eliminar
+                            <Trash2 className="mr-2 inline h-3.5 w-3.5" />{t('common.delete')}
                           </button>
                         )}
                       </div>
@@ -1070,11 +1073,11 @@ function ResourceTable({
       </div>
 
       <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <span>Mostrando {firstItem} a {lastItem} de {filteredItems.length} registros</span>
-        <div className="flex items-center gap-1" aria-label="Paginación">
-          <button type="button" disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)} aria-label="Página anterior" className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+        <span>{t('table.showing', { from: firstItem, to: lastItem, total: filteredItems.length })}</span>
+        <div className="flex items-center gap-1" aria-label={t('table.pagination')}>
+          <button type="button" disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)} aria-label={t('table.prevPage')} className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
           {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => index + 1).map((pageNumber) => <button type="button" key={pageNumber} onClick={() => onPageChange(pageNumber)} className={`h-9 min-w-9 rounded-lg px-2 font-medium ${pageNumber === currentPage ? 'bg-amber-600 text-white' : 'hover:bg-slate-100'}`}>{pageNumber}</button>)}
-          <button type="button" disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)} aria-label="Página siguiente" className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+          <button type="button" disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)} aria-label={t('table.nextPage')} className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
         </div>
       </div>
     </div>

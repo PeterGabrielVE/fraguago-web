@@ -1,3 +1,5 @@
+import { activeIntlLocale, localizedOptions, localizedRecord, tActive } from '@/lib/i18n/client';
+
 // Tipos y helpers de retos (Comunidad). Contrato con fraguago-api:
 // `/challenges/**` (staff) y `/me/challenges/**` (portal del socio).
 
@@ -57,30 +59,31 @@ export type ChallengeProgressUpdate = {
   completed: boolean;
 };
 
-export const METRIC_LABELS: Record<ChallengeMetric, string> = {
-  ATTENDANCE_COUNT: 'Asistencias',
-  ATTENDANCE_DAYS: 'Días entrenados',
-  ROUTINE_COMPLETIONS: 'Rutinas completadas',
-};
+const METRIC_KEYS = {
+  ATTENDANCE_COUNT: 'labels.challengeMetric.ATTENDANCE_COUNT',
+  ATTENDANCE_DAYS: 'labels.challengeMetric.ATTENDANCE_DAYS',
+  ROUTINE_COMPLETIONS: 'labels.challengeMetric.ROUTINE_COMPLETIONS',
+} as const;
 
-export const METRIC_OPTIONS = Object.entries(METRIC_LABELS).map(([value, label]) => ({ value, label }));
+export const METRIC_LABELS: Record<ChallengeMetric, string> = localizedRecord(METRIC_KEYS);
+export const METRIC_OPTIONS = localizedOptions(METRIC_KEYS);
 
-const METRIC_UNITS: Record<ChallengeMetric, [string, string]> = {
-  ATTENDANCE_COUNT: ['asistencia', 'asistencias'],
-  ATTENDANCE_DAYS: ['día', 'días'],
-  ROUTINE_COMPLETIONS: ['rutina', 'rutinas'],
-};
+const METRIC_UNIT_KEYS = {
+  ATTENDANCE_COUNT: 'labels.challengeUnit.ATTENDANCE_COUNT',
+  ATTENDANCE_DAYS: 'labels.challengeUnit.ATTENDANCE_DAYS',
+  ROUTINE_COMPLETIONS: 'labels.challengeUnit.ROUTINE_COMPLETIONS',
+} as const;
 
 export function metricUnit(metric: ChallengeMetric, n: number): string {
-  const [one, many] = METRIC_UNITS[metric] ?? ['', ''];
-  return n === 1 ? one : many;
+  const key = METRIC_UNIT_KEYS[metric];
+  return key ? tActive(key, { count: n }) : '';
 }
 
-export const STATUS_LABELS: Record<ChallengeStatus, string> = {
-  UPCOMING: 'Próximo',
-  ACTIVE: 'En curso',
-  FINISHED: 'Finalizado',
-};
+export const STATUS_LABELS: Record<ChallengeStatus, string> = localizedRecord({
+  UPCOMING: 'labels.challengeStatus.UPCOMING',
+  ACTIVE: 'labels.challengeStatus.ACTIVE',
+  FINISHED: 'labels.challengeStatus.FINISHED',
+});
 
 export const STATUS_BADGES: Record<ChallengeStatus, string> = {
   UPCOMING: 'border-transparent bg-sky-100 text-sky-700',
@@ -89,21 +92,22 @@ export const STATUS_BADGES: Record<ChallengeStatus, string> = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DATE_FMT = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' });
+const dateFmt = () => new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' });
 
 export function formatRange(challenge: Pick<Challenge, 'startsAt' | 'endsAt'>): string {
-  return `${DATE_FMT.format(new Date(challenge.startsAt))} – ${DATE_FMT.format(new Date(challenge.endsAt))}`;
+  const fmt = dateFmt();
+  return `${fmt.format(new Date(challenge.startsAt))} – ${fmt.format(new Date(challenge.endsAt))}`;
 }
 
 // "Termina en 3 días", "Empieza mañana", "Finalizó el 12 sept".
 export function timeLeftLabel(challenge: Pick<Challenge, 'status' | 'startsAt' | 'endsAt'>, now = new Date()): string {
-  if (challenge.status === 'FINISHED') return `Finalizó el ${DATE_FMT.format(new Date(challenge.endsAt))}`;
+  if (challenge.status === 'FINISHED') return tActive('labels.challengeTime.finishedOn', { date: dateFmt().format(new Date(challenge.endsAt)) });
   const target = new Date(challenge.status === 'UPCOMING' ? challenge.startsAt : challenge.endsAt);
   const days = Math.ceil((target.getTime() - now.getTime()) / DAY_MS);
-  const verb = challenge.status === 'UPCOMING' ? 'Empieza' : 'Termina';
-  if (days <= 0) return `${verb} hoy`;
-  if (days === 1) return `${verb} mañana`;
-  return `${verb} en ${days} días`;
+  const starts = challenge.status === 'UPCOMING';
+  if (days <= 0) return tActive(starts ? 'labels.challengeTime.startsToday' : 'labels.challengeTime.endsToday');
+  if (days === 1) return tActive(starts ? 'labels.challengeTime.startsTomorrow' : 'labels.challengeTime.endsTomorrow');
+  return tActive(starts ? 'labels.challengeTime.startsIn' : 'labels.challengeTime.endsIn', { count: days });
 }
 
 export function progressPercent(progress: number, goal: number): number {
@@ -118,7 +122,7 @@ export function isFull(challenge: Pick<Challenge, 'maxParticipants' | 'participa
 export function challengeUpdatesMessage(updates: ChallengeProgressUpdate[] | undefined): string | undefined {
   if (!updates?.length) return undefined;
   const completed = updates.filter((u) => u.completed);
-  if (completed.length) return `¡Completaste ${completed.map((u) => `"${u.name}"`).join(', ')}!`;
+  if (completed.length) return tActive('labels.challengeTime.completed', { names: completed.map((u) => `"${u.name}"`).join(', ') });
   return updates.map((u) => `${u.name}: ${Math.min(u.progress, u.goal)}/${u.goal}`).join(' · ');
 }
 

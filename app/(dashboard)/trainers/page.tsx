@@ -1,19 +1,21 @@
 'use client';
 import { UserCog } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
+import { useT } from '@/components/I18nProvider';
 
 export default function Page() {
+  const t = useT();
   return (
     <ResourceManager
-      title="Entrenadores"
+      title={t('catalog.trainers.title')}
       icon={UserCog}
       endpoint="/trainers"
       formVariant="modal"
       columns={[
-        { key: 'user', label: 'Nombre', render: (r) => `${r.user?.profile?.firstName ?? ''} ${r.user?.profile?.lastName ?? ''}`.trim() || '—' },
-        { key: 'identificationNumber', label: 'Cédula', render: (r) => r.identificationNumber || '—' },
-        { key: 'email', label: 'Correo', render: (r) => r.user?.email || '—' },
-        { key: 'specialty', label: 'Especialidad', render: (r) => r.specialty || '—' },
+        { key: 'user', label: t('catalog.field.name'), render: (r) => `${r.user?.profile?.firstName ?? ''} ${r.user?.profile?.lastName ?? ''}`.trim() || '—' },
+        { key: 'identificationNumber', label: t('catalog.field.idNumber'), render: (r) => r.identificationNumber || '—' },
+        { key: 'email', label: t('catalog.field.email'), render: (r) => r.user?.email || '—' },
+        { key: 'specialty', label: t('catalog.trainers.specialty'), render: (r) => r.specialty || '—' },
       ]}
       // La contraseña es solo de alta: no se puede cambiar desde este formulario.
       getEditValues={(row) => ({
@@ -24,12 +26,12 @@ export default function Page() {
         specialty: row.specialty ?? '',
       })}
       fields={[
-        { name: 'firstName', label: 'Nombre', required: true, requiredOnEdit: true },
-        { name: 'lastName', label: 'Apellido', requiredOnEdit: false },
-        { name: 'identificationNumber', label: 'Cédula', required: true, requiredOnEdit: true },
-        { name: 'email', label: 'Correo', type: 'email', required: true, requiredOnEdit: true },
-        { name: 'password', label: 'Contraseña (= cédula)', required: true, readOnly: true, mirrorFrom: 'identificationNumber', createOnly: true },
-        { name: 'specialty', label: 'Especialidad' },
+        { name: 'firstName', label: t('catalog.field.firstName'), required: true, requiredOnEdit: true },
+        { name: 'lastName', label: t('catalog.field.lastName'), requiredOnEdit: false },
+        { name: 'identificationNumber', label: t('catalog.field.idNumber'), required: true, requiredOnEdit: true },
+        { name: 'email', label: t('catalog.field.email'), type: 'email', required: true, requiredOnEdit: true },
+        { name: 'password', label: t('catalog.trainers.passwordField'), required: true, readOnly: true, mirrorFrom: 'identificationNumber', createOnly: true },
+        { name: 'specialty', label: t('catalog.trainers.specialty') },
       ]}
     />
   );

@@ -19,6 +19,8 @@ import {
   badgeIcon,
   formatPoints,
 } from '@/lib/gamification';
+import { useT } from '@/components/I18nProvider';
+import type { Translate } from '@/lib/i18n/translate';
 
 type BadgeRow = {
   id: string;
@@ -32,13 +34,14 @@ type BadgeRow = {
   _count?: { memberBadges: number };
 };
 
-function ruleLabel(row: BadgeRow) {
-  if (row.criteria === 'ATTENDANCE_COUNT') return `${row.threshold} asistencias`;
-  if (row.criteria === 'LIFETIME_POINTS') return `${formatPoints(row.threshold ?? 0)} pts acumulados`;
-  return 'Manual';
+function ruleLabel(row: BadgeRow, t: Translate) {
+  if (row.criteria === 'ATTENDANCE_COUNT') return t('gamification.badges.ruleAttendance', { count: row.threshold ?? 0 });
+  if (row.criteria === 'LIFETIME_POINTS') return t('gamification.badges.rulePoints', { points: formatPoints(row.threshold ?? 0) });
+  return t('gamification.badges.ruleManual');
 }
 
 function AwardBadgeDialog({ badge, onClose }: { badge: BadgeRow | null; onClose: () => void }) {
+  const t = useT();
   const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
   const [memberId, setMemberId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -60,10 +63,10 @@ function AwardBadgeDialog({ badge, onClose }: { badge: BadgeRow | null; onClose:
     setSaving(true);
     try {
       await api.post(`/gamification/badges/${badge.id}/award`, { memberId });
-      toast.add({ title: `Insignia "${badge.name}" otorgada`, type: 'success' });
+      toast.add({ title: t('gamification.badges.awarded', { name: badge.name }), type: 'success' });
       onClose();
     } catch (err: any) {
-      toast.add({ title: 'No se pudo otorgar la insignia', description: err.message, type: 'error' });
+      toast.add({ title: t('gamification.badges.awardFailed'), description: err.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -74,21 +77,22 @@ function AwardBadgeDialog({ badge, onClose }: { badge: BadgeRow | null; onClose:
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Otorgar “{badge?.name}”</DialogTitle>
+            <DialogTitle>{t('gamification.badges.awardTitle', { name: badge?.name })}</DialogTitle>
             <DialogDescription>
-              El socio verá el aviso de insignia desbloqueada en su portal
-              {badge?.pointsReward ? ` y recibirá ${formatPoints(badge.pointsReward)} puntos` : ''}.
+              {badge?.pointsReward
+                ? t('gamification.badges.awardDescPoints', { points: formatPoints(badge.pointsReward) })
+                : t('gamification.badges.awardDesc')}
             </DialogDescription>
           </DialogHeader>
           <label className="block text-sm font-medium text-slate-700">
-            <span className="mb-1.5 block">Socio <span className="text-red-500">*</span></span>
+            <span className="mb-1.5 block">{t('gamification.badges.member')} <span className="text-red-500">*</span></span>
             <select
               required
               value={memberId}
               onChange={(e) => setMemberId(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
             >
-              <option value="">Selecciona…</option>
+              <option value="">{t('common.select')}</option>
               {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </label>
@@ -98,7 +102,7 @@ function AwardBadgeDialog({ badge, onClose }: { badge: BadgeRow | null; onClose:
               disabled={saving || !memberId}
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60"
             >
-              {saving ? 'Otorgando…' : 'Otorgar'}
+              {saving ? t('gamification.badges.awarding') : t('gamification.badges.award')}
             </button>
           </DialogFooter>
         </form>
@@ -109,6 +113,7 @@ function AwardBadgeDialog({ badge, onClose }: { badge: BadgeRow | null; onClose:
 
 // Insignias del gym: automáticas (por asistencias o puntos) o manuales.
 export default function Page() {
+  const t = useT();
   const [reloadKey, setReloadKey] = useState(0);
   const [awardTarget, setAwardTarget] = useState<BadgeRow | null>(null);
   const [seeding, setSeeding] = useState(false);
@@ -117,10 +122,10 @@ export default function Page() {
     setSeeding(true);
     try {
       await api.post('/gamification/badges/defaults', {});
-      toast.add({ title: 'Insignias sugeridas creadas', type: 'success' });
+      toast.add({ title: t('gamification.badges.defaultsCreated'), type: 'success' });
       setReloadKey((k) => k + 1);
     } catch (err: any) {
-      toast.add({ title: 'No se pudieron crear', description: err.message, type: 'error' });
+      toast.add({ title: t('gamification.badges.defaultsFailed'), description: err.message, type: 'error' });
     } finally {
       setSeeding(false);
     }
@@ -130,7 +135,7 @@ export default function Page() {
     <>
       <ResourceManager
         key={reloadKey}
-        title="Insignias" subtitle="Logros que los socios desbloquean al entrenar."
+        title={t('gamification.badges.title')} subtitle={t('gamification.badges.subtitle')}
         icon={Award}
         endpoint="/gamification/badges"
         formVariant="modal"
@@ -142,12 +147,12 @@ export default function Page() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
             <Sparkles className="h-4 w-4 text-amber-600" />
-            {seeding ? 'Creando…' : 'Crear sugeridas'}
+            {seeding ? t('gamification.badges.creating') : t('gamification.badges.createDefaults')}
           </button>
         }
         columns={[
           {
-            key: 'name', label: 'Insignia',
+            key: 'name', label: t('gamification.badges.badge'),
             render: (row: BadgeRow) => {
               const Icon = badgeIcon(row.icon);
               return (
@@ -158,29 +163,29 @@ export default function Page() {
               );
             },
           },
-          { key: 'criteria', label: 'Regla', render: (row: BadgeRow) => ruleLabel(row) },
-          { key: 'pointsReward', label: 'Bono', render: (row: BadgeRow) => (row.pointsReward ? `+${formatPoints(row.pointsReward)} pts` : '—') },
-          { key: '_count', label: 'Socios', render: (row: BadgeRow) => row._count?.memberBadges ?? 0 },
+          { key: 'criteria', label: t('gamification.badges.rule'), render: (row: BadgeRow) => ruleLabel(row, t) },
+          { key: 'pointsReward', label: t('gamification.badges.bonus'), render: (row: BadgeRow) => (row.pointsReward ? t('gamification.badges.bonusValue', { points: formatPoints(row.pointsReward) }) : '—') },
+          { key: '_count', label: t('gamification.badges.members'), render: (row: BadgeRow) => row._count?.memberBadges ?? 0 },
           {
-            key: 'active', label: 'Estado',
+            key: 'active', label: t('gamification.badges.status'),
             render: (row: BadgeRow) => (
               <Badge variant="outline" className={row.active ? 'border-transparent bg-emerald-100 text-emerald-700' : 'border-transparent bg-slate-100 text-slate-500'}>
-                {row.active ? 'Activa' : 'Inactiva'}
+                {row.active ? t('gamification.badges.active') : t('gamification.badges.inactive')}
               </Badge>
             ),
           },
         ]}
         fields={[
-          { name: 'name', label: 'Nombre', required: true },
-          { name: 'icon', label: 'Ícono', type: 'select', options: BADGE_ICON_OPTIONS },
+          { name: 'name', label: t('gamification.badges.name'), required: true },
+          { name: 'icon', label: t('gamification.badges.icon'), type: 'select', options: BADGE_ICON_OPTIONS },
           {
-            name: 'criteria', label: 'Se desbloquea por', type: 'select', required: true,
+            name: 'criteria', label: t('gamification.badges.unlockBy'), type: 'select', required: true,
             options: Object.entries(BADGE_CRITERIA_LABELS).map(([value, label]) => ({ value, label })),
             defaultValue: 'ATTENDANCE_COUNT',
           },
-          { name: 'threshold', label: 'Umbral (asistencias o puntos)', type: 'number' },
-          { name: 'pointsReward', label: 'Bono en puntos', type: 'number' },
-          { name: 'description', label: 'Descripción', type: 'textarea', fullWidth: true },
+          { name: 'threshold', label: t('gamification.badges.threshold'), type: 'number' },
+          { name: 'pointsReward', label: t('gamification.badges.pointsBonus'), type: 'number' },
+          { name: 'description', label: t('gamification.badges.description'), type: 'textarea', fullWidth: true },
         ]}
         getEditValues={(row) => ({
           name: row.name,
@@ -192,24 +197,24 @@ export default function Page() {
         })}
         validate={(form) => (
           form.criteria && form.criteria !== 'MANUAL' && !(Number(form.threshold) > 0)
-            ? 'Las insignias automáticas necesitan un umbral mayor a 0.'
+            ? t('gamification.badges.errThreshold')
             : null
         )}
         extraActions={(row) => [
           {
-            label: 'Otorgar a socio',
+            label: t('gamification.badges.awardToMember'),
             icon: UserPlus,
             silent: true,
             onClick: () => setAwardTarget(row as BadgeRow),
           },
           {
-            label: row.active ? 'Desactivar' : 'Activar',
+            label: row.active ? t('gamification.badges.deactivate') : t('gamification.badges.activate'),
             icon: Power,
             confirm: true,
-            confirmTitle: row.active ? 'Desactivar insignia' : 'Activar insignia',
+            confirmTitle: row.active ? t('gamification.badges.deactivateTitle') : t('gamification.badges.activateTitle'),
             confirmDescription: row.active
-              ? `"${row.name}" dejará de desbloquearse automáticamente. Quienes ya la tienen la conservan.`
-              : `"${row.name}" volverá a desbloquearse automáticamente.`,
+              ? t('gamification.badges.deactivateDesc', { name: row.name })
+              : t('gamification.badges.activateDesc', { name: row.name }),
             onClick: () => api.patch(`/gamification/badges/${row.id}`, { active: !row.active }),
           },
         ]}

@@ -35,6 +35,8 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
+import { activeIntlLocale } from '@/lib/i18n/client';
+import { useT } from '@/components/I18nProvider';
 
 type DaySeries = { date: string; value: number };
 
@@ -68,11 +70,11 @@ type DashboardData = {
 };
 
 function money(v: number) {
-  return `$${v.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${v.toLocaleString(activeIntlLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function weekdayShort(dateStr: string) {
-  return new Intl.DateTimeFormat('es-MX', { weekday: 'short' }).format(new Date(`${dateStr}T00:00:00`));
+  return new Intl.DateTimeFormat(activeIntlLocale(), { weekday: 'short' }).format(new Date(`${dateStr}T00:00:00`));
 }
 
 function dayNumber(dateStr: string) {
@@ -80,7 +82,7 @@ function dayNumber(dateStr: string) {
 }
 
 function fullDateLabel(dateStr: string) {
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(`${dateStr}T00:00:00`));
+  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' }).format(new Date(`${dateStr}T00:00:00`));
 }
 
 // Ranking de una sola magnitud (plan más usado, producto más vendido): un solo
@@ -118,10 +120,11 @@ function RankedBarList({
 // que usa la paleta reservada (bueno / neutro / crítico) siempre con ícono +
 // etiqueta, nunca solo color.
 function MemberStatusBar({ byStatus, total }: { byStatus: DashboardData['members']['byStatus']; total: number }) {
+  const t = useT();
   const segments = [
-    { key: 'ACTIVE', label: 'Activos', value: byStatus.ACTIVE, className: 'bg-emerald-600' },
-    { key: 'INACTIVE', label: 'Inactivos', value: byStatus.INACTIVE, className: 'bg-slate-500' },
-    { key: 'SUSPENDED', label: 'Suspendidos', value: byStatus.SUSPENDED, className: 'bg-rose-500' },
+    { key: 'ACTIVE', label: t('dashboard.statusActive'), value: byStatus.ACTIVE, className: 'bg-emerald-600' },
+    { key: 'INACTIVE', label: t('dashboard.statusInactive'), value: byStatus.INACTIVE, className: 'bg-slate-500' },
+    { key: 'SUSPENDED', label: t('dashboard.statusSuspended'), value: byStatus.SUSPENDED, className: 'bg-rose-500' },
   ] as const;
   const safeTotal = Math.max(1, total);
 
@@ -147,11 +150,11 @@ function MemberStatusBar({ byStatus, total }: { byStatus: DashboardData['members
   );
 }
 
-const attendanceChartConfig = {
-  value: { label: 'Asistencias', theme: { light: '#d97706', dark: '#f59e0b' } },
-} satisfies ChartConfig;
-
 function AttendanceTrendChart({ series }: { series: DaySeries[] }) {
+  const t = useT();
+  const attendanceChartConfig = {
+    value: { label: t('dashboard.attendanceSeries'), theme: { light: '#d97706', dark: '#f59e0b' } },
+  } satisfies ChartConfig;
   return (
     <ChartContainer config={attendanceChartConfig} className="aspect-auto h-56 w-full">
       <AreaChart data={series} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
@@ -173,12 +176,12 @@ function AttendanceTrendChart({ series }: { series: DaySeries[] }) {
   );
 }
 
-const financeChartConfig = {
-  income: { label: 'Ingresos', theme: { light: '#059669', dark: '#059669' } },
-  expense: { label: 'Egresos', theme: { light: '#f43f5e', dark: '#f43f5e' } },
-} satisfies ChartConfig;
-
 function FinanceTrendChart({ series }: { series: { date: string; income: number; expense: number }[] }) {
+  const t = useT();
+  const financeChartConfig = {
+    income: { label: t('dashboard.income'), theme: { light: '#059669', dark: '#059669' } },
+    expense: { label: t('dashboard.expenses'), theme: { light: '#f43f5e', dark: '#f43f5e' } },
+  } satisfies ChartConfig;
   return (
     <ChartContainer config={financeChartConfig} className="aspect-auto h-64 w-full">
       <LineChart data={series} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
@@ -195,6 +198,7 @@ function FinanceTrendChart({ series }: { series: { date: string; income: number;
 }
 
 export default function DashboardPage() {
+  const t = useT();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -219,7 +223,7 @@ export default function DashboardPage() {
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-          <p className="text-muted-foreground">Cargando resumen...</p>
+          <p className="text-muted-foreground">{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -230,7 +234,7 @@ export default function DashboardPage() {
       <div className="p-4 md:p-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error || 'No se pudo cargar el resumen.'}</AlertDescription>
+          <AlertDescription>{error || t('dashboard.loadError')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -242,12 +246,12 @@ export default function DashboardPage() {
     <div className="space-y-6 p-4 md:p-8">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="mb-1 text-sm font-medium text-primary">Panel de control</p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Hola, bienvenido a FraguaGo</h1>
-          <p className="mt-2 text-muted-foreground">Aquí tienes el pulso de tu gimnasio hoy.</p>
+          <p className="mb-1 text-sm font-medium text-primary">{t('dashboard.eyebrow')}</p>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t('dashboard.greeting')}</h1>
+          <p className="mt-2 text-muted-foreground">{t('dashboard.intro')}</p>
         </div>
         <div className="rounded-lg bg-card px-4 py-2 text-sm text-muted-foreground ring-1 ring-foreground/10">
-          {new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date())}
+          {new Intl.DateTimeFormat(activeIntlLocale(), { dateStyle: 'long' }).format(new Date())}
         </div>
       </div>
 
@@ -257,40 +261,40 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Socios activos</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t('dashboard.activeMembers')}</CardTitle>
             <span className="rounded-lg bg-primary/10 p-2 text-primary"><Users className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight">{data.summary.activeMembers}</div>
-            <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600"><ArrowUpRight className="h-3.5 w-3.5" /> Comunidad activa</p>
+            <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600"><ArrowUpRight className="h-3.5 w-3.5" /> {t('dashboard.activeCommunity')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-cyan-500">
           <CardHeader className="flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Membresías activas</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t('dashboard.activeMemberships')}</CardTitle>
             <span className="rounded-lg bg-cyan-500/10 p-2 text-cyan-500"><CreditCard className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight">{data.summary.activeMemberships}</div>
-            <p className="mt-2 flex items-center gap-1 text-xs text-cyan-600"><ArrowUpRight className="h-3.5 w-3.5" /> Planes vigentes</p>
+            <p className="mt-2 flex items-center gap-1 text-xs text-cyan-600"><ArrowUpRight className="h-3.5 w-3.5" /> {t('dashboard.currentPlans')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-amber-500">
           <CardHeader className="flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Asistencia hoy</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t('dashboard.attendanceToday')}</CardTitle>
             <span className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><CalendarCheck2 className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight">{data.summary.attendanceToday}</div>
-            <p className="mt-2 text-xs text-muted-foreground">Registros del día</p>
+            <p className="mt-2 text-xs text-muted-foreground">{t('dashboard.todayRecords')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-emerald-500">
           <CardHeader className="flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Balance del mes</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t('dashboard.monthBalance')}</CardTitle>
             <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Wallet className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
@@ -298,7 +302,7 @@ export default function DashboardPage() {
               {money(balance)}
             </div>
             <p className={`mt-2 flex items-center gap-1 text-xs ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-              {balance >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />} Resultado acumulado
+              {balance >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />} {t('dashboard.accumulated')}
             </p>
           </CardContent>
         </Card>
@@ -308,34 +312,34 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="bg-emerald-500/[0.07]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-emerald-700 dark:text-emerald-400">Ingresos</CardTitle>
+            <CardTitle className="text-sm text-emerald-700 dark:text-emerald-400">{t('dashboard.income')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{money(income)}</div>
-            <p className="mt-1 text-xs text-emerald-700/70 dark:text-emerald-400/70">Membresías y ventas</p>
+            <p className="mt-1 text-xs text-emerald-700/70 dark:text-emerald-400/70">{t('dashboard.incomeHint')}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-rose-500/[0.07]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-rose-700 dark:text-rose-400">Egresos</CardTitle>
+            <CardTitle className="text-sm text-rose-700 dark:text-rose-400">{t('dashboard.expenses')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-rose-700 dark:text-rose-400">{money(expense)}</div>
-            <p className="mt-1 text-xs text-rose-700/70 dark:text-rose-400/70">Gastos operacionales</p>
+            <p className="mt-1 text-xs text-rose-700/70 dark:text-rose-400/70">{t('dashboard.expensesHint')}</p>
           </CardContent>
         </Card>
 
         <Card className={balance >= 0 ? 'bg-indigo-500/[0.07]' : 'bg-amber-500/[0.07]'}>
           <CardHeader className="pb-2">
-            <CardTitle className={`text-sm ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>Utilidad neta</CardTitle>
+            <CardTitle className={`text-sm ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>{t('dashboard.netProfit')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className={`text-3xl font-bold ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>
               {money(balance)}
             </div>
             <p className={`mt-1 text-xs ${balance >= 0 ? 'text-indigo-700/70 dark:text-indigo-400/70' : 'text-amber-600'}`}>
-              {balance >= 0 ? '✓ Ganancia' : '⚠ Pérdida'}
+              {balance >= 0 ? t('dashboard.profit') : t('dashboard.loss')}
             </p>
           </CardContent>
         </Card>
@@ -345,7 +349,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />Asistencia — últimos 7 días</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />{t('dashboard.attendanceTrend')}</CardTitle>
           </CardHeader>
           <CardContent>
             <AttendanceTrendChart series={data.attendance.series} />
@@ -354,7 +358,7 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle className="text-base">Ingresos vs. egresos — este mes</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.financeTrend')}</CardTitle>
           </CardHeader>
           <CardContent>
             <FinanceTrendChart series={financeSeries} />
@@ -366,9 +370,9 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">Socios por estado</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.membersByStatus')}</CardTitle>
             <span className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-              <UserPlus className="h-3.5 w-3.5" />{data.members.newThisMonth} nuevos este mes
+              <UserPlus className="h-3.5 w-3.5" />{t('dashboard.newThisMonth', { count: data.members.newThisMonth })}
             </span>
           </CardHeader>
           <CardContent>
@@ -378,29 +382,29 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Membresías</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.memberships')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg bg-emerald-500/[0.07] py-3">
                 <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{data.memberships.active}</p>
-                <p className="text-xs text-muted-foreground">Vigentes</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.current')}</p>
               </div>
               <div className="rounded-lg bg-amber-500/[0.07] py-3">
                 <p className="flex items-center justify-center gap-1 text-xl font-bold text-amber-700 dark:text-amber-400"><Clock className="h-4 w-4" />{data.memberships.expiringSoon}</p>
-                <p className="text-xs text-muted-foreground">Por vencer (7d)</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.expiringSoon')}</p>
               </div>
               <div className="rounded-lg bg-rose-500/[0.07] py-3">
                 <p className="text-xl font-bold text-rose-700 dark:text-rose-400">{data.memberships.expired}</p>
-                <p className="text-xs text-muted-foreground">Vencidas</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.expired')}</p>
               </div>
             </div>
             <div>
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Planes con más socios activos</p>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('dashboard.topPlans')}</p>
               <RankedBarList
                 items={data.memberships.byPlan.map((p) => ({ label: p.plan, value: p.count }))}
-                valueLabel={(v) => `${v} socio${v === 1 ? '' : 's'}`}
-                emptyLabel="Aún no hay membresías activas."
+                valueLabel={(v) => t('dashboard.membersCount', { count: v })}
+                emptyLabel={t('dashboard.noActiveMemberships')}
               />
             </div>
           </CardContent>
@@ -410,30 +414,30 @@ export default function DashboardPage() {
       {/* Ventas */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><ShoppingBag className="h-4 w-4 text-amber-600" />Ventas del mes</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><ShoppingBag className="h-4 w-4 text-amber-600" />{t('dashboard.monthSales')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="grid grid-cols-3 gap-3 text-center lg:col-span-1 lg:grid-cols-1 lg:content-start">
               <div className="rounded-lg bg-muted/50 py-3">
                 <p className="text-xl font-bold text-foreground">{money(data.sales.totalRevenue)}</p>
-                <p className="text-xs text-muted-foreground">Facturado</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.billed')}</p>
               </div>
               <div className="rounded-lg bg-muted/50 py-3">
                 <p className="text-xl font-bold text-foreground">{data.sales.unitsSold}</p>
-                <p className="text-xs text-muted-foreground">Unidades vendidas</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.unitsSold')}</p>
               </div>
               <div className="rounded-lg bg-muted/50 py-3">
                 <p className="text-xl font-bold text-foreground">{data.sales.saleCount}</p>
-                <p className="text-xs text-muted-foreground">Tickets</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.tickets')}</p>
               </div>
             </div>
             <div className="lg:col-span-2">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Top 5 productos por facturación</p>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('dashboard.topProducts')}</p>
               <RankedBarList
-                items={data.sales.topProducts.map((p) => ({ label: p.product, value: p.revenue, caption: `${p.units} unidad${p.units === 1 ? '' : 'es'}` }))}
+                items={data.sales.topProducts.map((p) => ({ label: p.product, value: p.revenue, caption: t('dashboard.units', { count: p.units }) }))}
                 valueLabel={money}
-                emptyLabel="Aún no hay ventas registradas este mes."
+                emptyLabel={t('dashboard.noSales')}
               />
             </div>
           </div>
@@ -443,21 +447,21 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Acciones rápidas</CardTitle>
+          <CardTitle>{t('dashboard.quickActions')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-3">
             <a href="/members" className="rounded-lg border border-border p-4 transition hover:border-primary/40 hover:bg-primary/[0.04]">
-              <p className="font-semibold">Registrar socio</p>
-              <p className="text-xs text-muted-foreground">Nuevo miembro</p>
+              <p className="font-semibold">{t('dashboard.registerMember')}</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.newMember')}</p>
             </a>
             <a href="/attendance" className="rounded-lg border border-border p-4 transition hover:border-primary/40 hover:bg-primary/[0.04]">
-              <p className="font-semibold">Check-in</p>
-              <p className="text-xs text-muted-foreground">Registrar entrada</p>
+              <p className="font-semibold">{t('dashboard.checkIn')}</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.registerEntry')}</p>
             </a>
             <a href="/finances" className="rounded-lg border border-border p-4 transition hover:border-primary/40 hover:bg-primary/[0.04]">
-              <p className="font-semibold">Finanzas</p>
-              <p className="text-xs text-muted-foreground">Ver movimientos</p>
+              <p className="font-semibold">{t('dashboard.finances')}</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.viewMovements')}</p>
             </a>
           </div>
         </CardContent>

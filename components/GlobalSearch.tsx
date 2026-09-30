@@ -31,26 +31,28 @@ import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { clearRecent, getRecent, highlightRanges, pushRecent, type SearchKind, type SearchResult } from '@/lib/search';
 import { track } from '@/lib/analytics';
 import { NAV } from '@/lib/navigation';
+import { useT } from '@/components/I18nProvider';
 
-const KIND_META: Record<SearchKind, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  action: { label: 'Acción', icon: Zap },
-  page: { label: 'Página', icon: FileText },
-  member: { label: 'Socio', icon: Users },
-  product: { label: 'Producto', icon: Box },
-  plan: { label: 'Plan', icon: Tag },
-  service: { label: 'Servicio', icon: Wrench },
-  trainer: { label: 'Entrenador', icon: User },
-  exercise: { label: 'Ejercicio', icon: ListChecks },
+// Etiqueta: search.kinds.<kind>.
+const KIND_ICON: Record<SearchKind, React.ComponentType<{ className?: string }>> = {
+  action: Zap,
+  page: FileText,
+  member: Users,
+  product: Box,
+  plan: Tag,
+  service: Wrench,
+  trainer: User,
+  exercise: ListChecks,
 };
 
-// Grupos de registros del catálogo, en el orden en que se muestran.
-const RECORD_GROUPS: Array<{ kind: SearchKind; heading: string }> = [
-  { kind: 'product', heading: 'Productos' },
-  { kind: 'plan', heading: 'Planes' },
-  { kind: 'service', heading: 'Servicios' },
-  { kind: 'trainer', heading: 'Entrenadores' },
-  { kind: 'exercise', heading: 'Ejercicios' },
-];
+// Grupos de registros del catálogo, en el orden en que se muestran (título: search.groups.<heading>).
+const RECORD_GROUPS = [
+  { kind: 'product', heading: 'products' },
+  { kind: 'plan', heading: 'plans' },
+  { kind: 'service', heading: 'services' },
+  { kind: 'trainer', heading: 'trainers' },
+  { kind: 'exercise', heading: 'exercises' },
+] as const;
 
 const PAGE_ICONS = new Map(NAV.flatMap(({ items }) => items.map((item) => [item.href, item.icon] as const)));
 
@@ -74,7 +76,8 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 function ResultItem({ result, query, onSelect }: { result: SearchResult; query: string; onSelect: (result: SearchResult) => void }) {
-  const Icon = (result.kind === 'page' && PAGE_ICONS.get(result.href)) || KIND_META[result.kind].icon;
+  const t = useT();
+  const Icon = (result.kind === 'page' && PAGE_ICONS.get(result.href)) || KIND_ICON[result.kind];
   return (
     <CommandItem value={result.id} onSelect={() => onSelect(result)} className="gap-3 py-2">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-data-selected/command-item:bg-primary/15 group-data-selected/command-item:text-primary">
@@ -84,13 +87,14 @@ function ResultItem({ result, query, onSelect }: { result: SearchResult; query: 
         <span className="block truncate font-medium"><Highlight text={result.title} query={query} /></span>
         {result.subtitle && <span className="block truncate text-xs text-muted-foreground">{result.subtitle}</span>}
       </span>
-      <span className="shrink-0 text-xs text-muted-foreground">{KIND_META[result.kind].label}</span>
+      <span className="shrink-0 text-xs text-muted-foreground">{t(`search.kinds.${result.kind}`)}</span>
       <ArrowRight className="h-4 w-4 shrink-0 opacity-0 group-data-selected/command-item:opacity-60" />
     </CommandItem>
   );
 }
 
 export default function GlobalSearch() {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -143,41 +147,41 @@ export default function GlobalSearch() {
 
   if (!trimmed && recent.length > 0) {
     sections.push(
-      <CommandGroup key="recent" heading="Recientes">
-        {recent.map((result) => <ResultItem key={result.id} result={result} query="" onSelect={select} />)}
+      <CommandGroup key="recent" heading={t('search.groups.recent')}>
+        {recent.map(results.refreshRecent).map((result) => <ResultItem key={result.id} result={result} query="" onSelect={select} />)}
         <CommandItem value="clear-recent" onSelect={() => { clearRecent(); setRecent([]); }} className="justify-center text-xs text-muted-foreground">
-          <X className="h-3.5 w-3.5" /> Borrar recientes
+          <X className="h-3.5 w-3.5" /> {t('search.clearRecent')}
         </CommandItem>
       </CommandGroup>,
     );
   }
   if (results.actions.length > 0) {
     sections.push(
-      <CommandGroup key="actions" heading="Acciones rápidas">
+      <CommandGroup key="actions" heading={t('search.groups.actions')}>
         {results.actions.map((result) => <ResultItem key={result.id} result={result} query={trimmed} onSelect={select} />)}
       </CommandGroup>,
     );
   }
   if (results.members.length > 0) {
     sections.push(
-      <CommandGroup key="members" heading="Socios">
+      <CommandGroup key="members" heading={t('search.groups.members')}>
         {results.members.map((result) => <ResultItem key={result.id} result={result} query={trimmed} onSelect={select} />)}
-        <CommandItem value="members-all" onSelect={() => select({ id: `members-q:${trimmed}`, kind: 'page', title: `Socios: “${trimmed}”`, href: `/members?q=${encodeURIComponent(trimmed)}` })} className="text-xs text-muted-foreground">
-          <Search className="h-3.5 w-3.5" /> Ver todos los socios que coinciden con “{trimmed}”
+        <CommandItem value="members-all" onSelect={() => select({ id: `members-q:${trimmed}`, kind: 'page', title: t('search.membersQueryTitle', { query: trimmed }), href: `/members?q=${encodeURIComponent(trimmed)}` })} className="text-xs text-muted-foreground">
+          <Search className="h-3.5 w-3.5" /> {t('search.seeAllMembers', { query: trimmed })}
         </CommandItem>
       </CommandGroup>,
     );
   }
   for (const group of recordGroups) {
     sections.push(
-      <CommandGroup key={group.kind} heading={group.heading}>
+      <CommandGroup key={group.kind} heading={t(`search.groups.${group.heading}`)}>
         {group.items.map((result) => <ResultItem key={result.id} result={result} query={trimmed} onSelect={select} />)}
       </CommandGroup>,
     );
   }
   if (results.pages.length > 0) {
     sections.push(
-      <CommandGroup key="pages" heading="Páginas">
+      <CommandGroup key="pages" heading={t('search.groups.pages')}>
         {results.pages.map((result) => <ResultItem key={result.id} result={result} query={trimmed} onSelect={select} />)}
       </CommandGroup>,
     );
@@ -188,18 +192,18 @@ export default function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Buscar en FraguaGo"
+        aria-label={t('search.triggerLabel')}
         aria-keyshortcuts="Control+K Meta+K /"
         className="hidden h-9 max-w-sm flex-1 items-center gap-2 rounded-lg bg-muted px-3 text-sm text-muted-foreground transition hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:flex"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">Buscar en FraguaGo...</span>
+        <span className="flex-1 text-left">{t('search.trigger')}</span>
         <Kbd className="bg-card">{shortcut}</Kbd>
       </button>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Buscar en FraguaGo"
+        aria-label={t('search.triggerLabel')}
         className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground md:hidden"
       >
         <Search className="h-5 w-5" />
@@ -208,16 +212,16 @@ export default function GlobalSearch() {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
-        title="Buscar en FraguaGo"
-        description="Busca socios, productos, planes, servicios, entrenadores, ejercicios y pantallas."
+        title={t('search.dialogTitle')}
+        description={t('search.dialogDescription')}
         className="sm:max-w-xl"
       >
         <Command shouldFilter={false} loop>
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder="Busca socios, cédulas, productos, SKU, planes o pantallas..."
-            aria-label="Término de búsqueda"
+            placeholder={t('search.placeholder')}
+            aria-label={t('search.inputLabel')}
           />
           <CommandList className="max-h-[60vh] p-1">
             {sections.map((section, index) => (
@@ -231,30 +235,30 @@ export default function GlobalSearch() {
               stillLoading ? (
                 <CommandPrimitive.Loading>
                   <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Buscando...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t('search.searching')}
                   </div>
                 </CommandPrimitive.Loading>
               ) : (
                 <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Sin resultados para “{trimmed}”</p>
-                  <p className="mt-1">Prueba con el nombre, la cédula, el correo o el SKU, o revisa la ortografía.</p>
+                  <p className="font-medium text-foreground">{t('search.noResults', { query: trimmed })}</p>
+                  <p className="mt-1">{t('search.noResultsHint')}</p>
                 </div>
               )
             )}
             {results.memberError && (
-              <p role="alert" className="px-3 py-2 text-xs text-destructive">No se pudo buscar en socios. Revisa tu conexión e inténtalo de nuevo.</p>
+              <p role="alert" className="px-3 py-2 text-xs text-destructive">{t('search.memberError')}</p>
             )}
           </CommandList>
 
           <div className="flex items-center gap-3 border-t border-border px-3 py-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd> navegar</span>
-            <span className="flex items-center gap-1"><Kbd><CornerDownLeft /></Kbd> abrir</span>
-            <span className="flex items-center gap-1"><Kbd>Esc</Kbd> cerrar</span>
+            <span className="flex items-center gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd> {t('search.navigate')}</span>
+            <span className="flex items-center gap-1"><Kbd><CornerDownLeft /></Kbd> {t('search.open')}</span>
+            <span className="flex items-center gap-1"><Kbd>Esc</Kbd> {t('search.close')}</span>
             {stillLoading && hasResults && (
-              <span className="ml-auto flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Buscando...</span>
+              <span className="ml-auto flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {t('search.searching')}</span>
             )}
             {!stillLoading && !trimmed && (
-              <span className="ml-auto hidden sm:inline">Escribe al menos 2 letras para buscar socios</span>
+              <span className="ml-auto hidden sm:inline">{t('search.minChars')}</span>
             )}
           </div>
         </Command>

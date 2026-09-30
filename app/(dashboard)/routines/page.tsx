@@ -12,19 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { localizedOptions, tActive } from '@/lib/i18n/client';
+import { activityOptions } from '@/lib/memberOptions';
+import { richText, useT } from '@/components/I18nProvider';
 
-const GOAL_OPTIONS = [
-  { value: 'MUSCLE_GAIN', label: 'Ganancia muscular' },
-  { value: 'WEIGHT_LOSS', label: 'Pérdida de peso' },
-  { value: 'GENERAL_WELLNESS', label: 'Bienestar general' },
-  { value: 'PERFORMANCE_REHABILITATION', label: 'Rendimiento / rehabilitación' },
-];
+const GOAL_OPTIONS = localizedOptions({
+  MUSCLE_GAIN: 'records.goals.options.MUSCLE_GAIN',
+  WEIGHT_LOSS: 'records.goals.options.WEIGHT_LOSS',
+  GENERAL_WELLNESS: 'records.goals.options.GENERAL_WELLNESS',
+  PERFORMANCE_REHABILITATION: 'records.goals.options.PERFORMANCE_REHABILITATION',
+});
 
-const LEVEL_OPTIONS = [
-  { value: 'BEGINNER', label: 'Principiante' },
-  { value: 'INTERMEDIATE', label: 'Intermedio' },
-  { value: 'ADVANCED', label: 'Avanzado' },
-];
+const LEVEL_OPTIONS = activityOptions;
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
@@ -77,15 +76,15 @@ function draftExercises(draft: RoutineDraft | null) {
 function formatDraft(draft: RoutineDraft) {
   let text = '';
   for (const day of draft.days) {
-    text += `Día ${day.day} — ${day.focus}\n`;
+    text += `${tActive('routines.draftDay', { day: day.day, focus: day.focus })}\n`;
     for (const ex of day.exercises) {
-      const rest = ex.restSeconds ? `, descanso ${ex.restSeconds}s` : '';
+      const rest = ex.restSeconds ? tActive('routines.draftRest', { seconds: ex.restSeconds }) : '';
       const notes = ex.notes ? ` (${ex.notes})` : '';
       text += `  • ${ex.name}: ${ex.sets}x${ex.reps}${rest}${notes}\n`;
     }
     text += '\n';
   }
-  if (draft.notes) text += `Notas: ${draft.notes}`;
+  if (draft.notes) text += tActive('routines.draftNotes', { notes: draft.notes });
   return text.trim();
 }
 
@@ -98,6 +97,7 @@ function GenerateRoutineButton({
   trainerOptions: SelectOption[];
   onSaved: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -126,10 +126,10 @@ function GenerateRoutineButton({
       });
       const generatedDraft = res.draft as RoutineDraft;
       setDraft(generatedDraft);
-      setName(generatedDraft.name || 'Rutina generada con IA');
+      setName(generatedDraft.name || t('routines.defaultAiName'));
       setDescription(formatDraft(generatedDraft));
     } catch (err: any) {
-      toast.add({ title: 'No se pudo generar la rutina', description: err.message, type: 'error' });
+      toast.add({ title: t('routines.generateFailed'), description: err.message, type: 'error' });
     } finally {
       setGenerating(false);
     }
@@ -146,12 +146,12 @@ function GenerateRoutineButton({
         description,
         exercises: draftExercises(draft),
       });
-      toast.add({ title: 'Rutina guardada', type: 'success' });
+      toast.add({ title: t('routines.saved'), type: 'success' });
       setOpen(false);
       reset();
       onSaved();
     } catch (err: any) {
-      toast.add({ title: 'No se pudo guardar la rutina', description: err.message, type: 'error' });
+      toast.add({ title: t('routines.saveFailed'), description: err.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -164,7 +164,7 @@ function GenerateRoutineButton({
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
       >
-        <Sparkles className="h-4 w-4" /> Generar con IA
+        <Sparkles className="h-4 w-4" /> {t('routines.generateWithAi')}
       </button>
 
       <Dialog open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (!nextOpen) reset(); }}>
@@ -172,14 +172,14 @@ function GenerateRoutineButton({
           {!draft ? (
             <form onSubmit={generate} className="grid gap-4">
               <DialogHeader>
-                <DialogTitle>Generar rutina con IA</DialogTitle>
-                <DialogDescription>Se genera un borrador; el entrenador decide si lo guarda tal cual o lo edita.</DialogDescription>
+                <DialogTitle>{t('routines.generateTitle')}</DialogTitle>
+                <DialogDescription>{t('routines.generateDesc')}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Socio <span className="text-red-500">*</span></label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.member')} <span className="text-red-500">*</span></label>
                   <select required value={form.memberId ?? ''} onChange={(e) => setForm({ ...form, memberId: e.target.value })} className={inputClass}>
-                    <option value="">Selecciona…</option>
+                    <option value="">{t('common.select')}</option>
                     {memberOptions.map((o) => {
                       const value = typeof o === 'string' ? o : o.value;
                       const label = typeof o === 'string' ? o : o.label;
@@ -187,13 +187,13 @@ function GenerateRoutineButton({
                     })}
                   </select>
                   <p className="mt-1.5 text-xs text-slate-500">
-                    Se usa su ficha médica y última medición registrada para adaptar la rutina (no se muestran tal cual, solo ajustan intensidad y ejercicios a evitar).
+                    {t('routines.memberHint')}
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Entrenador</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.trainer')}</label>
                   <select value={form.trainerId ?? ''} onChange={(e) => setForm({ ...form, trainerId: e.target.value })} className={inputClass}>
-                    <option value="">Selecciona…</option>
+                    <option value="">{t('common.select')}</option>
                     {trainerOptions.map((o) => {
                       const value = typeof o === 'string' ? o : o.value;
                       const label = typeof o === 'string' ? o : o.label;
@@ -202,19 +202,19 @@ function GenerateRoutineButton({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Objetivo</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.goal')}</label>
                   <select value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} className={inputClass}>
                     {GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Nivel</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.level')}</label>
                   <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass}>
                     {LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Días por semana</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.daysPerWeek')}</label>
                   <input
                     type="number" min={1} max={7}
                     value={form.daysPerWeek}
@@ -224,11 +224,11 @@ function GenerateRoutineButton({
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Consideraciones (opcional)</label>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.considerations')}</label>
                 <textarea
                   value={form.notes ?? ''}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Lesiones, equipamiento disponible, preferencias…"
+                  placeholder={t('routines.considerationsPlaceholder')}
                   className={`${inputClass} min-h-20`}
                 />
               </div>
@@ -238,26 +238,26 @@ function GenerateRoutineButton({
                   disabled={generating || !form.memberId}
                   className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
                 >
-                  {generating ? 'Generando…' : 'Generar borrador'}
+                  {generating ? t('routines.generating') : t('routines.generateDraft')}
                 </button>
               </DialogFooter>
             </form>
           ) : (
             <form onSubmit={saveRoutine} className="grid gap-4">
               <DialogHeader>
-                <DialogTitle>Revisar borrador</DialogTitle>
-                <DialogDescription>Editá lo que necesites antes de guardarlo. La IA no reemplaza tu criterio.</DialogDescription>
+                <DialogTitle>{t('routines.reviewTitle')}</DialogTitle>
+                <DialogDescription>{t('routines.reviewDesc')}</DialogDescription>
               </DialogHeader>
               <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                Socio: <span className="font-medium text-slate-800">{optionLabel(memberOptions, form.memberId)}</span>
-                {form.trainerId && <> · Entrenador: <span className="font-medium text-slate-800">{optionLabel(trainerOptions, form.trainerId)}</span></>}
+                {richText(t('routines.memberLine'), { name: <span className="font-medium text-slate-800">{optionLabel(memberOptions, form.memberId)}</span> })}
+                {form.trainerId && richText(t('routines.trainerLine'), { name: <span className="font-medium text-slate-800">{optionLabel(trainerOptions, form.trainerId)}</span> })}
               </p>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Nombre</label>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.name')}</label>
                 <input required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Descripción</label>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.description')}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -270,14 +270,14 @@ function GenerateRoutineButton({
                   onClick={() => setDraft(null)}
                   className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                 >
-                  Volver
+                  {t('routines.back')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !form.memberId}
                   className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
                 >
-                  {saving ? 'Guardando…' : 'Guardar rutina'}
+                  {saving ? t('routines.saving') : t('routines.saveRoutine')}
                 </button>
               </DialogFooter>
             </form>
@@ -303,6 +303,7 @@ function CopyRoutineDialog({
   trainerOptions: SelectOption[];
   onSaved: () => void;
 }) {
+  const t = useT();
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
 
@@ -311,7 +312,7 @@ function CopyRoutineDialog({
     setForm({
       memberId: row.memberId ? String(row.memberId) : '',
       trainerId: row.trainerId ? String(row.trainerId) : '',
-      name: row.name ? `${row.name} (copia)` : '',
+      name: row.name ? t('routines.copySuffix', { name: row.name }) : '',
       description: row.description ?? '',
     });
   }, [row]);
@@ -326,11 +327,11 @@ function CopyRoutineDialog({
         name: form.name,
         description: form.description || undefined,
       });
-      toast.add({ title: 'Rutina copiada', type: 'success' });
+      toast.add({ title: t('routines.copied'), type: 'success' });
       onOpenChange(false);
       onSaved();
     } catch (err: any) {
-      toast.add({ title: 'No se pudo copiar la rutina', description: err.message, type: 'error' });
+      toast.add({ title: t('routines.copyFailed'), description: err.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -341,14 +342,14 @@ function CopyRoutineDialog({
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={save} className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>Copiar rutina</DialogTitle>
-            <DialogDescription>Creá una copia de esta rutina para otro socio o entrenador.</DialogDescription>
+            <DialogTitle>{t('routines.copyTitle')}</DialogTitle>
+            <DialogDescription>{t('routines.copyDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Socio <span className="text-red-500">*</span></label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.member')} <span className="text-red-500">*</span></label>
               <select required value={form.memberId ?? ''} onChange={(e) => setForm({ ...form, memberId: e.target.value })} className={inputClass}>
-                <option value="">Selecciona…</option>
+                <option value="">{t('common.select')}</option>
                 {memberOptions.map((o) => {
                   const value = typeof o === 'string' ? o : o.value;
                   const label = typeof o === 'string' ? o : o.label;
@@ -357,9 +358,9 @@ function CopyRoutineDialog({
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Entrenador</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.trainer')}</label>
               <select value={form.trainerId ?? ''} onChange={(e) => setForm({ ...form, trainerId: e.target.value })} className={inputClass}>
-                <option value="">Selecciona…</option>
+                <option value="">{t('common.select')}</option>
                 {trainerOptions.map((o) => {
                   const value = typeof o === 'string' ? o : o.value;
                   const label = typeof o === 'string' ? o : o.label;
@@ -369,11 +370,11 @@ function CopyRoutineDialog({
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nombre <span className="text-red-500">*</span></label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.name')} <span className="text-red-500">*</span></label>
             <input required value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Descripción</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('routines.description')}</label>
             <textarea
               value={form.description ?? ''}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -386,7 +387,7 @@ function CopyRoutineDialog({
               disabled={saving || !form.memberId || !form.name}
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
             >
-              {saving ? 'Copiando…' : 'Copiar rutina'}
+              {saving ? t('routines.copying') : t('routines.copyRoutine')}
             </button>
           </DialogFooter>
         </form>
@@ -396,6 +397,7 @@ function CopyRoutineDialog({
 }
 
 export default function Page() {
+  const t = useT();
   const [memberOptions, setMemberOptions] = useState<SelectOption[]>([]);
   const [trainerOptions, setTrainerOptions] = useState<SelectOption[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
@@ -409,9 +411,9 @@ export default function Page() {
       })));
     }).catch(() => {});
     api.list('/trainers').then((trainers) => {
-      setTrainerOptions(trainers.map((t: any) => ({
-        value: String(t.id),
-        label: personLabel(t) || t.id,
+      setTrainerOptions(trainers.map((tr: any) => ({
+        value: String(tr.id),
+        label: personLabel(tr) || tr.id,
       })));
     }).catch(() => {});
   }, []);
@@ -420,8 +422,8 @@ export default function Page() {
     <>
       <ResourceManager
         key={reloadKey}
-        title="Rutinas"
-        subtitle="Planes de entrenamiento asignados a los socios."
+        title={t('routines.title')}
+        subtitle={t('routines.subtitle')}
         icon={Dumbbell}
         endpoint="/routines"
         formVariant="modal"
@@ -433,19 +435,19 @@ export default function Page() {
           />
         }
         columns={[
-          { key: 'name', label: 'Nombre' },
-          { key: 'member', label: 'Socio', render: (r) => personLabel(r.member) || r.memberId },
-          { key: 'trainer', label: 'Entrenador', render: (r) => personLabel(r.trainer) || '—' },
+          { key: 'name', label: t('routines.name') },
+          { key: 'member', label: t('routines.member'), render: (r) => personLabel(r.member) || r.memberId },
+          { key: 'trainer', label: t('routines.trainer'), render: (r) => personLabel(r.trainer) || '—' },
         ]}
         fields={[
-          { name: 'memberId', label: 'Socio', type: 'select', required: true, options: memberOptions },
-          { name: 'trainerId', label: 'Entrenador', type: 'select', options: trainerOptions },
-          { name: 'name', label: 'Nombre', required: true, fullWidth: true },
-          { name: 'description', label: 'Descripción', type: 'textarea' },
+          { name: 'memberId', label: t('routines.member'), type: 'select', required: true, options: memberOptions },
+          { name: 'trainerId', label: t('routines.trainer'), type: 'select', options: trainerOptions },
+          { name: 'name', label: t('routines.name'), required: true, fullWidth: true },
+          { name: 'description', label: t('routines.description'), type: 'textarea' },
         ]}
         extraActions={(row) => [
           {
-            label: 'Copiar',
+            label: t('routines.copy'),
             icon: Copy,
             silent: true,
             onClick: () => setCopyRow(row),

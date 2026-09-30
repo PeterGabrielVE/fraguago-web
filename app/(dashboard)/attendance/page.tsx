@@ -15,8 +15,8 @@ import {
   UserCheck,
   X,
 } from 'lucide-react';
-
-const SHIFT_LABELS: Record<string, string> = { MORNING: 'Mañana', AFTERNOON: 'Tarde', NIGHT: 'Noche' };
+import { SHIFT_LABELS } from '@/lib/portal';
+import { useI18n } from '@/components/I18nProvider';
 
 function toISODate(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -40,6 +40,7 @@ function memberInitials(m: any) {
 }
 
 export default function AttendancePage() {
+  const { t, intlLocale } = useI18n();
   const [members, setMembers] = useState<any[]>([]);
   const [entries, setEntries] = useState<any[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
@@ -120,7 +121,7 @@ export default function AttendancePage() {
     }
   }
 
-  const filterDateLabel = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${filterDate}T00:00:00`));
+  const filterDateLabel = new Intl.DateTimeFormat(intlLocale, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${filterDate}T00:00:00`));
   const isToday = filterDate === todayISO();
 
   return (
@@ -133,20 +134,20 @@ export default function AttendancePage() {
               <Dumbbell className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Asistencia</h1>
-              <p className="mt-1 text-slate-600">Registra la entrada de tus socios al gimnasio.</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('attendance.title')}</h1>
+              <p className="mt-1 text-slate-600">{t('attendance.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <ExportButton
               resource="attendance"
-              label="Exportar día"
+              label={t('attendance.exportDay')}
               filters={{ from: filterDate, to: filterDate, shift: filterShift }}
             />
             <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-5 py-3 text-right sm:text-left">
               <div>
-                <p className="text-sm font-semibold text-amber-800">Un hábito hoy,</p>
-                <p className="text-sm text-amber-700">mejores resultados mañana.</p>
+                <p className="text-sm font-semibold text-amber-800">{t('attendance.motto1')}</p>
+                <p className="text-sm text-amber-700">{t('attendance.motto2')}</p>
               </div>
             </div>
           </div>
@@ -166,9 +167,9 @@ export default function AttendancePage() {
           <div className="flex-1">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
               <User className="h-5 w-5 text-amber-600" />
-              Registrar entrada
+              {t('attendance.registerEntry')}
             </h2>
-            <p className="mt-1 text-sm text-slate-500">Busca al socio o selecciónalo de la lista para marcar su entrada.</p>
+            <p className="mt-1 text-sm text-slate-500">{t('attendance.registerHint')}</p>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <div ref={boxRef} className="relative w-full max-w-80">
@@ -177,14 +178,14 @@ export default function AttendancePage() {
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setSelectedId(''); setDropdownOpen(true); }}
                   onFocus={() => setDropdownOpen(true)}
-                  placeholder="Buscar por nombre, ID o documento…"
+                  placeholder={t('attendance.searchPlaceholder')}
                   className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                 />
                 {query && (
                   <button
                     type="button"
                     onClick={clearSelection}
-                    aria-label="Limpiar búsqueda"
+                    aria-label={t('attendance.clearSearch')}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     <X className="h-4 w-4" />
@@ -194,7 +195,7 @@ export default function AttendancePage() {
                 {dropdownOpen && (
                   <div className="absolute z-20 mt-1.5 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                     {filteredMembers.length === 0 ? (
-                      <p className="px-3 py-3 text-sm text-slate-500">Sin resultados.</p>
+                      <p className="px-3 py-3 text-sm text-slate-500">{t('attendance.noResults')}</p>
                     ) : (
                       filteredMembers.map((m) => (
                         <button
@@ -220,7 +221,7 @@ export default function AttendancePage() {
                 className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <UserCheck className="h-4 w-4" />
-                {submitting ? 'Registrando…' : 'Marcar entrada'}
+                {submitting ? t('attendance.registering') : t('attendance.markEntry')}
               </button>
             </div>
           </div>
@@ -234,7 +235,7 @@ export default function AttendancePage() {
                 </Avatar>
                 <div>
                   <p className="font-semibold text-slate-900">{memberFullName(selectedMember)}</p>
-                  <p className="text-xs text-slate-500">Listo para registrar su entrada.</p>
+                  <p className="text-xs text-slate-500">{t('attendance.readyToRegister')}</p>
                 </div>
               </div>
             ) : (
@@ -243,8 +244,8 @@ export default function AttendancePage() {
                   <Dumbbell className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">¡Bienvenido!</p>
-                  <p className="text-xs text-slate-500">Selecciona un socio para registrar su entrada.</p>
+                  <p className="font-semibold text-slate-900">{t('attendance.welcome')}</p>
+                  <p className="text-xs text-slate-500">{t('attendance.selectMember')}</p>
                 </div>
               </div>
             )}
@@ -260,11 +261,11 @@ export default function AttendancePage() {
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Filter className="h-4 w-4 text-amber-600" />
-            Filtros
+            {t('attendance.filters')}
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Fecha</label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('attendance.date')}</label>
               <input
                 type="date"
                 value={filterDate}
@@ -273,16 +274,16 @@ export default function AttendancePage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-600">Turno</label>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('attendance.shift')}</label>
               <select
                 value={filterShift}
                 onChange={(e) => setFilterShift(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
               >
-                <option value="">Todos</option>
-                <option value="MORNING">Mañana</option>
-                <option value="AFTERNOON">Tarde</option>
-                <option value="NIGHT">Noche</option>
+                <option value="">{t('attendance.allShifts')}</option>
+                <option value="MORNING">{SHIFT_LABELS.MORNING}</option>
+                <option value="AFTERNOON">{SHIFT_LABELS.AFTERNOON}</option>
+                <option value="NIGHT">{SHIFT_LABELS.NIGHT}</option>
               </select>
             </div>
             {filtersActive && (
@@ -291,7 +292,7 @@ export default function AttendancePage() {
                 onClick={clearFilters}
                 className="text-xs font-semibold text-amber-700 hover:text-amber-800"
               >
-                Limpiar filtros
+                {t('attendance.clearFilters')}
               </button>
             )}
           </div>
@@ -304,10 +305,10 @@ export default function AttendancePage() {
               <ClipboardCheck className="h-5 w-5 text-amber-600" />
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
-                  {isToday ? 'Entradas de hoy' : 'Entradas'} ({entries.length})
+                  {t(isToday ? 'attendance.todayEntries' : 'attendance.entries', { count: entries.length })}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {filterShift ? `Turno ${SHIFT_LABELS[filterShift]?.toLowerCase()} · ` : ''}Registro de asistencia de los socios.
+                  {filterShift ? t('attendance.shiftPrefix', { shift: SHIFT_LABELS[filterShift as keyof typeof SHIFT_LABELS]?.toLowerCase() }) : ''}{t('attendance.entriesHint')}
                 </p>
               </div>
             </div>
@@ -326,18 +327,18 @@ export default function AttendancePage() {
                 <Dumbbell className="h-7 w-7" />
               </div>
               <p className="font-semibold text-slate-700">
-                {isToday && !filterShift ? 'Aún no hay entradas registradas hoy.' : 'No hay entradas para este filtro.'}
+                {isToday && !filterShift ? t('attendance.noEntriesToday') : t('attendance.noEntriesFilter')}
               </p>
-              <p className="max-w-sm text-sm text-slate-500">Los registros de asistencia aparecerán aquí una vez que marques la entrada de un socio.</p>
+              <p className="max-w-sm text-sm text-slate-500">{t('attendance.emptyHint')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                    <th className="px-4 py-3 font-semibold text-slate-700">Socio</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Turno</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Hora</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('attendance.colMember')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('attendance.colShift')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('attendance.colTime')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,9 +358,9 @@ export default function AttendancePage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{SHIFT_LABELS[a.shift] ?? a.shift ?? '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">{SHIFT_LABELS[a.shift as keyof typeof SHIFT_LABELS] ?? a.shift ?? '—'}</td>
                       <td className="px-4 py-3 text-slate-600">
-                        {new Date(a.checkedInAt).toLocaleTimeString('es-MX')}
+                        {new Date(a.checkedInAt).toLocaleTimeString(intlLocale)}
                       </td>
                     </tr>
                   ))}

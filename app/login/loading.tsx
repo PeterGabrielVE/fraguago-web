@@ -1,3 +1,4 @@
+import { getServerTranslator } from '@/lib/i18n/server';
 import Flame from '@/components/Flame';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -18,7 +19,7 @@ export default function LoginLoading() {
           </p>
           <p className="text-sm text-slate-500">Preparando tu acceso...</p>
         </div>
-        <Spinner className="size-5 text-amber-500" aria-label="Cargando inicio de sesión" />
+        <Spinner className="size-5 text-amber-500" aria-label={getServerTranslator()('labels.loadingLogin')} />
       </div>
     </main>
   );

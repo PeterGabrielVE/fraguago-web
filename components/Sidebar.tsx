@@ -19,8 +19,10 @@ import { LogOut, Loader2 } from 'lucide-react';
 import Flame from './Flame';
 import { logout } from '@/lib/auth';
 import { NAV } from '@/lib/navigation';
+import { useT } from '@/components/I18nProvider';
 
 export default function SidebarNav() {
+  const t = useT();
   const path = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -73,7 +75,7 @@ export default function SidebarNav() {
           return (
             <SidebarGroup key={group.group}>
               <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                {group.group}
+                {t(`nav.groups.${group.group}`)}
               </SidebarGroupLabel>
               <SidebarMenu className="px-2">
                 {group.items.map((item) => {
@@ -91,7 +93,7 @@ export default function SidebarNav() {
                       >
                         <>
                           <ItemIcon className="h-4 w-4" />
-                          <span>{item.label}</span>
+                          <span>{t(`nav.items.${item.key}`)}</span>
                         </>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -112,7 +114,7 @@ export default function SidebarNav() {
           className="w-full justify-start text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           {loggingOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
-          {loggingOut ? 'Saliendo...' : 'Cerrar sesión'}
+          {loggingOut ? t('common.loggingOut') : t('common.logout')}
         </Button>
       </SidebarFooter>
     </Sidebar>

@@ -4,10 +4,18 @@ import { CalendarDays, LayoutGrid, List } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
 import { useAsync } from '@/hooks/useAsync';
 import { api } from '@/lib/api';
+import { useT } from '@/components/I18nProvider';
+import type { MessageKey, Translate } from '@/lib/i18n/translate';
 
-// día 0 = Lunes … día 6 = Domingo
-const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const DAY_OPTIONS = DAYS.map((label, value) => ({ value: String(value), label }));
+// día 0 = Lunes … día 6 = Domingo (en las etiquetas, d0 es domingo).
+const DAY_KEYS: MessageKey[] = [
+  'labels.weekdayLong.d1', 'labels.weekdayLong.d2', 'labels.weekdayLong.d3', 'labels.weekdayLong.d4',
+  'labels.weekdayLong.d5', 'labels.weekdayLong.d6', 'labels.weekdayLong.d0',
+];
+
+function dayNames(t: Translate) {
+  return DAY_KEYS.map((key) => t(key));
+}
 const ROW_HEIGHT = 56; // px por hora
 
 function timeToMinutes(value: string) {
@@ -15,12 +23,12 @@ function timeToMinutes(value: string) {
   return (h || 0) * 60 + (m || 0);
 }
 
-function validateSchedule(form: Record<string, any>) {
+function validateSchedule(form: Record<string, any>, t: Translate) {
   if (Array.isArray(form.weekday) && form.weekday.length === 0) {
-    return 'Seleccioná al menos un día.';
+    return t('records.schedules.errNoDays');
   }
   if (form.startTime && form.endTime && timeToMinutes(form.endTime) <= timeToMinutes(form.startTime)) {
-    return 'La hora de fin debe ser posterior a la hora de inicio.';
+    return t('records.schedules.errTimes');
   }
   return null;
 }
@@ -34,17 +42,19 @@ async function createRecurringSchedules(payload: Record<string, any>) {
 }
 
 function WeeklyCalendar() {
+  const t = useT();
+  const DAYS = dayNames(t);
   const { status, data } = useAsync<any[]>(() => api.list('/schedules'), []);
   const schedules = (data ?? []).filter((s) => s.startTime && s.endTime);
 
   if (status === 'loading') {
-    return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Cargando…</div>;
+    return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{t('records.schedules.loading')}</div>;
   }
   if (status === 'error') {
-    return <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">No se pudo cargar el calendario.</div>;
+    return <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">{t('records.schedules.loadError')}</div>;
   }
   if (schedules.length === 0) {
-    return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Aún no hay horarios para mostrar en el calendario.</div>;
+    return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{t('records.schedules.empty')}</div>;
   }
 
   const minutes = schedules.flatMap((s) => [timeToMinutes(s.startTime), timeToMinutes(s.endTime)]);
@@ -109,18 +119,21 @@ function WeeklyCalendar() {
 }
 
 export default function Page() {
+  const t = useT();
   const [view, setView] = useState<'list' | 'calendar'>('list');
+  const DAYS = dayNames(t);
+  const DAY_OPTIONS = DAYS.map((label, value) => ({ value: String(value), label }));
 
   return (
     <div className="space-y-4">
       {view === 'list' ? (
         <ResourceManager
-          title="Horarios"
-          subtitle="Clases y agenda."
+          title={t('records.schedules.title')}
+          subtitle={t('records.schedules.subtitle')}
           icon={CalendarDays}
           endpoint="/schedules"
           formVariant="modal"
-          validate={validateSchedule}
+          validate={(form) => validateSchedule(form, t)}
           onCreate={createRecurringSchedules}
           getEditValues={(row) => ({ ...row, weekday: String(row.weekday) })}
           headerActions={
@@ -130,37 +143,37 @@ export default function Page() {
                 onClick={() => setView('list')}
                 className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm"
               >
-                <List className="h-4 w-4" /> Lista
+                <List className="h-4 w-4" /> {t('records.schedules.list')}
               </button>
               <button
                 type="button"
                 onClick={() => setView('calendar')}
                 className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-700"
               >
-                <LayoutGrid className="h-4 w-4" /> Calendario
+                <LayoutGrid className="h-4 w-4" /> {t('records.schedules.calendar')}
               </button>
             </div>
           }
           columns={[
-            { key: 'title', label: 'Clase' },
-            { key: 'weekday', label: 'Día', render: (r) => DAYS[r.weekday] },
-            { key: 'startTime', label: 'Inicio' },
-            { key: 'endTime', label: 'Fin' },
+            { key: 'title', label: t('records.schedules.class') },
+            { key: 'weekday', label: t('records.schedules.day'), render: (r) => DAYS[r.weekday] },
+            { key: 'startTime', label: t('records.schedules.start') },
+            { key: 'endTime', label: t('records.schedules.end') },
           ]}
           fields={[
-            { name: 'title', label: 'Nombre', required: true, fullWidth: true },
+            { name: 'title', label: t('records.schedules.name'), required: true, fullWidth: true },
             {
-              name: 'weekday', label: 'Días', type: 'multiselect', required: true, createOnly: true,
+              name: 'weekday', label: t('records.schedules.days'), type: 'multiselect', required: true, createOnly: true,
               options: DAY_OPTIONS,
               presets: [
-                { label: 'Lunes a viernes', values: ['0', '1', '2', '3', '4'] },
-                { label: 'Todos los días', values: DAY_OPTIONS.map((o) => o.value) },
+                { label: t('records.schedules.weekdays'), values: ['0', '1', '2', '3', '4'] },
+                { label: t('records.schedules.everyDay'), values: DAY_OPTIONS.map((o) => o.value) },
               ],
             },
-            { name: 'weekday', label: 'Día', type: 'select', required: true, numeric: true, editOnly: true, options: DAY_OPTIONS },
-            { name: 'capacity', label: 'Cupo', type: 'number' },
-            { name: 'startTime', label: 'Inicio', type: 'time', required: true },
-            { name: 'endTime', label: 'Fin', type: 'time', required: true },
+            { name: 'weekday', label: t('records.schedules.day'), type: 'select', required: true, numeric: true, editOnly: true, options: DAY_OPTIONS },
+            { name: 'capacity', label: t('records.schedules.capacity'), type: 'number' },
+            { name: 'startTime', label: t('records.schedules.start'), type: 'time', required: true },
+            { name: 'endTime', label: t('records.schedules.end'), type: 'time', required: true },
           ]}
         />
       ) : (
@@ -172,8 +185,8 @@ export default function Page() {
                   <CalendarDays className="h-7 w-7" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900">Horarios</h1>
-                  <p className="mt-1 text-slate-600">Clases y agenda.</p>
+                  <h1 className="text-3xl font-bold text-slate-900">{t('records.schedules.title')}</h1>
+                  <p className="mt-1 text-slate-600">{t('records.schedules.subtitle')}</p>
                 </div>
               </div>
               <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
@@ -182,14 +195,14 @@ export default function Page() {
                   onClick={() => setView('list')}
                   className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-700"
                 >
-                  <List className="h-4 w-4" /> Lista
+                  <List className="h-4 w-4" /> {t('records.schedules.list')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setView('calendar')}
                   className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm"
                 >
-                  <LayoutGrid className="h-4 w-4" /> Calendario
+                  <LayoutGrid className="h-4 w-4" /> {t('records.schedules.calendar')}
                 </button>
               </div>
             </div>

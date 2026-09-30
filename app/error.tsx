@@ -6,6 +6,7 @@ import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { reportError } from '@/lib/errorReporter';
 import Flame from '@/components/Flame';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/I18nProvider';
 
 export default function Error({
   error,
@@ -14,6 +15,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
   useEffect(() => {
     reportError({ type: 'nextjs', error, digest: error.digest });
   }, [error]);
@@ -36,19 +38,19 @@ export default function Error({
           </Link>
 
           <div className="my-auto max-w-md pt-16 lg:pt-20">
-            <p className="mb-5 text-sm font-bold uppercase tracking-[0.28em] text-[#ff6a57]">Error inesperado</p>
+            <p className="mb-5 text-sm font-bold uppercase tracking-[0.28em] text-[#ff6a57]">{t('errors.unexpected.eyebrow')}</p>
             <h1 className="text-5xl font-black tracking-tighter text-[#11102f] sm:text-7xl">Oooops!</h1>
             <p className="mt-6 max-w-sm text-base leading-7 text-[#515775] sm:text-lg">
-              No pudimos cargar esta sección. Vuelve al inicio del dashboard o inténtalo de nuevo.
+              {t('errors.unexpected.body')}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/dashboard" className="inline-flex h-12 items-center gap-2 rounded-xl bg-[#5424ad] px-6 font-bold text-white shadow-lg shadow-[#5424ad]/20 transition-colors hover:bg-[#431a94]">
                 <ArrowLeft className="h-4 w-4" />
-                Volver al dashboard
+                {t('common.backToDashboard')}
               </Link>
               <Button type="button" variant="ghost" onClick={reset} className="h-12 rounded-xl px-4 font-semibold text-[#5424ad] hover:bg-[#5424ad]/10 hover:text-[#431a94]">
                 <RotateCcw className="h-4 w-4" />
-                Reintentar
+                {t('common.retry')}
               </Button>
             </div>
           </div>

@@ -22,6 +22,8 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
+import { activeIntlLocale } from '@/lib/i18n/client';
+import { useT } from '@/components/I18nProvider';
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
@@ -52,11 +54,11 @@ function fmt(v: any, suffix = ''): string {
 }
 
 function shortDate(iso: string) {
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' }).format(new Date(iso));
 }
 
 function fullDate(iso: string) {
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
 }
 
 function todayISODate() {
@@ -71,19 +73,6 @@ function personLabel(m: any) {
   return `${firstName} ${lastName}`.trim();
 }
 
-const weightChartConfig = {
-  weightKg: { label: 'Peso (kg)', theme: { light: '#d97706', dark: '#f59e0b' } },
-} satisfies ChartConfig;
-
-const bodyFatChartConfig = {
-  bodyFat: { label: '% Grasa corporal', theme: { light: '#2a78d6', dark: '#3987e5' } },
-} satisfies ChartConfig;
-
-const bodyMeasurementsChartConfig = {
-  chestCm: { label: 'Pecho (cm)', theme: { light: '#2a78d6', dark: '#3987e5' } },
-  waistCm: { label: 'Cintura (cm)', theme: { light: '#eb6834', dark: '#d95926' } },
-  armCm: { label: 'Brazo (cm)', theme: { light: '#1baf7a', dark: '#199e70' } },
-} satisfies ChartConfig;
 
 function EmptyChart({ label }: { label: string }) {
   return (
@@ -106,7 +95,11 @@ function ChartCard({ icon: Icon, title, children }: { icon: React.ComponentType<
 }
 
 function WeightChart({ data }: { data: { date: string; weightKg: number }[] }) {
-  if (data.length < 2) return <EmptyChart label="Aún no hay suficientes mediciones de peso para graficar (mínimo 2)." />;
+  const t = useT();
+  const weightChartConfig = {
+    weightKg: { label: t('progress.weightSeries'), theme: { light: '#d97706', dark: '#f59e0b' } },
+  } satisfies ChartConfig;
+  if (data.length < 2) return <EmptyChart label={t('progress.notEnoughWeight')} />;
   return (
     <ChartContainer config={weightChartConfig} className="aspect-auto h-56 w-full">
       <AreaChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
@@ -129,7 +122,11 @@ function WeightChart({ data }: { data: { date: string; weightKg: number }[] }) {
 }
 
 function BodyFatChart({ data }: { data: { date: string; bodyFat: number }[] }) {
-  if (data.length < 2) return <EmptyChart label="Aún no hay suficientes mediciones de grasa corporal para graficar (mínimo 2)." />;
+  const t = useT();
+  const bodyFatChartConfig = {
+    bodyFat: { label: t('progress.bodyFatSeries'), theme: { light: '#2a78d6', dark: '#3987e5' } },
+  } satisfies ChartConfig;
+  if (data.length < 2) return <EmptyChart label={t('progress.notEnoughBodyFat')} />;
   return (
     <ChartContainer config={bodyFatChartConfig} className="aspect-auto h-56 w-full">
       <AreaChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
@@ -152,7 +149,13 @@ function BodyFatChart({ data }: { data: { date: string; bodyFat: number }[] }) {
 }
 
 function BodyMeasurementsChart({ data }: { data: { date: string; chestCm?: number; waistCm?: number; armCm?: number }[] }) {
-  if (data.length < 2) return <EmptyChart label="Aún no hay suficientes medidas corporales para graficar (mínimo 2)." />;
+  const t = useT();
+  const bodyMeasurementsChartConfig = {
+    chestCm: { label: t('progress.chestSeries'), theme: { light: '#2a78d6', dark: '#3987e5' } },
+    waistCm: { label: t('progress.waistSeries'), theme: { light: '#eb6834', dark: '#d95926' } },
+    armCm: { label: t('progress.armSeries'), theme: { light: '#1baf7a', dark: '#199e70' } },
+  } satisfies ChartConfig;
+  if (data.length < 2) return <EmptyChart label={t('progress.notEnoughMeasurements')} />;
   return (
     <ChartContainer config={bodyMeasurementsChartConfig} className="aspect-auto h-56 w-full">
       <LineChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
@@ -170,6 +173,7 @@ function BodyMeasurementsChart({ data }: { data: { date: string; chestCm?: numbe
 }
 
 export default function ProgressPage() {
+  const t = useT();
   const [members, setMembers] = useState<any[]>([]);
   const [selected, setSelected] = useState('');
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
@@ -255,16 +259,16 @@ export default function ProgressPage() {
       };
       if (editingId) {
         await api.patch(`/measurements/${editingId}`, payload);
-        toast.add({ title: 'Medición actualizada', type: 'success' });
+        toast.add({ title: t('progress.updated'), type: 'success' });
       } else {
         await api.post(`/members/${selected}/measurements`, payload);
-        toast.add({ title: 'Medición registrada', type: 'success' });
+        toast.add({ title: t('progress.created'), type: 'success' });
       }
       cancelForm();
       await loadMeasurements(selected);
     } catch (e: any) {
       setError(e.message);
-      toast.add({ title: 'No se pudo guardar la medición', description: e.message, type: 'error' });
+      toast.add({ title: t('progress.saveFailed'), description: e.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -275,11 +279,11 @@ export default function ProgressPage() {
     setDeleting(true);
     try {
       await api.del(`/measurements/${deleteTarget.id}`);
-      toast.add({ title: 'Medición eliminada', type: 'success' });
+      toast.add({ title: t('progress.deleted'), type: 'success' });
       setDeleteTarget(null);
       await loadMeasurements(selected);
     } catch (e: any) {
-      toast.add({ title: 'No se pudo eliminar', description: e.message, type: 'error' });
+      toast.add({ title: t('progress.deleteFailed'), description: e.message, type: 'error' });
     } finally {
       setDeleting(false);
     }
@@ -310,8 +314,8 @@ export default function ProgressPage() {
             <Activity className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Progreso</h1>
-            <p className="mt-1 text-slate-600">Historial de peso, grasa corporal y medidas de los socios.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('progress.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('progress.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -330,7 +334,7 @@ export default function ProgressPage() {
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
         >
-          <option value="">Selecciona un socio…</option>
+          <option value="">{t('progress.selectMember')}</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>{personLabel(m) || m.id}</option>
           ))}
@@ -347,13 +351,13 @@ export default function ProgressPage() {
             <>
               {/* Gráficos */}
               <div className="grid gap-6 lg:grid-cols-3">
-                <ChartCard icon={TrendingUp} title="Peso">
+                <ChartCard icon={TrendingUp} title={t('progress.weight')}>
                   <WeightChart data={weightSeries} />
                 </ChartCard>
-                <ChartCard icon={Activity} title="Grasa corporal">
+                <ChartCard icon={Activity} title={t('progress.bodyFat')}>
                   <BodyFatChart data={bodyFatSeries} />
                 </ChartCard>
-                <ChartCard icon={Ruler} title="Medidas corporales">
+                <ChartCard icon={Ruler} title={t('progress.measurements')}>
                   <BodyMeasurementsChart data={bodyMeasurementsSeries} />
                 </ChartCard>
               </div>
@@ -361,14 +365,14 @@ export default function ProgressPage() {
               {/* Historial + alta/edición */}
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-                  <h2 className="text-lg font-semibold text-slate-900">Historial de mediciones</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">{t('progress.history')}</h2>
                   {!formOpen && (
                     <button
                       type="button"
                       onClick={startCreate}
                       className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
                     >
-                      <Plus className="h-4 w-4" /> Registrar medición
+                      <Plus className="h-4 w-4" /> {t('progress.register')}
                     </button>
                   )}
                 </div>
@@ -376,42 +380,42 @@ export default function ProgressPage() {
                 {formOpen && (
                   <form onSubmit={save} className="space-y-4 border-b border-slate-200 bg-slate-50 p-5">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-slate-900">{editingId ? 'Editar medición' : 'Nueva medición'}</h3>
-                      <button type="button" onClick={cancelForm} aria-label="Cancelar" className="text-slate-400 hover:text-slate-600">
+                      <h3 className="text-sm font-semibold text-slate-900">{editingId ? t('progress.editTitle') : t('progress.newTitle')}</h3>
+                      <button type="button" onClick={cancelForm} aria-label={t('common.cancel')} className="text-slate-400 hover:text-slate-600">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Fecha</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.date')}</label>
                         <input type="date" value={form.date || ''} onChange={set('date')} className={`${inputClass} bg-white`} />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Peso (kg)</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.weightKg')}</label>
                         <input type="number" step="0.01" min="0" value={form.weightKg ?? ''} onChange={set('weightKg')} className={`${inputClass} bg-white`} />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Estatura (cm)</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.heightCm')}</label>
                         <input type="number" step="0.01" min="0" value={form.heightCm ?? ''} onChange={set('heightCm')} className={`${inputClass} bg-white`} />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">% Grasa corporal</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.bodyFatPct')}</label>
                         <input type="number" step="0.01" min="0" value={form.bodyFat ?? ''} onChange={set('bodyFat')} className={`${inputClass} bg-white`} />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Pecho (cm)</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.chestCm')}</label>
                         <input type="number" step="0.01" min="0" value={form.chestCm ?? ''} onChange={set('chestCm')} className={`${inputClass} bg-white`} />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Cintura (cm)</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.waistCm')}</label>
                         <input type="number" step="0.01" min="0" value={form.waistCm ?? ''} onChange={set('waistCm')} className={`${inputClass} bg-white`} />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Brazo (cm)</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.armCm')}</label>
                         <input type="number" step="0.01" min="0" value={form.armCm ?? ''} onChange={set('armCm')} className={`${inputClass} bg-white`} />
                       </div>
                       <div className="sm:col-span-3 lg:col-span-4">
-                        <label className="mb-1.5 block text-xs font-medium text-slate-600">Notas</label>
+                        <label className="mb-1.5 block text-xs font-medium text-slate-600">{t('progress.notes')}</label>
                         <input value={form.notes ?? ''} onChange={set('notes')} className={`${inputClass} bg-white`} />
                       </div>
                     </div>
@@ -420,7 +424,7 @@ export default function ProgressPage() {
                       disabled={saving}
                       className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Save className="h-4 w-4" />{saving ? 'Guardando…' : 'Guardar'}
+                      <Save className="h-4 w-4" />{saving ? t('progress.saving') : t('common.save')}
                     </button>
                   </form>
                 )}
@@ -428,21 +432,21 @@ export default function ProgressPage() {
                 {measurements.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-16 text-center">
                     <Activity className="h-8 w-8 text-slate-300" />
-                    <p className="text-sm text-slate-500">Este socio todavía no tiene mediciones registradas.</p>
+                    <p className="text-sm text-slate-500">{t('progress.empty')}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                          <th className="px-4 py-3 font-semibold text-slate-700">Fecha</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">Peso</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">Estatura</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">% Grasa</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">Pecho</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">Cintura</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">Brazo</th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">Notas</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.date')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colWeight')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colHeight')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colBodyFat')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colChest')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colWaist')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.colArm')}</th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">{t('progress.notes')}</th>
                           <th className="px-4 py-3" />
                         </tr>
                       </thead>
@@ -462,7 +466,7 @@ export default function ProgressPage() {
                                 <button
                                   type="button"
                                   onClick={() => startEdit(m)}
-                                  aria-label="Editar medición"
+                                  aria-label={t('progress.editLabel')}
                                   className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -470,7 +474,7 @@ export default function ProgressPage() {
                                 <button
                                   type="button"
                                   onClick={() => setDeleteTarget(m)}
-                                  aria-label="Eliminar medición"
+                                  aria-label={t('progress.deleteLabel')}
                                   className="rounded-md p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -492,15 +496,15 @@ export default function ProgressPage() {
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar medición</AlertDialogTitle>
+            <AlertDialogTitle>{t('progress.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Seguro que deseas eliminar la medición del {deleteTarget && fullDate(deleteTarget.date)}? Esta acción no se puede deshacer.
+              {t('progress.deleteConfirm', { date: deleteTarget ? fullDate(deleteTarget.date) : '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={confirmDelete} disabled={deleting}>
-              {deleting ? 'Eliminando…' : 'Eliminar'}
+              {deleting ? t('progress.deleting') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -9,12 +9,15 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock, Zap, CheckCircle2 } from 'lucide-react';
 import Flame from '@/components/Flame';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useT } from '@/components/I18nProvider';
 
 // Bandera de entorno: muestra u oculta el registro público.
 // Definir en .env.local -> NEXT_PUBLIC_ENABLE_REGISTRATION=true
 const REGISTRATION_ENABLED = process.env.NEXT_PUBLIC_ENABLE_REGISTRATION === 'true';
 
 export default function LoginPage() {
+  const t = useT();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,16 +36,16 @@ export default function LoginPage() {
         : getRoleRedirect(session);
       router.replace(destination);
     } catch (e: any) {
-      setError(e.message || 'No se pudo iniciar sesión');
+      setError(e.message || t('login.failed'));
     } finally {
       setLoading(false);
     }
   }
 
   const features = [
-    { icon: CheckCircle2, title: 'Gestión de Socios', desc: 'Datos médicos, objetivos y membresías' },
-    { icon: CheckCircle2, title: 'Control de Asistencia', desc: 'Check-in rápido y reportes' },
-    { icon: CheckCircle2, title: 'Finanzas Completas', desc: 'Ingresos, egresos y balance' },
+    { icon: CheckCircle2, title: t('login.feature1Title'), desc: t('login.feature1Desc') },
+    { icon: CheckCircle2, title: t('login.feature2Title'), desc: t('login.feature2Desc') },
+    { icon: CheckCircle2, title: t('login.feature3Title'), desc: t('login.feature3Desc') },
   ];
 
   return (
@@ -73,11 +76,11 @@ export default function LoginPage() {
           {/* Main heading */}
           <div className="space-y-4">
             <h2 className="text-4xl font-bold leading-tight text-white sm:text-5xl">
-              El sistema que<br />
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">forja tu gimnasio.</span>
+              {t('login.tagline1')}<br />
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">{t('login.tagline2')}</span>
             </h2>
             <p className="max-w-md text-slate-300">
-              La plataforma SaaS completa para gestionar socios, pagos, asistencia e inventario en un solo lugar.
+              {t('login.intro')}
             </p>
           </div>
         </div>
@@ -104,21 +107,24 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400">
           <Zap className="h-4 w-4 text-amber-400" />
-          <span>Listo para producción • Multi-tenant • Open Source</span>
+          <span>{t('login.footerBadges')}</span>
         </div>
       </div>
 
       {/* Right - Login Form */}
       <div className="flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-sm space-y-6">
+          <div className="flex justify-end">
+            <LanguageSwitcher />
+          </div>
           {/* Card */}
           <Card className="border-0 shadow-xl">
             <div className="p-8 sm:p-10">
               {/* Header */}
               <div className="mb-8 space-y-2">
-                <h2 className="text-3xl font-bold text-slate-900">Bienvenido</h2>
+                <h2 className="text-3xl font-bold text-slate-900">{t('login.welcome')}</h2>
                 <p className="text-sm text-slate-600">
-                  Entra a tu panel de gimnasio
+                  {t('login.subtitle')}
                 </p>
               </div>
 
@@ -137,7 +143,7 @@ export default function LoginPage() {
                 {/* Email Field */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-slate-700">
-                    Correo electrónico
+                    {t('common.email')}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -157,7 +163,7 @@ export default function LoginPage() {
                 {/* Password Field */}
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium text-slate-700">
-                    Contraseña
+                    {t('common.password')}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -174,7 +180,7 @@ export default function LoginPage() {
                   </div>
                   <div className="text-right">
                     <Link href="/forgot-password" className="text-xs font-medium text-amber-600 hover:underline">
-                      ¿Olvidaste tu contraseña?
+                      {t('login.forgot')}
                     </Link>
                   </div>
                 </div>
@@ -188,10 +194,10 @@ export default function LoginPage() {
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Entrando...
+                      {t('login.submitting')}
                     </div>
                   ) : (
-                    'Entrar'
+                    t('login.submit')
                   )}
                 </Button>
               </form>
@@ -202,7 +208,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-slate-500">O continúa con</span>
+                  <span className="bg-white px-2 text-slate-500">{t('login.orContinue')}</span>
                 </div>
               </div>
 
@@ -217,22 +223,22 @@ export default function LoginPage() {
                   setPassword('demo123');
                 }}
               >
-                Usar credenciales de demo
+                {t('login.demo')}
               </Button>
 
               {/* Footer Text */}
               {REGISTRATION_ENABLED ? (
                 <p className="mt-6 text-center text-sm text-slate-600">
-                  ¿No tienes cuenta?{' '}
+                  {t('login.noAccount')}{' '}
                   <Link href="/register" className="font-medium text-amber-600 hover:underline">
-                    Registra tu gimnasio
+                    {t('login.registerGym')}
                   </Link>
                 </p>
               ) : (
                 <p className="mt-6 text-center text-xs text-slate-500">
-                  ¿Primera vez?{' '}
+                  {t('login.firstTime')}{' '}
                   <span className="text-amber-600 font-medium">
-                    Contacta al administrador
+                    {t('login.contactAdmin')}
                   </span>
                 </p>
               )}
@@ -241,10 +247,10 @@ export default function LoginPage() {
 
           {/* Bottom Info */}
           <div className="space-y-2 text-center text-xs text-slate-500">
-            <p>FraguaGo © 2026 — Gestión profesional de gimnasios</p>
+            <p>{t('login.copyright')}</p>
             <p>
-              <span className="font-medium text-slate-600">SaaS Multi-tenant</span> •{' '}
-              <span>Código abierto</span>
+              <span className="font-medium text-slate-600">{t('login.saas')}</span> •{' '}
+              <span>{t('login.openSource')}</span>
             </p>
           </div>
         </div>
@@ -257,7 +263,7 @@ export default function LoginPage() {
         >
           <div className="flex items-center gap-3 rounded-xl bg-white px-5 py-4 text-sm font-semibold text-slate-800 shadow-2xl">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-200 border-t-amber-600" />
-            Verificando tus credenciales...
+            {t('login.verifying')}
           </div>
         </div>
       )}

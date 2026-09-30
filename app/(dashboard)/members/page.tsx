@@ -6,20 +6,9 @@ import MemberCreate from '@/components/MemberCreate';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Users } from 'lucide-react';
 import { api } from '@/lib/api';
-
-const activityOptions = [
-  { value: 'BEGINNER', label: 'Principiante' },
-  { value: 'INTERMEDIATE', label: 'Intermedio' },
-  { value: 'ADVANCED', label: 'Avanzado' },
-];
-
-const preferredTimeOptions = [
-  { value: 'MAÑANA', label: 'Mañana' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOCHE', label: 'Noche' },
-  { value: 'OTROS', label: 'Otros' },
-  { value: 'VARIADO', label: 'Variado' },
-];
+import { activityOptions, preferredTimeOptions } from '@/lib/memberOptions';
+import { useT } from '@/components/I18nProvider';
+import type { Translate } from '@/lib/i18n/translate';
 
 function getMemberStatus(member: Record<string, any>) {
   const status = String(member.status ?? '').toUpperCase();
@@ -40,13 +29,10 @@ function getMemberStatus(member: Record<string, any>) {
   return hasExpiredMembership ? 'EXPIRED' : 'ACTIVE';
 }
 
-function statusBadge(status: string) {
-  const labels: Record<string, string> = {
-    ACTIVE: 'Activo',
-    SUSPENDED: 'Suspendido',
-    INACTIVE: 'Inactivo',
-    EXPIRED: 'Vencido',
-  };
+const MEMBER_STATUSES = ['ACTIVE', 'SUSPENDED', 'INACTIVE', 'EXPIRED'] as const;
+
+function statusBadge(status: string, t: Translate) {
+  const known = (MEMBER_STATUSES as readonly string[]).includes(status);
   const colors: Record<string, string> = {
     ACTIVE: 'bg-emerald-100 text-emerald-700',
     SUSPENDED: 'bg-amber-100 text-amber-800',
@@ -54,23 +40,24 @@ function statusBadge(status: string) {
     EXPIRED: 'bg-red-100 text-red-700',
   };
 
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${colors[status] ?? colors.INACTIVE}`}>{labels[status] ?? status}</span>;
+  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${colors[status] ?? colors.INACTIVE}`}>{known ? t(`labels.memberStatus.${status as (typeof MEMBER_STATUSES)[number]}`) : status}</span>;
 }
 
 export default function Page() {
+  const t = useT();
   return (
     <ResourceManager
-      title="Socios" subtitle="Los clientes de tu gimnasio."
+      title={t('members.page.title')} subtitle={t('members.page.subtitle')}
       icon={Users}
       endpoint="/members"
       columns={[
         {
           key: 'user',
-          label: 'Nombre',
+          label: t('members.fields.name'),
           render: (r) => {
             const firstName = r.user?.profile?.firstName ?? '';
             const lastName = r.user?.profile?.lastName ?? '';
-            const fullName = `${firstName} ${lastName}`.trim() || 'Sin nombre';
+            const fullName = `${firstName} ${lastName}`.trim() || t('members.page.noName');
             const avatarSrc = r.user?.profile?.avatar ?? r.user?.avatar ?? r.user?.profile?.image ?? '';
 
             return (
@@ -89,20 +76,12 @@ export default function Page() {
             );
           },
         },
-        { key: 'phone', label: 'Teléfono', render: (r) => r.user?.profile?.phone || '—' },
-        { key: 'email', label: 'Email', render: (r) => r.user?.email || '—' },
+        { key: 'phone', label: t('members.fields.phone'), render: (r) => r.user?.profile?.phone || '—' },
+        { key: 'email', label: t('members.fields.email'), render: (r) => r.user?.email || '—' },
         {
           key: 'activityLevel',
-          label: 'Nivel',
-          render: (r) => {
-            const value = r.activityLevel;
-            const labels: Record<string, string> = {
-              BEGINNER: 'Principiante',
-              INTERMEDIATE: 'Intermedio',
-              ADVANCED: 'Avanzado',
-            };
-            return labels[value] ?? value ?? '—';
-          },
+          label: t('members.fields.level'),
+          render: (r) => activityOptions.find((o) => o.value === r.activityLevel)?.label ?? r.activityLevel ?? '—',
         },
       ]}
       getEditValues={(member) => ({
@@ -121,20 +100,20 @@ export default function Page() {
       renderCreate={(onDone, onCancel) => <MemberCreate onCreated={onDone} onCancel={onCancel} />}
       statusConfig={{
         getStatus: getMemberStatus,
-        render: (status) => statusBadge(status),
+        render: (status) => statusBadge(status, t),
         update: (id, status) => api.patch(`/members/${id}/status`, { status }),
       }}
       fields={[
-        { name: 'firstName', label: 'Nombre', required: true },
-        { name: 'lastName', label: 'Apellido', required: true },
-        { name: 'email', label: 'Correo', type: 'email', required: true },
-        { name: 'password', label: 'Contraseña (mín. 8 caracteres)', type: 'text', required: true, requiredOnEdit: false },
-        { name: 'identificationNumber', label: 'CI / Cédula', required: true },
-        { name: 'phone', label: 'Teléfono', type: 'phone' },
-        { name: 'address', label: 'Dirección' },
-        { name: 'birthDate', label: 'Fecha de nacimiento', type: 'date' },
-        { name: 'activityLevel', label: 'Nivel de actividad', type: 'select', options: activityOptions },
-        { name: 'preferredTime', label: 'Horario preferido', type: 'select', options: preferredTimeOptions },
+        { name: 'firstName', label: t('members.fields.firstName'), required: true },
+        { name: 'lastName', label: t('members.fields.lastName'), required: true },
+        { name: 'email', label: t('members.fields.email'), type: 'email', required: true },
+        { name: 'password', label: t('members.fields.passwordMin'), type: 'text', required: true, requiredOnEdit: false },
+        { name: 'identificationNumber', label: t('members.fields.idNumber'), required: true },
+        { name: 'phone', label: t('members.fields.phone'), type: 'phone' },
+        { name: 'address', label: t('members.fields.address') },
+        { name: 'birthDate', label: t('members.fields.birthDate'), type: 'date' },
+        { name: 'activityLevel', label: t('members.fields.activityLevel'), type: 'select', options: activityOptions },
+        { name: 'preferredTime', label: t('members.fields.preferredTime'), type: 'select', options: preferredTimeOptions },
       ]}
     />
   );

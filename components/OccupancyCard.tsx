@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/toast';
 import { useLiveResource } from '@/hooks/useLiveResource';
 import LiveIndicator from '@/components/LiveIndicator';
 import { OCCUPANCY_STATUS, type OccupancyDetail, type OccupancyEntry } from '@/lib/occupancy';
+import { useI18n } from '@/components/I18nProvider';
 
 // Las entradas sin salida vencen con el tiempo (duración promedio de visita),
 // así que se refresca cada minuto aunque no lleguen eventos.
@@ -30,6 +31,7 @@ export default function OccupancyCard({
   showInside?: boolean;
   className?: string;
 }) {
+  const { t, intlLocale } = useI18n();
   const base = scope === 'staff' ? '/attendance/occupancy' : '/me/occupancy';
   const { data, error, loading, mode, lastUpdated, refresh } = useLiveResource<OccupancyDetail>(
     base,
@@ -42,10 +44,10 @@ export default function OccupancyCard({
     setClosingId(entry.id);
     try {
       await api.post(`/attendance/${entry.id}/check-out`, {});
-      toast.add({ title: `Salida registrada: ${entryName(entry)}`, type: 'success' });
+      toast.add({ title: t('attendance.occupancy.checkedOut', { name: entryName(entry) }), type: 'success' });
       refresh();
     } catch (e: any) {
-      toast.add({ title: 'No se pudo registrar la salida', description: e.message, type: 'error' });
+      toast.add({ title: t('attendance.occupancy.checkOutFailed'), description: e.message, type: 'error' });
     } finally {
       setClosingId(null);
     }
@@ -59,13 +61,13 @@ export default function OccupancyCard({
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-amber-600" />
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Aforo en tiempo real</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t('attendance.occupancy.title')}</h2>
             <p className="text-xs text-slate-500">
-              {scope === 'member' ? '¿Cómo está el gimnasio ahora mismo?' : 'Personas dentro de las instalaciones.'}
+              {scope === 'member' ? t('attendance.occupancy.memberHint') : t('attendance.occupancy.staffHint')}
             </p>
           </div>
         </div>
-        <LiveIndicator mode={mode} lastUpdated={lastUpdated} onRefresh={refresh} refreshLabel="Actualizar aforo" />
+        <LiveIndicator mode={mode} lastUpdated={lastUpdated} onRefresh={refresh} refreshLabel={t('attendance.occupancy.refresh')} />
       </div>
 
       <div className="p-5">
@@ -99,7 +101,7 @@ export default function OccupancyCard({
                 <div
                   className="h-3 w-full overflow-hidden rounded-full bg-slate-100"
                   role="progressbar"
-                  aria-label="Ocupación del gimnasio"
+                  aria-label={t('attendance.occupancy.progressLabel')}
                   aria-valuemin={0}
                   aria-valuemax={data.capacity}
                   aria-valuenow={data.current}
@@ -111,21 +113,21 @@ export default function OccupancyCard({
                 </div>
                 <p className="text-sm text-slate-600">
                   {data.status === 'FULL'
-                    ? 'Las instalaciones están llenas. No se permiten nuevas entradas hasta que salga alguien.'
-                    : `${data.available} ${data.available === 1 ? 'lugar disponible' : 'lugares disponibles'}.`}
+                    ? t('attendance.occupancy.full')
+                    : t('attendance.occupancy.available', { count: data.available ?? 0 })}
                 </p>
               </>
             ) : (
               <p className="text-sm text-slate-600">
                 {scope === 'staff' ? (
                   <>
-                    No hay aforo máximo configurado.{' '}
+                    {t('attendance.occupancy.noCapacity')}{' '}
                     <Link href="/settings" className="font-semibold text-amber-700 hover:text-amber-800">
-                      Configurarlo
+                      {t('attendance.occupancy.configure')}
                     </Link>
                   </>
                 ) : (
-                  'Personas entrenando ahora mismo.'
+                  t('attendance.occupancy.trainingNow')
                 )}
               </p>
             )}
@@ -134,10 +136,10 @@ export default function OccupancyCard({
               <div className="border-t border-slate-100 pt-4">
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
                   <DoorOpen className="h-4 w-4 text-amber-600" />
-                  Dentro ahora ({data.inside.length})
+                  {t('attendance.occupancy.insideNow', { count: data.inside.length })}
                 </h3>
                 {data.inside.length === 0 ? (
-                  <p className="text-sm text-slate-500">No hay nadie dentro en este momento.</p>
+                  <p className="text-sm text-slate-500">{t('attendance.occupancy.nobodyInside')}</p>
                 ) : (
                   <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
                     {data.inside.map((entry) => (
@@ -145,7 +147,7 @@ export default function OccupancyCard({
                         <div className="min-w-0">
                           <p className="truncate text-slate-700">{entryName(entry)}</p>
                           <p className="text-xs text-slate-500">
-                            Entró {new Date(entry.checkedInAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                            {t('attendance.occupancy.entered', { time: new Date(entry.checkedInAt).toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit' }) })}
                           </p>
                         </div>
                         <button
@@ -155,14 +157,14 @@ export default function OccupancyCard({
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                         >
                           <LogOut className="h-3.5 w-3.5" />
-                          {closingId === entry.id ? 'Registrando…' : 'Marcar salida'}
+                          {closingId === entry.id ? t('attendance.occupancy.checkingOut') : t('attendance.occupancy.checkOut')}
                         </button>
                       </li>
                     ))}
                   </ul>
                 )}
                 <p className="mt-3 text-xs text-slate-400">
-                  Si no se marca la salida, se asume tras {data.avgVisitMinutes} min.
+                  {t('attendance.occupancy.assumedExit', { minutes: data.avgVisitMinutes })}
                 </p>
               </div>
             )}

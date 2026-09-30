@@ -8,31 +8,34 @@ import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import type { ChallengeStatus, MemberChallenge } from '@/lib/challenges';
+import { useT } from '@/components/I18nProvider';
+import type { MessageKey } from '@/lib/i18n/translate';
 
-const TABS: { status: ChallengeStatus; label: string; empty: string }[] = [
-  { status: 'ACTIVE', label: 'Activos', empty: 'No hay retos en curso ahora mismo.' },
-  { status: 'UPCOMING', label: 'Próximos', empty: 'No hay retos programados todavía.' },
-  { status: 'FINISHED', label: 'Pasados', empty: 'Aún no terminó ningún reto.' },
+const TABS: { status: ChallengeStatus; label: MessageKey; empty: MessageKey }[] = [
+  { status: 'ACTIVE', label: 'challenges.portal.tabActive', empty: 'challenges.portal.emptyActive' },
+  { status: 'UPCOMING', label: 'challenges.portal.tabUpcoming', empty: 'challenges.portal.emptyUpcoming' },
+  { status: 'FINISHED', label: 'challenges.portal.tabPast', empty: 'challenges.portal.emptyPast' },
 ];
 
 // COM-F01 — vista principal de retos: activos, próximos y pasados.
 export default function PortalChallengesPage() {
+  const t = useT();
   const [tab, setTab] = useState<ChallengeStatus>('ACTIVE');
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const { status, data, error, refetch } = useAsync<MemberChallenge[]>(
     () => api.get(`/me/challenges?status=${tab}`) as Promise<MemberChallenge[]>,
     [tab],
   );
-  const current = TABS.find((t) => t.status === tab)!;
+  const current = TABS.find((item) => item.status === tab)!;
 
   async function join(challenge: MemberChallenge) {
     setJoiningId(challenge.id);
     try {
       await api.post(`/me/challenges/${challenge.id}/join`, {});
-      toast.add({ title: `Te uniste a "${challenge.name}"`, type: 'success' });
+      toast.add({ title: t('challenges.portal.joined', { name: challenge.name }), type: 'success' });
       refetch();
     } catch (e: any) {
-      toast.add({ title: 'No pudiste unirte', description: e.message, type: 'error' });
+      toast.add({ title: t('challenges.portal.joinFailed'), description: e.message, type: 'error' });
     } finally {
       setJoiningId(null);
     }
@@ -46,25 +49,25 @@ export default function PortalChallengesPage() {
             <Trophy className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Retos</h1>
-            <p className="mt-1 text-slate-600">Compite con la comunidad del gym y gana puntos.</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('challenges.title')}</h1>
+            <p className="mt-1 text-slate-600">{t('challenges.portalSubtitle')}</p>
           </div>
         </div>
       </div>
 
-      <div role="tablist" aria-label="Estado de los retos" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
-        {TABS.map((t) => (
+      <div role="tablist" aria-label={t('challenges.portal.tabsLabel')} className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
+        {TABS.map((tab_) => (
           <button
-            key={t.status}
+            key={tab_.status}
             role="tab"
-            aria-selected={tab === t.status}
-            onClick={() => setTab(t.status)}
+            aria-selected={tab === tab_.status}
+            onClick={() => setTab(tab_.status)}
             className={cn(
               'rounded-lg px-4 py-2 text-sm font-medium transition',
-              tab === t.status ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900',
+              tab === tab_.status ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900',
             )}
           >
-            {t.label}
+            {t(tab_.label)}
           </button>
         ))}
       </div>
@@ -84,14 +87,14 @@ export default function PortalChallengesPage() {
         errorFallback={
           <div role="alert" className="flex flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-16 text-center">
             <AlertCircle className="h-8 w-8 text-red-500" />
-            <p className="text-sm text-slate-600">{error?.message ?? 'No se pudieron cargar los retos.'}</p>
-            <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50">Reintentar</button>
+            <p className="text-sm text-slate-600">{error?.message ?? t('challenges.loadListError')}</p>
+            <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50">{t('common.retry')}</button>
           </div>
         }
         empty={
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white py-16 text-center">
             <Trophy className="h-8 w-8 text-slate-300" />
-            <p className="text-sm text-slate-500">{current.empty}</p>
+            <p className="text-sm text-slate-500">{t(current.empty)}</p>
           </div>
         }
       >

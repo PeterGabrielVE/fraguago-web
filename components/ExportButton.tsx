@@ -2,18 +2,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/toast';
+import { useT } from '@/components/I18nProvider';
 import { downloadExport, type ExportFormat, type ExportResource } from '@/lib/files';
 
 // MIG-F02 — botón "Exportar" (Excel/CSV) que respeta los filtros de la vista.
 export default function ExportButton({
   resource,
   filters = {},
-  label = 'Exportar',
+  label,
 }: {
   resource: ExportResource;
   filters?: Record<string, string | undefined | null>;
   label?: string;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<ExportFormat | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -37,7 +39,7 @@ export default function ExportButton({
     try {
       await downloadExport(resource, format, filters);
     } catch (e: any) {
-      toast.add({ title: 'No se pudo exportar', description: e.message, type: 'error' });
+      toast.add({ title: t('labels.files.exportFailed'), description: e.message, type: 'error' });
     } finally {
       setBusy(null);
     }
@@ -54,7 +56,7 @@ export default function ExportButton({
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        {busy ? 'Generando…' : label}
+        {busy ? t('attendance.export.generating') : label ?? t('attendance.export.label')}
         <ChevronDown className="h-3.5 w-3.5" />
       </button>
       {open && (

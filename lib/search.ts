@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { Translate } from '@/lib/i18n/translate';
 
 // Tipos de resultado del buscador global. `page` y `action` salen del menú;
 // el resto son registros del gimnasio.
@@ -104,14 +105,14 @@ function recordHref(path: string, row: Row, query: string): string {
   return `${path}?${params}`;
 }
 
-export function memberToResult(row: Row): SearchResult {
-  const name = fullName(row) || row.user?.email || 'Socio sin nombre';
+export function memberToResult(row: Row, t: Translate): SearchResult {
+  const name = fullName(row) || row.user?.email || t('search.fallback.member');
   const idNumber = row.identificationNumber ?? row.user?.profile?.identificationNumber;
   return {
     id: `member:${row.id}`,
     kind: 'member',
     title: name,
-    subtitle: joinDefined([idNumber ? `CI ${idNumber}` : null, row.user?.email]),
+    subtitle: joinDefined([idNumber ? t('search.subtitles.idNumber', { value: idNumber }) : null, row.user?.email]),
     href: recordHref('/members', row, name),
     keywords: [row.user?.profile?.phone ?? '', idNumber ?? ''],
   };
@@ -119,33 +120,33 @@ export function memberToResult(row: Row): SearchResult {
 
 // Socios: la búsqueda va al servidor (puede haber miles). Busca por nombre,
 // apellido, correo y cédula, con todas las palabras obligatorias.
-export async function searchMembers(query: string, limit = 6): Promise<SearchResult[]> {
+// Devuelve filas crudas: el texto se arma al pintar, en el idioma activo.
+export async function searchMembers(query: string, limit = 6): Promise<Row[]> {
   const params = new URLSearchParams({ q: query.trim(), page: '1', pageSize: String(limit) });
   const response = await api.get(`/members?${params}`);
-  const rows: Row[] = Array.isArray(response) ? response : response?.data ?? [];
-  return rows.map(memberToResult);
+  return Array.isArray(response) ? response : response?.data ?? [];
 }
 
 // Catálogos pequeños: se descargan una vez y se filtran en el navegador.
-const CATALOGS: Array<{ endpoint: string; toResult: (row: Row) => SearchResult }> = [
+const CATALOGS: Array<{ endpoint: string; toResult: (row: Row, t: Translate) => SearchResult }> = [
   {
     endpoint: '/products',
-    toResult: (row) => ({
+    toResult: (row, t) => ({
       id: `product:${row.id}`,
       kind: 'product',
       title: row.name,
-      subtitle: joinDefined([row.sku ? `SKU ${row.sku}` : null, `Stock ${row.stock ?? 0}`]),
+      subtitle: joinDefined([row.sku ? t('search.subtitles.sku', { value: row.sku }) : null, t('search.subtitles.stock', { value: row.stock ?? 0 })]),
       href: recordHref('/products', row, row.name),
       keywords: [row.sku ?? ''],
     }),
   },
   {
     endpoint: '/membership-plans',
-    toResult: (row) => ({
+    toResult: (row, t) => ({
       id: `plan:${row.id}`,
       kind: 'plan',
       title: row.name,
-      subtitle: joinDefined([row.durationDays ? `${row.durationDays} días` : null, row.price != null ? `${row.price} ${row.currency ?? ''}`.trim() : null]),
+      subtitle: joinDefined([row.durationDays ? t('search.subtitles.days', { count: Number(row.durationDays) }) : null, row.price != null ? `${row.price} ${row.currency ?? ''}`.trim() : null]),
       href: recordHref('/membership-plans', row, row.name),
       keywords: [row.type ?? ''],
     }),
@@ -162,8 +163,8 @@ const CATALOGS: Array<{ endpoint: string; toResult: (row: Row) => SearchResult }
   },
   {
     endpoint: '/trainers',
-    toResult: (row) => {
-      const name = fullName(row) || row.user?.email || 'Entrenador';
+    toResult: (row, t) => {
+      const name = fullName(row) || row.user?.email || t('search.fallback.trainer');
       return {
         id: `trainer:${row.id}`,
         kind: 'trainer',
@@ -188,16 +189,22 @@ const CATALOGS: Array<{ endpoint: string; toResult: (row: Row) => SearchResult }
 ];
 
 const CATALOG_TTL_MS = 5 * 60 * 1000;
-let catalogCache: { at: number; promise: Promise<SearchResult[]> } | null = null;
+// Filas crudas por endpoint: la caché no depende del idioma.
+export type CatalogRows = Record<string, Row[]>;
+let catalogCache: { at: number; promise: Promise<CatalogRows> } | null = null;
 
 // Una fuente que falla no tumba el buscador: se omite y el resto sigue funcionando.
-export function loadCatalogs(force = false): Promise<SearchResult[]> {
+export function loadCatalogs(force = false): Promise<CatalogRows> {
   if (!force && catalogCache && Date.now() - catalogCache.at < CATALOG_TTL_MS) return catalogCache.promise;
   const promise = Promise.allSettled(
-    CATALOGS.map(async ({ endpoint, toResult }) => (await api.list(endpoint)).filter((row) => row?.id && (row.name || row.user)).map(toResult)),
-  ).then((settled) => settled.flatMap((entry) => (entry.status === 'fulfilled' ? entry.value : [])));
+    CATALOGS.map(async ({ endpoint }) => [endpoint, (await api.list(endpoint)).filter((row) => row?.id && (row.name || row.user))] as const),
+  ).then((settled) => Object.fromEntries(settled.flatMap((entry) => (entry.status === 'fulfilled' ? [entry.value] : []))));
   catalogCache = { at: Date.now(), promise };
   return promise;
+}
+
+export function catalogResults(rows: CatalogRows, t: Translate): SearchResult[] {
+  return CATALOGS.flatMap(({ endpoint, toResult }) => (rows[endpoint] ?? []).map((row) => toResult(row, t)));
 }
 
 // ---------------------------------------------------------------------------

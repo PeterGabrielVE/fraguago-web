@@ -7,8 +7,11 @@ import { getSession } from '@/lib/auth';
 import ThemeToggle from '@/components/ThemeToggle';
 import GlobalSearch from '@/components/GlobalSearch';
 import NotificationsMenu from '@/components/NotificationsMenu';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useT } from '@/components/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
@@ -27,9 +30,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarNav />
       <SidebarInset className="bg-background">
         <header className="flex h-16 items-center gap-3 border-b border-border bg-card px-4 md:px-8">
-          <SidebarTrigger />
+          <SidebarTrigger aria-label={t('header.toggleSidebar')} title={t('header.toggleSidebar')} />
           <GlobalSearch />
           <div className="ml-auto flex items-center gap-1">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationsMenu />
             <div className="ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">FG</div>

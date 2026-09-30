@@ -9,8 +9,11 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock, User, Building2, Zap, CheckCircle2, ArrowLeft } from 'lucide-react';
 import Flame from '@/components/Flame';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useT } from '@/components/I18nProvider';
 
 export default function RegisterGymPage() {
+  const t = useT();
   const router = useRouter();
   const [gymName, setGymName] = useState('');
   const [ownerName, setOwnerName] = useState('');
@@ -27,11 +30,11 @@ export default function RegisterGymPage() {
 
     // Validaciones básicas del lado del cliente
     if (ownerPassword.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
+      setError(t('register.errPasswordShort'));
       return;
     }
     if (ownerPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('register.errPasswordMismatch'));
       return;
     }
 
@@ -44,7 +47,7 @@ export default function RegisterGymPage() {
       });
 
       if (!res.ok) {
-        let msg = 'No se pudo registrar el gimnasio';
+        let msg = t('register.failed');
         try {
           const data = await res.json();
           msg = data.message || data.error || msg;
@@ -64,16 +67,16 @@ export default function RegisterGymPage() {
         router.replace('/login');
       }
     } catch (e: any) {
-      setError(e.message || 'No se pudo registrar el gimnasio');
+      setError(e.message || t('register.failed'));
     } finally {
       setLoading(false);
     }
   }
 
   const features = [
-    { icon: CheckCircle2, title: 'Configura tu gimnasio', desc: 'Crea tu espacio en minutos' },
-    { icon: CheckCircle2, title: 'Invita a tu equipo', desc: 'Roles y permisos por sucursal' },
-    { icon: CheckCircle2, title: 'Empieza a cobrar', desc: 'Membresías y pagos desde el día uno' },
+    { icon: CheckCircle2, title: t('register.feature1Title'), desc: t('register.feature1Desc') },
+    { icon: CheckCircle2, title: t('register.feature2Title'), desc: t('register.feature2Desc') },
+    { icon: CheckCircle2, title: t('register.feature3Title'), desc: t('register.feature3Desc') },
   ];
 
   return (
@@ -104,11 +107,11 @@ export default function RegisterGymPage() {
           {/* Main heading */}
           <div className="space-y-4">
             <h2 className="text-4xl font-bold leading-tight text-white sm:text-5xl">
-              Crea tu gimnasio<br />
-              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">en minutos.</span>
+              {t('register.tagline1')}<br />
+              <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">{t('register.tagline2')}</span>
             </h2>
             <p className="max-w-md text-slate-300">
-              Registra tu gimnasio y empieza a gestionar socios, pagos, asistencia e inventario desde un solo lugar.
+              {t('register.intro')}
             </p>
           </div>
         </div>
@@ -135,21 +138,24 @@ export default function RegisterGymPage() {
         {/* Footer */}
         <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400">
           <Zap className="h-4 w-4 text-amber-400" />
-          <span>Listo para producción • Multi-tenant • Open Source</span>
+          <span>{t('login.footerBadges')}</span>
         </div>
       </div>
 
       {/* Right - Register Form */}
       <div className="flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-sm space-y-6">
+          <div className="flex justify-end">
+            <LanguageSwitcher />
+          </div>
           {/* Card */}
           <Card className="border-0 shadow-xl">
             <div className="p-8 sm:p-10">
               {/* Header */}
               <div className="mb-8 space-y-2">
-                <h2 className="text-3xl font-bold text-slate-900">Crea tu cuenta</h2>
+                <h2 className="text-3xl font-bold text-slate-900">{t('register.title')}</h2>
                 <p className="text-sm text-slate-600">
-                  Registra tu gimnasio y su administrador
+                  {t('register.subtitle')}
                 </p>
               </div>
 
@@ -168,7 +174,7 @@ export default function RegisterGymPage() {
                 {/* Gym Name Field */}
                 <div className="space-y-2">
                   <label htmlFor="gymName" className="text-sm font-medium text-slate-700">
-                    Nombre del gimnasio
+                    {t('register.gymName')}
                   </label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -188,7 +194,7 @@ export default function RegisterGymPage() {
                 {/* Owner Name Field */}
                 <div className="space-y-2">
                   <label htmlFor="ownerName" className="text-sm font-medium text-slate-700">
-                    Nombre del propietario
+                    {t('register.ownerName')}
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -208,7 +214,7 @@ export default function RegisterGymPage() {
                 {/* Owner Email Field */}
                 <div className="space-y-2">
                   <label htmlFor="ownerEmail" className="text-sm font-medium text-slate-700">
-                    Correo electrónico
+                    {t('common.email')}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -228,7 +234,7 @@ export default function RegisterGymPage() {
                 {/* Password Field */}
                 <div className="space-y-2">
                   <label htmlFor="ownerPassword" className="text-sm font-medium text-slate-700">
-                    Contraseña
+                    {t('common.password')}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -244,13 +250,13 @@ export default function RegisterGymPage() {
                       className="pl-10 border-slate-200 focus:border-amber-500 focus:ring-amber-500"
                     />
                   </div>
-                  <p className="text-xs text-slate-500">Mínimo 8 caracteres</p>
+                  <p className="text-xs text-slate-500">{t('register.passwordHint')}</p>
                 </div>
 
                 {/* Confirm Password Field */}
                 <div className="space-y-2">
                   <label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700">
-                    Confirmar contraseña
+                    {t('register.confirmPassword')}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -277,19 +283,19 @@ export default function RegisterGymPage() {
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Creando gimnasio...
+                      {t('register.creating')}
                     </div>
                   ) : (
-                    'Crear gimnasio'
+                    t('register.create')
                   )}
                 </Button>
               </form>
 
               {/* Footer Text */}
               <p className="mt-6 text-center text-xs text-slate-500">
-                ¿Ya tienes cuenta?{' '}
+                {t('register.haveAccount')}{' '}
                 <Link href="/login" className="text-amber-600 font-medium hover:underline">
-                  Inicia sesión
+                  {t('register.signIn')}
                 </Link>
               </p>
             </div>
@@ -302,16 +308,16 @@ export default function RegisterGymPage() {
               className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
             >
               <ArrowLeft className="h-3 w-3" />
-              Volver al inicio de sesión
+              {t('common.backToLogin')}
             </Link>
           </div>
 
           {/* Bottom Info */}
           <div className="space-y-2 text-center text-xs text-slate-500">
-            <p>FraguaGo © 2026 — Gestión profesional de gimnasios</p>
+            <p>{t('login.copyright')}</p>
             <p>
-              <span className="font-medium text-slate-600">SaaS Multi-tenant</span> •{' '}
-              <span>Código abierto</span>
+              <span className="font-medium text-slate-600">{t('login.saas')}</span> •{' '}
+              <span>{t('login.openSource')}</span>
             </p>
           </div>
         </div>

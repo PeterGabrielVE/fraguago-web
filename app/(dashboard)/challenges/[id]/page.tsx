@@ -17,9 +17,11 @@ import {
   timeLeftLabel,
   type Challenge,
 } from '@/lib/challenges';
+import { useT } from '@/components/I18nProvider';
 
 // COM-F02 (staff) — clasificación en vivo de un reto, con nombres completos.
 export default function ChallengeLeaderboardPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { status, data, error, refetch } = useAsync<Challenge>(
     () => api.get(`/challenges/${id}`) as Promise<Challenge>,
@@ -29,7 +31,7 @@ export default function ChallengeLeaderboardPage() {
   return (
     <div className="space-y-6 p-6">
       <Link href="/challenges" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
-        <ArrowLeft className="h-4 w-4" /> Volver a retos
+        <ArrowLeft className="h-4 w-4" /> {t('challenges.back')}
       </Link>
 
       <AsyncBoundary
@@ -42,8 +44,8 @@ export default function ChallengeLeaderboardPage() {
         errorFallback={
           <div role="alert" className="flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white py-12 text-center">
             <AlertCircle className="h-7 w-7 text-red-500" />
-            <p className="text-sm text-slate-600">{error?.message ?? 'No se pudo cargar el reto.'}</p>
-            <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">Reintentar</button>
+            <p className="text-sm text-slate-600">{error?.message ?? t('challenges.loadError')}</p>
+            <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">{t('common.retry')}</button>
           </div>
         }
       >
@@ -57,11 +59,11 @@ export default function ChallengeLeaderboardPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold text-slate-900">{challenge.name}</h1>
                   <Badge variant="outline" className={STATUS_BADGES[challenge.status]}>{STATUS_LABELS[challenge.status]}</Badge>
-                  {!challenge.active && <Badge variant="outline" className="border-transparent bg-red-100 text-red-700">Oculto</Badge>}
+                  {!challenge.active && <Badge variant="outline" className="border-transparent bg-red-100 text-red-700">{t('challenges.hidden')}</Badge>}
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  {METRIC_LABELS[challenge.metric]} · meta {challenge.goal} {metricUnit(challenge.metric, challenge.goal)} · {formatRange(challenge)} · {timeLeftLabel(challenge)}
-                  {challenge.pointsReward > 0 && ` · premio ${formatPoints(challenge.pointsReward)} pts`}
+                  {t('challenges.summaryGoal', { metric: METRIC_LABELS[challenge.metric], goal: challenge.goal, unit: metricUnit(challenge.metric, challenge.goal) })} · {formatRange(challenge)} · {timeLeftLabel(challenge)}
+                  {challenge.pointsReward > 0 && t('challenges.summaryPrize', { points: formatPoints(challenge.pointsReward) })}
                 </p>
               </div>
             </div>

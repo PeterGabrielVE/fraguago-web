@@ -1,6 +1,7 @@
 'use client';
 import { ListChecks } from 'lucide-react';
 import ResourceManager from '@/components/ResourceManager';
+import { useT } from '@/components/I18nProvider';
 
 type ExerciseRow = {
   id: string;
@@ -14,24 +15,25 @@ type ExerciseRow = {
 // DB-06 — catálogo de ejercicios del gym. Se completa solo al guardar
 // rutinas (p. ej. las generadas con IA); aquí se puede ordenar y enriquecer.
 export default function Page() {
+  const t = useT();
   return (
     <ResourceManager
-      title="Ejercicios"
-      subtitle="Catálogo que usan las rutinas. Se agregan solos al guardar una rutina con ejercicios."
+      title={t('catalog.exercises.title')}
+      subtitle={t('catalog.exercises.subtitle')}
       icon={ListChecks}
       endpoint="/exercises"
       formVariant="modal"
       columns={[
-        { key: 'name', label: 'Ejercicio' },
-        { key: 'muscleGroup', label: 'Grupo muscular', render: (r: ExerciseRow) => r.muscleGroup || '—' },
-        { key: 'equipment', label: 'Equipo', render: (r: ExerciseRow) => r.equipment || '—' },
-        { key: '_count', label: 'En rutinas', render: (r: ExerciseRow) => r._count?.routineExercises ?? 0 },
+        { key: 'name', label: t('catalog.exercises.exercise') },
+        { key: 'muscleGroup', label: t('catalog.exercises.muscleGroup'), render: (r: ExerciseRow) => r.muscleGroup || '—' },
+        { key: 'equipment', label: t('catalog.exercises.equipment'), render: (r: ExerciseRow) => r.equipment || '—' },
+        { key: '_count', label: t('catalog.exercises.inRoutines'), render: (r: ExerciseRow) => r._count?.routineExercises ?? 0 },
       ]}
       fields={[
-        { name: 'name', label: 'Nombre', required: true },
-        { name: 'muscleGroup', label: 'Grupo muscular' },
-        { name: 'equipment', label: 'Equipo (mancuernas, máquina…)' },
-        { name: 'description', label: 'Descripción / técnica', type: 'textarea', fullWidth: true },
+        { name: 'name', label: t('catalog.field.name'), required: true },
+        { name: 'muscleGroup', label: t('catalog.exercises.muscleGroup') },
+        { name: 'equipment', label: t('catalog.exercises.equipmentField') },
+        { name: 'description', label: t('catalog.exercises.descriptionField'), type: 'textarea', fullWidth: true },
       ]}
       getEditValues={(row) => ({
         name: row.name,
@@ -39,7 +41,7 @@ export default function Page() {
         equipment: row.equipment ?? '',
         description: row.description ?? '',
       })}
-      validate={(form) => (String(form.name ?? '').trim().length < 2 ? 'El nombre debe tener al menos 2 caracteres.' : null)}
+      validate={(form) => (String(form.name ?? '').trim().length < 2 ? t('catalog.exercises.nameTooShort') : null)}
     />
   );
 }

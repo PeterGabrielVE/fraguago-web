@@ -15,12 +15,14 @@ import {
   formatPoints,
   type MemberBadge,
 } from '@/lib/gamification';
+import { useT } from '@/components/I18nProvider';
 
 // GAM-F02 — pop-up de "¡Insignia desbloqueada!" en el portal del socio.
 // Revisa las insignias no vistas al entrar, al navegar y cuando alguien
 // dispara BADGES_REFRESH_EVENT (p. ej. tras marcar asistencia). Las muestra
 // de a una y las marca como vistas al cerrarlas.
 export default function BadgeUnlockNotifier() {
+  const t = useT();
   const pathname = usePathname();
   const [queue, setQueue] = useState<MemberBadge[]>([]);
   const loading = useRef(false);
@@ -81,14 +83,14 @@ export default function BadgeUnlockNotifier() {
             </div>
           </div>
 
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">¡Insignia desbloqueada!</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">{t('gamification.unlock.eyebrow')}</p>
           <DialogTitle className="mt-1 text-2xl font-bold text-slate-900">{current.badge.name}</DialogTitle>
           {current.badge.description && (
             <DialogDescription className="mt-1 text-sm text-slate-600">{current.badge.description}</DialogDescription>
           )}
           {current.badge.pointsReward > 0 && (
             <p className="mt-3 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-              +{formatPoints(current.badge.pointsReward)} puntos
+              {t('gamification.unlock.points', { points: formatPoints(current.badge.pointsReward) })}
             </p>
           )}
 
@@ -98,7 +100,7 @@ export default function BadgeUnlockNotifier() {
             autoFocus
             className="mt-6 w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700"
           >
-            {remaining > 0 ? `Siguiente (${remaining} más)` : '¡Genial!'}
+            {remaining > 0 ? t('gamification.unlock.next', { count: remaining }) : t('gamification.unlock.great')}
           </button>
         </div>
       </DialogContent>

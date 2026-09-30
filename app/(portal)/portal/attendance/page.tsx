@@ -6,8 +6,10 @@ import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import { SHIFT_LABELS, type Attendance } from '@/lib/portal';
+import { useI18n } from '@/components/I18nProvider';
 
 export default function PortalAttendancePage() {
+  const { t, intlLocale } = useI18n();
   const { status, data, error, refetch } = useAsync<Attendance[]>(
     () => api.list('/me/attendances') as Promise<Attendance[]>,
     [],
@@ -18,10 +20,10 @@ export default function PortalAttendancePage() {
     setCheckingIn(true);
     try {
       await api.post('/me/check-in', {});
-      toast.add({ title: 'Asistencia registrada', type: 'success' });
+      toast.add({ title: t('portal.home.checkedIn'), type: 'success' });
       refetch();
     } catch (e: any) {
-      toast.add({ title: 'No se pudo registrar la asistencia', description: e.message, type: 'error' });
+      toast.add({ title: t('portal.home.checkInFailed'), description: e.message, type: 'error' });
     } finally {
       setCheckingIn(false);
     }
@@ -36,8 +38,8 @@ export default function PortalAttendancePage() {
               <Clock className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Mis asistencias</h1>
-              <p className="mt-1 text-slate-600">Registra tu entrada y revisa tu historial.</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('portal.attendance.title')}</h1>
+              <p className="mt-1 text-slate-600">{t('portal.attendance.subtitle')}</p>
             </div>
           </div>
           <button
@@ -47,7 +49,7 @@ export default function PortalAttendancePage() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <ClipboardCheck className="h-5 w-5" />
-            {checkingIn ? 'Registrando…' : 'Marcar asistencia'}
+            {checkingIn ? t('portal.registering') : t('portal.home.checkIn')}
           </button>
         </div>
       </div>
@@ -66,16 +68,16 @@ export default function PortalAttendancePage() {
           errorFallback={
             <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <AlertCircle className="h-8 w-8 text-red-500" />
-              <p className="text-sm text-slate-600">{error?.message ?? 'No se pudieron cargar los datos.'}</p>
+              <p className="text-sm text-slate-600">{error?.message ?? t('portal.loadError')}</p>
               <button onClick={refetch} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm transition hover:bg-slate-50">
-                Reintentar
+                {t('common.retry')}
               </button>
             </div>
           }
           empty={
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <Clock className="h-8 w-8 text-slate-300" />
-              <p className="text-sm text-slate-500">Todavía no tienes asistencias registradas.</p>
+              <p className="text-sm text-slate-500">{t('portal.home.noAttendance')}</p>
             </div>
           }
         >
@@ -84,14 +86,14 @@ export default function PortalAttendancePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                    <th className="px-4 py-3 font-semibold text-slate-700">Fecha y hora</th>
-                    <th className="px-4 py-3 font-semibold text-slate-700">Turno</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.attendance.dateTime')}</th>
+                    <th className="px-4 py-3 font-semibold text-slate-700">{t('portal.attendance.shift')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map((entry) => (
                     <tr key={entry.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                      <td className="px-4 py-3 text-slate-700">{new Date(entry.checkedInAt).toLocaleString('es-MX')}</td>
+                      <td className="px-4 py-3 text-slate-700">{new Date(entry.checkedInAt).toLocaleString(intlLocale)}</td>
                       <td className="px-4 py-3 text-slate-600">{SHIFT_LABELS[entry.shift] ?? entry.shift}</td>
                     </tr>
                   ))}

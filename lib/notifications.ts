@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { Translate } from '@/lib/i18n/translate';
 
 // El backend no guarda notificaciones: se derivan de las alertas operativas que ya
 // expone la API (vencimientos, stock, canjes, inactividad, aforo, tasa del día).
@@ -11,8 +12,9 @@ export type AppNotification = {
   id: string;
   category: NotificationCategory;
   severity: NotificationSeverity;
-  title: string;
-  description?: string;
+  /** Los textos se generan al pintar, en el idioma activo. */
+  title: (t: Translate) => string;
+  description?: (t: Translate) => string;
   href: string;
   /** Momento del evento (ISO), para mostrar "hace 2 h" / "en 3 días". Sin fecha = estado actual. */
   date?: string;
@@ -31,9 +33,9 @@ function rows(response: any): Row[] {
   return Array.isArray(response) ? response : response?.data ?? [];
 }
 
-function personName(user: Row | undefined, fallback = 'Socio'): string {
+function personName(user: Row | undefined): string | null {
   const profile = user?.profile ?? {};
-  return `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() || user?.email || fallback;
+  return `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() || user?.email || null;
 }
 
 function startOfDay(date: Date) {
@@ -46,10 +48,10 @@ function daysUntil(iso: string): number {
   return Math.round((startOfDay(new Date(iso)).getTime() - startOfDay(new Date()).getTime()) / DAY_MS);
 }
 
-function whenLabel(days: number): string {
-  if (days <= 0) return 'hoy';
-  if (days === 1) return 'mañana';
-  return `en ${days} días`;
+function whenLabel(days: number, t: Translate): string {
+  if (days <= 0) return t('notifications.when.today');
+  if (days === 1) return t('notifications.when.tomorrow');
+  return t('notifications.when.inDays', { count: days });
 }
 
 const SOURCES: Source[] = [
@@ -59,13 +61,14 @@ const SOURCES: Source[] = [
     load: async () => rows(await api.get('/memberships/expiring?days=3&pageSize=15')).map((membership) => {
       const days = daysUntil(membership.endDate);
       const name = personName(membership.member?.user);
+      const extra = [membership.plan?.name, membership.member?.user?.profile?.phone].filter(Boolean).join(' · ');
       return {
         id: `membership-expiring:${membership.id}`,
         category: 'membership',
         severity: days <= 1 ? 'critical' : 'warning',
-        title: `La membresía de ${name} vence ${whenLabel(days)}`,
-        description: [membership.plan?.name, membership.member?.user?.profile?.phone].filter(Boolean).join(' · ') || undefined,
-        href: `/members?id=${membership.memberId}&q=${encodeURIComponent(name)}`,
+        title: (t) => t('notifications.items.membershipExpiring', { name: name ?? t('notifications.items.member'), when: whenLabel(days, t) }),
+        description: extra ? () => extra : undefined,
+        href: `/members?id=${membership.memberId}&q=${encodeURIComponent(name ?? '')}`,
         date: membership.endDate,
         fingerprint: membership.endDate,
       } satisfies AppNotification;
@@ -80,8 +83,10 @@ const SOURCES: Source[] = [
         id: `stock:${product.id}`,
         category: 'stock',
         severity: stock <= 0 ? 'critical' : 'warning',
-        title: stock <= 0 ? `${product.name} está agotado` : `Quedan ${stock} unidades de ${product.name}`,
-        description: product.sku ? `SKU ${product.sku}` : 'Repón inventario para no perder ventas',
+        title: (t) => stock <= 0
+          ? t('notifications.items.productOutOfStock', { name: product.name })
+          : t('notifications.items.productLowStock', { count: stock, name: product.name }),
+        description: (t) => product.sku ? t('notifications.items.sku', { sku: product.sku }) : t('notifications.items.restockHint'),
         href: `/products?q=${encodeURIComponent(product.name)}`,
         fingerprint: String(stock),
       } satisfies AppNotification;
@@ -94,8 +99,13 @@ const SOURCES: Source[] = [
       id: `redemption:${redemption.id}`,
       category: 'redemption',
       severity: 'info',
-      title: `${personName(redemption.member?.user)} canjeó “${redemption.reward?.name ?? 'una recompensa'}”`,
-      description: redemption.code ? `Pendiente de entrega · Código ${redemption.code}` : 'Pendiente de entrega',
+      title: (t) => t('notifications.items.redemption', {
+        name: personName(redemption.member?.user) ?? t('notifications.items.member'),
+        reward: redemption.reward?.name ?? t('notifications.items.aReward'),
+      }),
+      description: (t) => redemption.code
+        ? t('notifications.items.redemptionPendingCode', { code: redemption.code })
+        : t('notifications.items.redemptionPending'),
       href: '/redemptions',
       date: redemption.createdAt,
       fingerprint: redemption.status ?? 'PENDING',
@@ -114,8 +124,10 @@ const SOURCES: Source[] = [
         id: 'retention:inactive',
         category: 'retention',
         severity: 'info',
-        title: total === 1 ? '1 socio lleva más de 7 días sin venir' : `${total} socios llevan más de 7 días sin venir`,
-        description: names.length ? `${names.join(', ')}${total > names.length ? ' y otros' : ''}` : undefined,
+        title: (t) => t('notifications.items.inactive', { count: total }),
+        description: names.length
+          ? (t) => (total > names.length ? t('notifications.items.andOthers', { names: names.join(', ') }) : names.join(', '))
+          : undefined,
         href: '/inactive-members',
         fingerprint: `${new Date().toDateString()}:${total}`,
       }];
@@ -132,8 +144,8 @@ const SOURCES: Source[] = [
         id: 'occupancy:status',
         category: 'occupancy',
         severity: full ? 'critical' : 'warning',
-        title: full ? 'Aforo completo' : `Aforo al ${Math.round(occupancy.percentage ?? 0)}%`,
-        description: `${occupancy.current}/${occupancy.capacity} personas dentro${full ? ' · no se permiten más entradas' : ''}`,
+        title: (t) => full ? t('notifications.items.occupancyFull') : t('notifications.items.occupancyBusy', { percent: Math.round(occupancy.percentage ?? 0) }),
+        description: (t) => t(full ? 'notifications.items.occupancyNoEntry' : 'notifications.items.occupancyPeople', { current: occupancy.current, capacity: occupancy.capacity }),
         href: '/attendance',
         fingerprint: occupancy.status,
       }];
@@ -151,8 +163,10 @@ const SOURCES: Source[] = [
         id: 'exchange:today',
         category: 'exchange',
         severity: 'warning',
-        title: rates.length === 0 ? 'No hay tasas de cambio registradas' : 'Falta registrar la tasa de cambio de hoy',
-        description: stale.length ? `Desactualizada: ${stale.map((rate) => rate.currency).join(', ')}` : 'Regístrala para cobrar en otras monedas',
+        title: (t) => t(rates.length === 0 ? 'notifications.items.noRates' : 'notifications.items.rateMissing'),
+        description: (t) => stale.length
+          ? t('notifications.items.rateStale', { currencies: stale.map((rate) => rate.currency).join(', ') })
+          : t('notifications.items.rateHint'),
         href: '/exchange-rates',
         fingerprint: new Date().toDateString(),
       }];

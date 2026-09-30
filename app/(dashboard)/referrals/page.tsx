@@ -21,6 +21,7 @@ import {
   type ReferralRow,
   type ReferralValidation,
 } from '@/lib/retention';
+import { useI18n, useT } from '@/components/I18nProvider';
 
 const LIST = '/referrals?pageSize=100';
 // Mismo margen que el backend: solo socios inscritos hace poco.
@@ -29,6 +30,7 @@ const WINDOW_DAYS = 30;
 type MemberOption = { value: string; label: string };
 
 function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [memberId, setMemberId] = useState('');
   const [code, setCode] = useState('');
@@ -58,7 +60,7 @@ function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onCl
   useEffect(() => {
     const normalized = code.trim().toUpperCase();
     if (!REFERRAL_CODE_RE.test(normalized)) {
-      setValidation(normalized.length >= 9 ? { valid: false, code: normalized, reason: 'Formato inválido (ej. ANA-7K2QX9)' } : null);
+      setValidation(normalized.length >= 9 ? { valid: false, code: normalized, reason: t('retention.referrals.invalidFormat') } : null);
       setChecking(false);
       return;
     }
@@ -81,15 +83,15 @@ function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onCl
     try {
       const res = await api.post('/referrals', { code: code.trim().toUpperCase(), referredMemberId: memberId });
       toast.add({
-        title: 'Referido registrado',
+        title: t('retention.referrals.registeredToast'),
         description: res?.rewardedNow
-          ? 'El socio ya tiene membresía: se acreditaron los puntos.'
-          : 'Los puntos se acreditarán cuando el socio active su primera membresía.',
+          ? t('retention.referrals.rewardedNow')
+          : t('retention.referrals.rewardLater'),
         type: 'success',
       });
       onDone();
     } catch (err: any) {
-      toast.add({ title: 'No se pudo registrar', description: err.message, type: 'error' });
+      toast.add({ title: t('retention.referrals.registerFailed'), description: err.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -102,22 +104,22 @@ function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onCl
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Registrar referido</DialogTitle>
+            <DialogTitle>{t('retention.referrals.register')}</DialogTitle>
             <DialogDescription>
-              Vincula a un socio nuevo (inscrito en los últimos {WINDOW_DAYS} días) con el código de quien lo invitó.
+              {t('retention.referrals.dialogDesc', { days: WINDOW_DAYS })}
             </DialogDescription>
           </DialogHeader>
 
           <label className="block text-sm font-medium text-slate-700">
-            <span className="mb-1.5 block">Socio nuevo <span className="text-red-500">*</span></span>
+            <span className="mb-1.5 block">{t('retention.referrals.newMember')} <span className="text-red-500">*</span></span>
             <select required value={memberId} onChange={(e) => setMemberId(e.target.value)} className={`${inputClass} bg-white`}>
-              <option value="">Selecciona…</option>
+              <option value="">{t('common.select')}</option>
               {members.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </label>
 
           <label className="block text-sm font-medium text-slate-700">
-            <span className="mb-1.5 block">Código de referido <span className="text-red-500">*</span></span>
+            <span className="mb-1.5 block">{t('retention.referrals.codeField')} <span className="text-red-500">*</span></span>
             <input
               required
               value={code}
@@ -132,11 +134,11 @@ function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onCl
           </label>
 
           <div id="referral-code-status" aria-live="polite" className="min-h-6 text-sm">
-            {checking && <span className="inline-flex items-center gap-1.5 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Validando…</span>}
+            {checking && <span className="inline-flex items-center gap-1.5 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />{t('retention.referrals.validating')}</span>}
             {!checking && validation?.valid && (
               <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                <CircleCheck className="h-4 w-4" />Código de {validation.referrer?.name}
-                {!memberId && ' — elige el socio nuevo para terminar de validar'}
+                <CircleCheck className="h-4 w-4" />{t('retention.referrals.codeOf', { name: validation.referrer?.name })}
+                {!memberId && t('retention.referrals.chooseMemberHint')}
               </span>
             )}
             {!checking && validation && !validation.valid && (
@@ -150,7 +152,7 @@ function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onCl
               disabled={saving || checking || !validation?.valid || !memberId}
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60"
             >
-              {saving ? 'Registrando…' : 'Registrar'}
+              {saving ? t('retention.referrals.registering') : t('retention.referrals.submit')}
             </button>
           </DialogFooter>
         </form>
@@ -161,6 +163,7 @@ function RegisterReferralDialog({ open, onClose, onDone }: { open: boolean; onCl
 
 // RET-B04 (staff) — programa de referidos.
 export default function Page() {
+  const { t, intlLocale } = useI18n();
   const [reloadKey, setReloadKey] = useState(0);
   const [open, setOpen] = useState(false);
 
@@ -168,7 +171,7 @@ export default function Page() {
     <>
       <ResourceManager
         key={reloadKey}
-        title="Referidos" subtitle="Socios que llegaron invitados por otro socio."
+        title={t('retention.referrals.title')} subtitle={t('retention.referrals.subtitle')}
         icon={Share2}
         endpoint="/referrals"
         disableCreate
@@ -181,21 +184,21 @@ export default function Page() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
           >
             <UserPlus className="h-4 w-4" />
-            Registrar referido
+            {t('retention.referrals.register')}
           </button>
         }
         filters={[
-          { label: 'Todos', endpoint: LIST },
-          { label: 'Pendientes', endpoint: `${LIST}&status=PENDING` },
-          { label: 'Premiados', endpoint: `${LIST}&status=REWARDED` },
+          { label: t('retention.referrals.all'), endpoint: LIST },
+          { label: t('retention.referrals.pending'), endpoint: `${LIST}&status=PENDING` },
+          { label: t('retention.referrals.rewarded'), endpoint: `${LIST}&status=REWARDED` },
         ]}
         columns={[
-          { key: 'referredName', label: 'Socio nuevo' },
-          { key: 'referrerName', label: 'Invitado por' },
-          { key: 'code', label: 'Código', render: (r: ReferralRow) => <span className="font-mono tracking-widest">{r.code}</span> },
-          { key: 'createdAt', label: 'Registrado', render: (r: ReferralRow) => new Date(r.createdAt).toLocaleDateString('es-MX') },
+          { key: 'referredName', label: t('retention.referrals.newMember') },
+          { key: 'referrerName', label: t('retention.referrals.invitedBy') },
+          { key: 'code', label: t('retention.referrals.code'), render: (r: ReferralRow) => <span className="font-mono tracking-widest">{r.code}</span> },
+          { key: 'createdAt', label: t('retention.referrals.registered'), render: (r: ReferralRow) => new Date(r.createdAt).toLocaleDateString(intlLocale) },
           {
-            key: 'status', label: 'Estado',
+            key: 'status', label: t('retention.referrals.status'),
             render: (r: ReferralRow) => (
               <span>
                 <Badge variant="outline" className={REFERRAL_STATUS_BADGES[r.status]}>{REFERRAL_STATUS_LABELS[r.status]}</Badge>

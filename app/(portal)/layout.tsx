@@ -7,24 +7,27 @@ import Flame from '@/components/Flame';
 import ThemeToggle from '@/components/ThemeToggle';
 import BadgeUnlockNotifier from '@/components/BadgeUnlockNotifier';
 import { getSession, logout } from '@/lib/auth';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useT } from '@/components/I18nProvider';
 
 const NAV = [
-  { href: '/portal', label: 'Inicio', icon: LayoutDashboard },
-  { href: '/portal/membership', label: 'Membresía', icon: CreditCard },
-  { href: '/portal/attendance', label: 'Asistencias', icon: Clock },
-  { href: '/portal/routine', label: 'Rutina', icon: Dumbbell },
-  { href: '/portal/progress', label: 'Progreso', icon: Activity },
-  { href: '/portal/challenges', label: 'Retos', icon: Trophy },
-  { href: '/portal/rewards', label: 'Recompensas', icon: Gift },
-  { href: '/portal/referrals', label: 'Referidos', icon: Share2 },
-  { href: '/portal/profile', label: 'Mi perfil', icon: User },
-];
+  { href: '/portal', key: 'home', icon: LayoutDashboard },
+  { href: '/portal/membership', key: 'membership', icon: CreditCard },
+  { href: '/portal/attendance', key: 'attendance', icon: Clock },
+  { href: '/portal/routine', key: 'routine', icon: Dumbbell },
+  { href: '/portal/progress', key: 'progress', icon: Activity },
+  { href: '/portal/challenges', key: 'challenges', icon: Trophy },
+  { href: '/portal/rewards', key: 'rewards', icon: Gift },
+  { href: '/portal/referrals', key: 'referrals', icon: Share2 },
+  { href: '/portal/profile', key: 'profile', icon: User },
+] as const;
 
 function isNavItemActive(pathname: string, href: string) {
   return href === '/portal' ? pathname === '/portal' : pathname.startsWith(href);
 }
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
@@ -78,13 +81,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   }`}
                 >
                   <ItemIcon className="h-4 w-4" />
-                  {item.label}
+                  {t(`portalNav.${item.key}`)}
                 </Link>
               );
             })}
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
+            <LanguageSwitcher />
             <ThemeToggle />
             <button
               type="button"
@@ -93,7 +97,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-60"
             >
               {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              <span className="hidden sm:inline">{loggingOut ? 'Saliendo...' : 'Cerrar sesión'}</span>
+              <span className="hidden sm:inline">{loggingOut ? t('common.loggingOut') : t('common.logout')}</span>
             </button>
           </div>
         </div>
@@ -112,7 +116,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 }`}
               >
                 <ItemIcon className="h-4 w-4" />
-                {item.label}
+                {t(`portalNav.${item.key}`)}
               </Link>
             );
           })}

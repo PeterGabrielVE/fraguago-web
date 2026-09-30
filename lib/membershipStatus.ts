@@ -1,12 +1,14 @@
-export const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
-  active: 'Activa',
-  pending: 'Por iniciar',
-  expiring: 'Por vencer',
-  expired: 'Vencida',
-  cancelled: 'Cancelada',
-  canceled: 'Cancelada',
-  suspended: 'Suspendida',
-};
+import { localizedRecord } from '@/lib/i18n/client';
+
+export const MEMBERSHIP_STATUS_LABELS: Record<string, string> = localizedRecord({
+  active: 'labels.membershipStatus.active',
+  pending: 'labels.membershipStatus.pending',
+  expiring: 'labels.membershipStatus.expiring',
+  expired: 'labels.membershipStatus.expired',
+  cancelled: 'labels.membershipStatus.cancelled',
+  canceled: 'labels.membershipStatus.canceled',
+  suspended: 'labels.membershipStatus.suspended',
+});
 
 export const MEMBERSHIP_STATUS_BADGES: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700',

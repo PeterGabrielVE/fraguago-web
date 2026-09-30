@@ -12,25 +12,26 @@ import {
   type PreviewRow,
   type RowStatus,
 } from '@/lib/imports';
+import { useT } from '@/components/I18nProvider';
 
 const PAGE_SIZE = 50;
 const FILTERS: (RowStatus | 'ALL' | 'WARN')[] = ['ALL', 'NEW', 'EXISTING', 'ERROR', 'WARN', 'DUPLICATE', 'IGNORED'];
-const FILTER_LABELS: Record<string, string> = { ALL: 'Todas', WARN: 'Con advertencias', ...ROW_STATUS_LABELS };
 
 const fmtDate = (ymd?: string) => (ymd ? ymd.split('-').reverse().join('/') : '—');
 
 function Details({ row, type }: { row: PreviewRow; type: ImportPreview['type'] }) {
+  const t = useT();
   if (!row.data) return <span className="text-slate-400">—</span>;
   if (type === 'ATTENDANCE') {
     const d = row.data as AttendanceRowData;
-    return <span>{d.dates.length} día(s){d.dates.length ? `: ${d.dates.map((x) => Number(x.slice(8))).join(', ')}` : ''}</span>;
+    return <span>{t('setup.import.table.days', { count: d.dates.length })}{d.dates.length ? `: ${d.dates.map((x) => Number(x.slice(8))).join(', ')}` : ''}</span>;
   }
   const d = row.data as MemberRowData;
   const parts = [
     d.planName,
     d.paymentDate && `${fmtDate(d.paymentDate)}${d.dueDate ? ` → ${fmtDate(d.dueDate)}` : ''}`,
     d.amount !== undefined && `$${d.amount}`,
-    d.paymentStatus === 'PENDING' && 'Pendiente',
+    d.paymentStatus === 'PENDING' && t('setup.import.table.pending'),
   ].filter(Boolean);
   return <span>{parts.join(' · ') || '—'}</span>;
 }
@@ -44,6 +45,8 @@ function nameOf(row: PreviewRow, type: ImportPreview['type']) {
 
 // Vista previa fila por fila, con filtros por estado y paginación local.
 export default function ImportPreviewTable({ preview }: { preview: ImportPreview }) {
+  const t = useT();
+  const filterLabel = (f: (typeof FILTERS)[number]) => (f === 'ALL' ? t('setup.import.table.all') : f === 'WARN' ? t('setup.import.table.warnings') : ROW_STATUS_LABELS[f]);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>(preview.summary.ERROR ? 'ERROR' : 'ALL');
   const [page, setPage] = useState(1);
 
@@ -62,7 +65,7 @@ export default function ImportPreviewTable({ preview }: { preview: ImportPreview
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div role="tablist" aria-label="Filtrar filas" className="flex flex-wrap gap-1 border-b border-slate-100 p-2">
+      <div role="tablist" aria-label={t('setup.import.table.filterLabel')} className="flex flex-wrap gap-1 border-b border-slate-100 p-2">
         {FILTERS.filter((f) => f === 'ALL' || counts[f]).map((f) => (
           <button
             key={f}
@@ -74,7 +77,7 @@ export default function ImportPreviewTable({ preview }: { preview: ImportPreview
               filter === f ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100',
             )}
           >
-            {FILTER_LABELS[f]} ({counts[f] ?? 0})
+            {filterLabel(f)} ({counts[f] ?? 0})
           </button>
         ))}
       </div>
@@ -83,12 +86,12 @@ export default function ImportPreviewTable({ preview }: { preview: ImportPreview
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-3 py-2">Fila</th>
-              <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">Socio</th>
-              <th className="px-3 py-2">{preview.type === 'ATTENDANCE' ? 'Asistencias' : 'Pago'}</th>
-              <th className="px-3 py-2">Observaciones</th>
+              <th className="px-3 py-2">{t('setup.import.table.row')}</th>
+              <th className="px-3 py-2">{t('setup.import.table.status')}</th>
+              <th className="px-3 py-2">{t('setup.import.table.id')}</th>
+              <th className="px-3 py-2">{t('setup.import.table.member')}</th>
+              <th className="px-3 py-2">{preview.type === 'ATTENDANCE' ? t('setup.import.table.attendance') : t('setup.import.table.payment')}</th>
+              <th className="px-3 py-2">{t('setup.import.table.notes')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -101,7 +104,7 @@ export default function ImportPreviewTable({ preview }: { preview: ImportPreview
                   <span className="font-medium text-slate-900">{nameOf(r, preview.type)}</span>
                   {r.match && (
                     <span className="mt-0.5 flex items-center gap-1 text-xs text-sky-700">
-                      <Link2 className="h-3 w-3" />{r.match.name} (por {r.match.by})
+                      <Link2 className="h-3 w-3" />{t('setup.import.table.matchedBy', { name: r.match.name, by: r.match.by })}
                     </span>
                   )}
                 </td>
@@ -115,7 +118,7 @@ export default function ImportPreviewTable({ preview }: { preview: ImportPreview
               </tr>
             ))}
             {!visible.length && (
-              <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-500">No hay filas con este filtro.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-500">{t('setup.import.table.empty')}</td></tr>
             )}
           </tbody>
         </table>
@@ -123,10 +126,10 @@ export default function ImportPreviewTable({ preview }: { preview: ImportPreview
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-slate-100 px-3 py-2 text-xs text-slate-600">
-          <span>Página {page} de {totalPages} · {rows.length} filas</span>
+          <span>{t('setup.import.table.page', { page, total: totalPages, rows: rows.length })}</span>
           <div className="flex gap-1">
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded border border-slate-200 px-2 py-1 disabled:opacity-40">Siguiente</button>
+            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded border border-slate-200 px-2 py-1 disabled:opacity-40">{t('setup.import.table.prev')}</button>
+            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded border border-slate-200 px-2 py-1 disabled:opacity-40">{t('setup.import.table.next')}</button>
           </div>
         </div>
       )}

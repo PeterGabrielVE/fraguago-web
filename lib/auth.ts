@@ -1,5 +1,6 @@
 import { api, getToken } from './api';
 import { identifyFromToken, resetAnalytics } from './analytics';
+import { tActive } from './i18n/client';
 
 type LoginResponse = {
   accessToken?: string;
@@ -30,7 +31,7 @@ export async function login(email: string, password: string) {
   const response = await api.post('/auth/login', { email, password }) as LoginResponse;
   const data = response.data ?? response;
   const accessToken = data.accessToken ?? data.access_token;
-  if (!accessToken) throw new Error('El servidor no devolvió un access token');
+  if (!accessToken) throw new Error(tActive('labels.auth.noToken'));
   const tokenPayload = readTokenPayload(accessToken);
   const session: AuthSession = {
     accessToken,

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { Messages } from '@/lib/i18n/messages/es';
 import {
   LayoutDashboard,
   Users,
@@ -34,99 +35,102 @@ import {
   ListChecks,
 } from 'lucide-react';
 
+export type NavItemKey = keyof Messages['nav']['items'];
+export type NavGroupKey = keyof Messages['nav']['groups'];
+
+// Textos en lib/i18n/messages: nav.items.<key> (etiqueta), nav.keywords.<key> (sinónimos
+// para el buscador global) y nav.groups.<group>.
 export type NavItem = {
   href: string;
-  label: string;
+  key: NavItemKey;
   icon: ComponentType<{ className?: string }>;
-  /** Sinónimos para el buscador global (cómo lo diría el usuario, no cómo se llama la pantalla). */
-  keywords?: string[];
 };
 
-export type NavGroup = { group: string; items: NavItem[] };
+export type NavGroup = { group: NavGroupKey; items: NavItem[] };
 
 // Menú del panel: lo usan la barra lateral y el buscador global.
 export const NAV: NavGroup[] = [
   {
-    group: 'General',
+    group: 'general',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, keywords: ['inicio', 'resumen', 'panel', 'indicadores', 'kpi'] },
-      { href: '/members', label: 'Socios', icon: Users, keywords: ['clientes', 'miembros', 'afiliados', 'alumnos'] },
-      { href: '/attendance', label: 'Asistencia', icon: Clock, keywords: ['entrada', 'check-in', 'checkin', 'aforo', 'ingreso', 'salida'] },
+      { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
+      { href: '/members', key: 'members', icon: Users },
+      { href: '/attendance', key: 'attendance', icon: Clock },
     ],
   },
   {
-    group: 'Datos Médicos',
+    group: 'medical',
     items: [
-      { href: '/health', label: 'Salud', icon: Stethoscope, keywords: ['ficha medica', 'lesiones', 'alergias', 'condiciones'] },
-      { href: '/progress', label: 'Progreso', icon: Activity, keywords: ['medidas', 'peso', 'mediciones', 'evolucion'] },
-      { href: '/emergency-contacts', label: 'Emergencia', icon: Phone, keywords: ['contacto de emergencia', 'familiar'] },
+      { href: '/health', key: 'health', icon: Stethoscope },
+      { href: '/progress', key: 'progress', icon: Activity },
+      { href: '/emergency-contacts', key: 'emergencyContacts', icon: Phone },
     ],
   },
   {
-    group: 'Membresías',
+    group: 'memberships',
     items: [
-      { href: '/memberships', label: 'Membresías', icon: CreditCard, keywords: ['suscripciones', 'vencimientos', 'renovar'] },
-      { href: '/membership-plans', label: 'Planes', icon: Tag, keywords: ['tarifas', 'precios', 'mensualidad', 'anualidad'] },
-      { href: '/training-goals', label: 'Objetivos', icon: Zap, keywords: ['metas', 'entrenamiento'] },
+      { href: '/memberships', key: 'memberships', icon: CreditCard },
+      { href: '/membership-plans', key: 'membershipPlans', icon: Tag },
+      { href: '/training-goals', key: 'trainingGoals', icon: Zap },
     ],
   },
   {
-    group: 'Pagos',
+    group: 'payments',
     items: [
-      { href: '/payment-records', label: 'Pagos', icon: DollarSign, keywords: ['cobros', 'recibos', 'facturas', 'abonos'] },
-      { href: '/finances', label: 'Finanzas', icon: BarChart3, keywords: ['ingresos', 'egresos', 'gastos', 'balance', 'contabilidad'] },
-      { href: '/exchange-rates', label: 'Tasas de cambio', icon: Coins, keywords: ['dolar', 'bcv', 'divisas', 'bolivares', 'euro'] },
+      { href: '/payment-records', key: 'paymentRecords', icon: DollarSign },
+      { href: '/finances', key: 'finances', icon: BarChart3 },
+      { href: '/exchange-rates', key: 'exchangeRates', icon: Coins },
     ],
   },
   {
-    group: 'Operación',
+    group: 'operations',
     items: [
-      { href: '/sales', label: 'Ventas', icon: ShoppingCart, keywords: ['punto de venta', 'pos', 'caja', 'vender'] },
-      { href: '/concepts', label: 'Conceptos', icon: Tag, keywords: ['categorias', 'clasificacion'] },
-      { href: '/products', label: 'Productos', icon: Box, keywords: ['inventario', 'stock', 'suplementos', 'sku'] },
-      { href: '/services', label: 'Servicios', icon: Wrench, keywords: ['clases', 'extras'] },
+      { href: '/sales', key: 'sales', icon: ShoppingCart },
+      { href: '/concepts', key: 'concepts', icon: Tag },
+      { href: '/products', key: 'products', icon: Box },
+      { href: '/services', key: 'services', icon: Wrench },
     ],
   },
   {
-    group: 'Comunidad',
+    group: 'community',
     items: [
-      { href: '/challenges', label: 'Retos', icon: Trophy, keywords: ['desafios', 'competencias', 'ranking'] },
+      { href: '/challenges', key: 'challenges', icon: Trophy },
     ],
   },
   {
-    group: 'Retención',
+    group: 'retention',
     items: [
-      { href: '/automations', label: 'Mensajes automáticos', icon: MessageSquareText, keywords: ['whatsapp', 'recordatorios', 'notificaciones'] },
-      { href: '/inactive-members', label: 'Socios inactivos', icon: UserX, keywords: ['abandono', 'churn', 'ausentes'] },
-      { href: '/message-logs', label: 'Envíos', icon: Inbox, keywords: ['historial de mensajes'] },
-      { href: '/referrals', label: 'Referidos', icon: Share2, keywords: ['recomendaciones', 'invitaciones'] },
+      { href: '/automations', key: 'automations', icon: MessageSquareText },
+      { href: '/inactive-members', key: 'inactiveMembers', icon: UserX },
+      { href: '/message-logs', key: 'messageLogs', icon: Inbox },
+      { href: '/referrals', key: 'referrals', icon: Share2 },
     ],
   },
   {
-    group: 'Gamificación',
+    group: 'gamification',
     items: [
-      { href: '/rewards', label: 'Recompensas', icon: Gift, keywords: ['premios', 'puntos'] },
-      { href: '/redemptions', label: 'Canjes', icon: Ticket, keywords: ['redimir', 'puntos'] },
-      { href: '/badges', label: 'Insignias', icon: Award, keywords: ['logros', 'medallas'] },
-      { href: '/tiers', label: 'Niveles', icon: Crown, keywords: ['rangos', 'categorias'] },
+      { href: '/rewards', key: 'rewards', icon: Gift },
+      { href: '/redemptions', key: 'redemptions', icon: Ticket },
+      { href: '/badges', key: 'badges', icon: Award },
+      { href: '/tiers', key: 'tiers', icon: Crown },
     ],
   },
   {
-    group: 'Equipo',
+    group: 'team',
     items: [
-      { href: '/trainers', label: 'Entrenadores', icon: User, keywords: ['coach', 'instructores', 'profesores'] },
-      { href: '/routines', label: 'Rutinas', icon: Dumbbell, keywords: ['plan de entrenamiento', 'workout'] },
-      { href: '/exercises', label: 'Ejercicios', icon: ListChecks, keywords: ['musculos', 'maquinas'] },
-      { href: '/schedules', label: 'Horarios', icon: Calendar, keywords: ['turnos', 'agenda', 'clases'] },
+      { href: '/trainers', key: 'trainers', icon: User },
+      { href: '/routines', key: 'routines', icon: Dumbbell },
+      { href: '/exercises', key: 'exercises', icon: ListChecks },
+      { href: '/schedules', key: 'schedules', icon: Calendar },
     ],
   },
   {
-    group: 'Administración',
+    group: 'admin',
     items: [
-      { href: '/users', label: 'Usuarios', icon: ShieldCheck, keywords: ['permisos', 'roles', 'staff', 'cuentas'] },
-      { href: '/import', label: 'Importar datos', icon: Upload, keywords: ['excel', 'csv', 'migrar', 'carga masiva'] },
-      { href: '/settings', label: 'Configuración', icon: Settings, keywords: ['ajustes', 'gimnasio', 'preferencias', 'capacidad'] },
-      { href: '/audit-logs', label: 'Auditoría', icon: ScrollText, keywords: ['bitacora', 'historial', 'registros', 'logs'] },
+      { href: '/users', key: 'users', icon: ShieldCheck },
+      { href: '/import', key: 'import', icon: Upload },
+      { href: '/settings', key: 'settings', icon: Settings },
+      { href: '/audit-logs', key: 'auditLogs', icon: ScrollText },
     ],
   },
 ];

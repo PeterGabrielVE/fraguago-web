@@ -9,8 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { richText, useT } from '@/components/I18nProvider';
 
 export default function ForgotPasswordPage() {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -25,7 +28,7 @@ export default function ForgotPasswordPage() {
       await api.post('/auth/forgot-password', { email });
       setSubmitted(true);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo procesar la solicitud.');
+      setError(requestError instanceof Error ? requestError.message : t('forgotPassword.failed'));
     } finally {
       setLoading(false);
     }
@@ -34,6 +37,9 @@ export default function ForgotPasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <Link href="/login" className="mb-8 flex items-center justify-center gap-3 text-2xl font-bold text-slate-900">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg">
             <Flame size={11} color="#fff" />
@@ -49,22 +55,22 @@ export default function ForgotPasswordPage() {
                   <CheckCircle2 className="h-7 w-7" />
                 </div>
                 <div className="space-y-2">
-                  <h1 className="text-2xl font-bold text-slate-900">Revisa tu correo</h1>
+                  <h1 className="text-2xl font-bold text-slate-900">{t('forgotPassword.sentTitle')}</h1>
                   <p className="text-sm leading-6 text-slate-600">
-                    Si existe una cuenta asociada a <strong>{email}</strong>, recibirás instrucciones para restablecer tu contraseña.
+                    {richText(t('forgotPassword.sentBody'), { email: <strong>{email}</strong> })}
                   </p>
                 </div>
                 <Link href="/login" className="inline-flex items-center gap-2 text-sm font-semibold text-amber-600 hover:underline">
                   <ArrowLeft className="h-4 w-4" />
-                  Volver al inicio de sesión
+                  {t('common.backToLogin')}
                 </Link>
               </div>
             ) : (
               <>
                 <div className="mb-8 space-y-2">
-                  <h1 className="text-3xl font-bold text-slate-900">Recuperar contraseña</h1>
+                  <h1 className="text-3xl font-bold text-slate-900">{t('forgotPassword.title')}</h1>
                   <p className="text-sm leading-6 text-slate-600">
-                    Escribe tu correo y te enviaremos un enlace para crear una nueva contraseña.
+                    {t('forgotPassword.intro')}
                   </p>
                 </div>
 
@@ -78,7 +84,7 @@ export default function ForgotPasswordPage() {
                 <form onSubmit={submit} className="space-y-5">
                   <div className="space-y-2">
                     <label htmlFor="recovery-email" className="text-sm font-medium text-slate-700">
-                      Correo electrónico
+                      {t('common.email')}
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -100,13 +106,13 @@ export default function ForgotPasswordPage() {
                     disabled={loading}
                     className="w-full bg-gradient-to-r from-amber-500 to-amber-600 py-2 text-base font-semibold transition-all hover:from-amber-600 hover:to-amber-700"
                   >
-                    {loading ? 'Enviando...' : 'Enviar enlace'}
+                    {loading ? t('forgotPassword.submitting') : t('forgotPassword.submit')}
                   </Button>
                 </form>
 
                 <Link href="/login" className="mt-6 flex items-center justify-center gap-2 text-sm font-medium text-slate-600 hover:text-amber-600">
                   <ArrowLeft className="h-4 w-4" />
-                  Volver al inicio de sesión
+                  {t('common.backToLogin')}
                 </Link>
               </>
             )}
