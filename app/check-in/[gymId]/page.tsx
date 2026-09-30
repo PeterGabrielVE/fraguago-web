@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useI18n } from '@/components/I18nProvider';
 
 // Tras marcar, la pantalla vuelve sola al formulario para el siguiente socio.
 const RESET_AFTER_MS = 5000;
@@ -20,11 +22,11 @@ type CheckInResult = {
   pointsAwarded: number;
 };
 
-const timeFormat = new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit' });
-
 // Pantalla pública de asistencia: pensada para una tablet en la recepción.
 // No requiere sesión; el gym sale de la URL (/check-in/<gymId>).
 export default function PublicCheckInPage() {
+  const { t, intlLocale } = useI18n();
+  const timeFormat = new Intl.DateTimeFormat(intlLocale, { hour: '2-digit', minute: '2-digit' });
   const { gymId } = useParams<{ gymId: string }>();
   const [gymName, setGymName] = useState<string | null>(null);
   const [gymError, setGymError] = useState('');
@@ -43,7 +45,7 @@ export default function PublicCheckInPage() {
   useEffect(() => {
     api.get(`/public/attendance/${gymId}`)
       .then((gym: { name: string }) => setGymName(gym.name))
-      .catch(() => setGymError('Este enlace de asistencia no es válido.'));
+      .catch(() => setGymError(t('attendance.kiosk.invalidLink')));
   }, [gymId]);
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function PublicCheckInPage() {
       }) as CheckInResult;
       setResult(data);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo registrar la asistencia.');
+      setError(requestError instanceof Error ? requestError.message : t('attendance.kiosk.failed'));
       setIdentificationNumber('');
       inputRef.current?.focus();
     } finally {
@@ -90,6 +92,9 @@ export default function PublicCheckInPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3 text-2xl font-bold text-slate-900">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg">
@@ -115,26 +120,27 @@ export default function PublicCheckInPage() {
                 </div>
                 <div className="space-y-2">
                   <h1 className="text-2xl font-bold text-slate-900">
-                    {result.alreadyCheckedIn ? 'Ya estabas registrado' : '¡Bienvenido'}
-                    {!result.alreadyCheckedIn && (result.firstName ? `, ${result.firstName}!` : '!')}
+                    {result.alreadyCheckedIn
+                      ? t('attendance.kiosk.alreadyIn')
+                      : result.firstName ? t('attendance.kiosk.welcomeName', { name: result.firstName }) : t('attendance.kiosk.welcome')}
                   </h1>
                   <p className="text-sm leading-6 text-slate-600">
-                    Entrada registrada a las {timeFormat.format(new Date(result.checkedInAt))}.
+                    {t('attendance.kiosk.registeredAt', { time: timeFormat.format(new Date(result.checkedInAt)) })}
                   </p>
                   {result.pointsAwarded > 0 && (
-                    <p className="text-sm font-semibold text-amber-600">+{result.pointsAwarded} puntos</p>
+                    <p className="text-sm font-semibold text-amber-600">{t('attendance.kiosk.points', { count: result.pointsAwarded })}</p>
                   )}
                 </div>
                 <Button variant="outline" onClick={reset} className="w-full">
-                  Listo
+                  {t('attendance.kiosk.done')}
                 </Button>
               </div>
             ) : (
               <>
                 <div className="mb-8 space-y-2 text-center">
-                  <h1 className="text-3xl font-bold text-slate-900">Marcar asistencia</h1>
+                  <h1 className="text-3xl font-bold text-slate-900">{t('attendance.kiosk.title')}</h1>
                   <p className="text-sm leading-6 text-slate-600">
-                    Escribe tu número de identificación para registrar tu entrada.
+                    {t('attendance.kiosk.intro')}
                   </p>
                 </div>
 
@@ -148,7 +154,7 @@ export default function PublicCheckInPage() {
                 <form onSubmit={submit} className="space-y-5">
                   <div className="space-y-2">
                     <label htmlFor="identification-number" className="text-sm font-medium text-slate-700">
-                      Número de identificación
+                      {t('attendance.kiosk.idLabel')}
                     </label>
                     <div className="relative">
                       <IdCard className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -158,7 +164,7 @@ export default function PublicCheckInPage() {
                         inputMode="numeric"
                         autoComplete="off"
                         autoFocus
-                        placeholder="Ej. 12345678"
+                        placeholder={t('attendance.kiosk.idPlaceholder')}
                         value={identificationNumber}
                         onChange={(event) => setIdentificationNumber(event.target.value)}
                         maxLength={30}
@@ -174,7 +180,7 @@ export default function PublicCheckInPage() {
                     disabled={loading || !gymName}
                     className="w-full bg-gradient-to-r from-amber-500 to-amber-600 py-2 text-base font-semibold transition-all hover:from-amber-600 hover:to-amber-700"
                   >
-                    {loading ? 'Registrando...' : 'Marcar entrada'}
+                    {loading ? t('attendance.kiosk.registering') : t('attendance.kiosk.submit')}
                   </Button>
                 </form>
               </>
