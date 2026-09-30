@@ -6,7 +6,7 @@ import { getServerTranslator } from '@/lib/i18n/server';
 export default function UnauthorizedPage() {
   const t = getServerTranslator();
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 text-slate-900 sm:px-8">
+    <main className="theme-static relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 text-slate-900 sm:px-8">
       <div className="absolute -left-32 top-24 h-80 w-80 rounded-full bg-amber-100/70 sm:-left-20 sm:h-112 sm:w-md" />
       <div className="absolute -bottom-36 -right-32 h-96 w-96 rounded-full bg-orange-100/80" />
 

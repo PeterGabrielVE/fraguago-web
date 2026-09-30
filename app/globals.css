@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+/* Las pantallas con diseño propio (login, errores, kiosco) llevan .theme-static
+   y se ven siempre igual, aunque el resto de la app esté en modo oscuro. */
+@custom-variant dark (&:is(.dark *):not(.theme-static, .theme-static *));
 
 @theme inline {
   --color-background: hsl(var(--background));
@@ -46,7 +48,8 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root {
+:root,
+.dark .theme-static {
   color-scheme: light;
 
   --radius: 0.5rem;
@@ -130,7 +133,54 @@
   --sidebar-accent-foreground: 35 100% 78%;
   --sidebar-border: 220 35% 20%;
   --sidebar-ring: 35 100% 55%;
+
+  /* Las pantallas usan la escala slate de Tailwind con valores fijos
+     (text-slate-700, border-slate-200, bg-slate-50…). En oscuro se invierte:
+     los tonos claros pasan a ser superficies/bordes oscuros y los oscuros,
+     textos claros. Así etiquetas, inputs y selects se leen en todo el panel. */
+  --color-slate-50: hsl(230 17% 17%);
+  --color-slate-100: hsl(230 16% 20%);
+  --color-slate-200: hsl(230 14% 25%);
+  --color-slate-300: hsl(230 12% 33%);
+  --color-slate-400: hsl(222 10% 56%);
+  --color-slate-500: hsl(220 12% 66%);
+  --color-slate-600: hsl(220 14% 75%);
+  --color-slate-700: hsl(220 18% 84%);
+  --color-slate-800: hsl(220 20% 90%);
+  --color-slate-900: hsl(220 20% 94%);
+  --color-slate-950: hsl(220 20% 97%);
 }
+
+/* Pantallas con diseño propio: escala slate original de Tailwind. */
+.dark .theme-static {
+  color: hsl(var(--foreground));
+  --color-slate-50: oklch(98.4% 0.003 247.858);
+  --color-slate-100: oklch(96.8% 0.007 247.896);
+  --color-slate-200: oklch(92.9% 0.013 255.508);
+  --color-slate-300: oklch(86.9% 0.022 252.894);
+  --color-slate-400: oklch(70.4% 0.04 256.788);
+  --color-slate-500: oklch(55.4% 0.046 257.417);
+  --color-slate-600: oklch(44.6% 0.043 257.281);
+  --color-slate-700: oklch(37.2% 0.044 257.287);
+  --color-slate-800: oklch(27.9% 0.041 260.031);
+  --color-slate-900: oklch(20.8% 0.042 265.755);
+  --color-slate-950: oklch(12.9% 0.042 264.695);
+}
+
+/* En oscuro, las tarjetas y formularios "bg-white" toman el color de tarjeta
+   del tema. Se cambia la variable que usa la clase (no el background) para
+   que los hover:bg-* sigan funcionando; los hijos recuperan el blanco real
+   (text-white de los botones de color). Los chips bg-slate-800/900/950 con
+   texto blanco se mantienen oscuros. */
+.dark .bg-white * {
+  --color-white: #fff;
+}
+.dark .bg-white:not(.theme-static, .theme-static *) {
+  --color-white: hsl(var(--card));
+}
+.dark .bg-slate-800:not(.theme-static, .theme-static *) { --color-slate-800: hsl(var(--secondary)); }
+.dark .bg-slate-900:not(.theme-static, .theme-static *) { --color-slate-900: hsl(var(--secondary)); }
+.dark .bg-slate-950:not(.theme-static, .theme-static *) { --color-slate-950: hsl(var(--muted)); }
 
 @layer base {
   * {

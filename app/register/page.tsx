@@ -80,7 +80,7 @@ export default function RegisterGymPage() {
   ];
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+    <div className="theme-static grid min-h-screen grid-cols-1 lg:grid-cols-2">
       {/* Left - Branding & Features */}
       <div className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-12 sm:px-12 lg:px-16">
         {/* Animated background elements */}

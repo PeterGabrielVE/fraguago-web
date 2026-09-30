@@ -90,7 +90,7 @@ export default function PublicCheckInPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+    <main className="theme-static flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-4 flex justify-end">
           <LanguageSwitcher />
