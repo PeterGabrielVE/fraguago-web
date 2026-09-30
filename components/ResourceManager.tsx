@@ -1,5 +1,6 @@
 'use client';
-import { Children, isValidElement, useState } from 'react';
+import { Children, isValidElement, useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import {
   AlertCircle,
@@ -178,6 +179,31 @@ export default function ResourceManager({
     () => api.list(listEndpoint),
     [listEndpoint],
   );
+
+  // Enlaces del buscador global: ?q= filtra la tabla, ?id= abre la ficha del registro
+  // (si la pantalla tiene detalle) y ?new=1 abre el alta. Se aplican una vez y se limpian de la URL.
+  const router = useRouter();
+  const pathname = usePathname();
+  const deepLink = useSearchParams().toString();
+  useEffect(() => {
+    if (!deepLink) return;
+    const params = new URLSearchParams(deepLink);
+    const q = params.get('q');
+    const id = params.get('id');
+    const wantsDetails = Boolean(id && renderDetails);
+    if (wantsDetails && status === 'loading') return; // espera a la lista para encontrar el registro
+
+    const row = wantsDetails ? data?.find((item) => String(item.id) === id) : undefined;
+    if (row) {
+      setDetailsRow(row);
+    } else if (q) {
+      setQuery(q);
+      setPage(1);
+    }
+    if (params.get('new') === '1' && !disableCreate) startCreate();
+    router.replace(pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLink, status, data]);
 
   function buildPayload() {
     const payload: Record<string, any> = {};
