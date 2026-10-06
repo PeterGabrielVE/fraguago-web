@@ -2,6 +2,7 @@
 import ResourceManager from '@/components/ResourceManager';
 import MemberDetails, { type MemberDetailsMember } from '@/components/MemberDetails';
 import ExportButton from '@/components/ExportButton';
+import SignupLinkButton from '@/components/SignupLinkButton';
 import MemberCreate from '@/components/MemberCreate';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Users } from 'lucide-react';
@@ -95,7 +96,7 @@ export default function Page() {
         activityLevel: member.activityLevel ?? '',
         preferredTime: member.user?.profile?.preferredTime ?? '',
       })}
-      headerActions={<ExportButton resource="members" />}
+      headerActions={<div className="flex flex-wrap items-center gap-2"><SignupLinkButton /><ExportButton resource="members" /></div>}
       renderDetails={(member, onClose) => <MemberDetails member={member as MemberDetailsMember} onClose={onClose} />}
       renderCreate={(onDone, onCancel) => <MemberCreate onCreated={onDone} onCancel={onCancel} />}
       statusConfig={{

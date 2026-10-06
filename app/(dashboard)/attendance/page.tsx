@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ExportButton from '@/components/ExportButton';
 import OccupancyCard from '@/components/OccupancyCard';
 import { api } from '@/lib/api';
-import { getGymId } from '@/lib/auth';
+import { usePublicGymRef } from '@/hooks/usePublicGymRef';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertCircle,
@@ -42,7 +42,7 @@ function memberInitials(m: any) {
 }
 
 export default function AttendancePage() {
-  const [gymId, setGymId] = useState<string>();
+  const gymRef = usePublicGymRef();
   const { t, intlLocale } = useI18n();
   const [members, setMembers] = useState<any[]>([]);
   const [entries, setEntries] = useState<any[]>([]);
@@ -68,7 +68,6 @@ export default function AttendancePage() {
     }
   }
   useEffect(() => {
-    setGymId(getGymId());
     api.list('/members').then(setMembers).catch((e) => setError(e.message));
   }, []);
 
@@ -143,9 +142,9 @@ export default function AttendancePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {gymId && (
+            {gymRef && (
               <a
-                href={`/check-in/${gymId}`}
+                href={`/check-in/${gymRef}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-amber-300 hover:text-amber-700"

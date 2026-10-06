@@ -23,11 +23,12 @@ type CheckInResult = {
 };
 
 // Pantalla pública de asistencia: pensada para una tablet en la recepción.
-// No requiere sesión; el gym sale de la URL (/check-in/<gymId>).
+// No requiere sesión; el gym sale de la URL (/check-in/<slug>, o el id en
+// enlaces viejos: el API acepta ambos).
 export default function PublicCheckInPage() {
   const { t, intlLocale } = useI18n();
   const timeFormat = new Intl.DateTimeFormat(intlLocale, { hour: '2-digit', minute: '2-digit' });
-  const { gymId } = useParams<{ gymId: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [gymName, setGymName] = useState<string | null>(null);
   const [gymError, setGymError] = useState('');
   const [identificationNumber, setIdentificationNumber] = useState('');
@@ -43,10 +44,10 @@ export default function PublicCheckInPage() {
   const submittingRef = useRef(false);
 
   useEffect(() => {
-    api.get(`/public/attendance/${gymId}`)
+    api.get(`/public/attendance/${encodeURIComponent(slug)}`)
       .then((gym: { name: string }) => setGymName(gym.name))
       .catch(() => setGymError(t('attendance.kiosk.invalidLink')));
-  }, [gymId]);
+  }, [slug]);
 
   useEffect(() => {
     setNow(new Date());
@@ -75,7 +76,7 @@ export default function PublicCheckInPage() {
     setLoading(true);
 
     try {
-      const data = await api.post(`/public/attendance/${gymId}/check-in`, {
+      const data = await api.post(`/public/attendance/${encodeURIComponent(slug)}/check-in`, {
         identificationNumber: identificationNumber.trim(),
       }) as CheckInResult;
       setResult(data);

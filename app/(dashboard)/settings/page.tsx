@@ -14,6 +14,7 @@ type Gym = {
   baseCurrency: 'USD' | 'VES' | 'EUR';
   maxCapacity: number | null;
   avgVisitMinutes: number;
+  slug: string;
   createdAt: string;
   _count: { members: number; users: number; trainers: number };
 };
@@ -78,6 +79,10 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
   // Vacío = sin límite de aforo.
   const [maxCapacity, setMaxCapacity] = useState(gym.maxCapacity?.toString() ?? '');
   const [avgVisitMinutes, setAvgVisitMinutes] = useState(String(gym.avgVisitMinutes));
+  const [slug, setSlug] = useState(gym.slug);
+  // Tras montar: en el servidor no hay window y rompería la hidratación.
+  const [host, setHost] = useState('');
+  useEffect(() => setHost(window.location.host), []);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -86,7 +91,8 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
     setBaseCurrency(gym.baseCurrency);
     setMaxCapacity(gym.maxCapacity?.toString() ?? '');
     setAvgVisitMinutes(String(gym.avgVisitMinutes));
-  }, [gym.id, gym.name, gym.baseCurrency, gym.maxCapacity, gym.avgVisitMinutes]);
+    setSlug(gym.slug);
+  }, [gym.id, gym.name, gym.baseCurrency, gym.maxCapacity, gym.avgVisitMinutes, gym.slug]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -98,6 +104,7 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
         baseCurrency,
         maxCapacity: maxCapacity.trim() ? Number(maxCapacity) : null,
         avgVisitMinutes: Number(avgVisitMinutes),
+        slug: slug.trim().toLowerCase(),
       });
       toast.add({ title: t('setup.settings.updated'), type: 'success' });
       onSaved();
@@ -173,6 +180,30 @@ function GymForm({ gym, onSaved }: { gym: Gym; onSaved: () => void }) {
           />
           <p className="mt-1 text-xs text-slate-500">
             {t('setup.settings.avgVisitHint')}
+          </p>
+        </div>
+        <div className="md:col-span-2">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            {t('setup.settings.slug')}<span className="text-red-500"> *</span>
+          </label>
+          <div className="flex overflow-hidden rounded-lg border border-slate-300 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-200">
+            <span className="hidden shrink-0 items-center bg-slate-50 px-3 text-sm text-slate-500 sm:flex">
+              {host}/registro/
+            </span>
+            <input
+              type="text"
+              required
+              minLength={3}
+              maxLength={50}
+              pattern="[a-z0-9]+(-[a-z0-9]+)*"
+              title={t('setup.settings.slugHint')}
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+              className="w-full min-w-0 px-3 py-2 text-sm outline-none"
+            />
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {t('setup.settings.slugHint')}
           </p>
         </div>
         <div className="md:col-span-2">
