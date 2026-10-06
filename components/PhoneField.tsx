@@ -87,7 +87,7 @@ export default function PhoneField({
         value={mode === 'foreign' ? 'foreign' : prefix}
         onChange={(event) => changeMode(event.target.value)}
         aria-label={t('members.phone.prefixLabel')}
-        className="w-32 shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+        className="w-28 shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-base outline-none sm:w-32 sm:px-3 sm:text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
       >
         <option value="">{t('common.select')}</option>
         {phonePrefixes.map((option) => <option key={option} value={option}>{option}</option>)}
@@ -105,7 +105,7 @@ export default function PhoneField({
         onChange={(event) => mode === 'foreign' ? updateForeignNumber(event.target.value) : updateLocalNumber(event.target.value)}
         placeholder={mode === 'foreign' ? t('members.phone.fullNumber') : t('members.phone.sevenDigitsPlaceholder')}
         aria-label={t('members.phone.numberLabel')}
-        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-base outline-none sm:text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
       />
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AlertCircle, Check, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,14 +11,18 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import PhoneField, { isValidPhone } from '@/components/PhoneField';
+import PasswordInput from '@/components/PasswordInput';
+import InfoTip from '@/components/InfoTip';
 import { useT } from '@/components/I18nProvider';
 import { activityOptions, preferredTimeOptions, relationshipOptions } from '@/lib/memberOptions';
 
 // Mínimo que exige el API para la contraseña.
 const MIN_PASSWORD_LENGTH = 8;
 
+// text-base en móvil: con menos de 16px iOS hace zoom al enfocar. min-w-0 y
+// appearance-none evitan que el input date de iOS se salga de su columna.
 const inputClass =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-none ' +
+  'block h-10 w-full min-w-0 max-w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-base font-normal outline-none sm:text-sm ' +
   'focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition disabled:cursor-not-allowed disabled:bg-slate-50';
 
 type Details = {
@@ -209,56 +213,56 @@ export default function PublicSignupPage() {
                 <form onSubmit={submit} className="space-y-8">
                   {STEPS[step] === 'personal' && (
                     <Section title={t('members.signup.personalData')}>
-                      <div className="grid gap-x-4 sm:grid-cols-2">
-                        <TextField label={t('members.fields.firstName')} required autoComplete="given-name" maxLength={80} value={details.firstName} onChange={(v) => updateDetails('firstName', v)} disabled={disabled} />
-                        <TextField label={t('members.fields.lastName')} required autoComplete="family-name" maxLength={80} value={details.lastName} onChange={(v) => updateDetails('lastName', v)} disabled={disabled} />
-                        <TextField label={t('members.fields.idNumber')} required inputMode="numeric" autoComplete="off" maxLength={30} value={details.identificationNumber} onChange={(v) => updateDetails('identificationNumber', v)} disabled={disabled} />
-                        <TextField label={t('members.fields.birthDate')} type="date" value={details.birthDate} onChange={(v) => updateDetails('birthDate', v)} disabled={disabled} />
-                        <Field label={t('members.fields.phone')}>
+                      <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                        <TextField label={t('members.fields.firstName')} tip={t('members.signup.tips.firstName')} required autoComplete="given-name" maxLength={80} value={details.firstName} onChange={(v) => updateDetails('firstName', v)} disabled={disabled} />
+                        <TextField label={t('members.fields.lastName')} tip={t('members.signup.tips.lastName')} required autoComplete="family-name" maxLength={80} value={details.lastName} onChange={(v) => updateDetails('lastName', v)} disabled={disabled} />
+                        <TextField label={t('members.fields.idNumber')} tip={t('members.signup.tips.idNumber')} required inputMode="numeric" autoComplete="off" maxLength={30} value={details.identificationNumber} onChange={(v) => updateDetails('identificationNumber', v)} disabled={disabled} />
+                        <TextField label={t('members.fields.birthDate')} tip={t('members.signup.tips.birthDate')} type="date" value={details.birthDate} onChange={(v) => updateDetails('birthDate', v)} disabled={disabled} />
+                        <Field label={t('members.fields.phone')} tip={t('members.signup.tips.phone')}>
                           <PhoneField value={details.phone} onChange={(v) => updateDetails('phone', v)} />
                         </Field>
-                        <TextField label={t('members.fields.address')} autoComplete="street-address" maxLength={200} value={details.address} onChange={(v) => updateDetails('address', v)} disabled={disabled} />
-                        <SelectField label={t('members.fields.activityLevel')} value={details.activityLevel} options={activityOptions} onChange={(v) => updateDetails('activityLevel', v)} disabled={disabled} />
-                        <SelectField label={t('members.fields.preferredTime')} value={details.preferredTime} options={preferredTimeOptions} onChange={(v) => updateDetails('preferredTime', v)} disabled={disabled} />
+                        <TextField label={t('members.fields.address')} tip={t('members.signup.tips.address')} autoComplete="street-address" maxLength={200} value={details.address} onChange={(v) => updateDetails('address', v)} disabled={disabled} />
+                        <SelectField label={t('members.fields.activityLevel')} tip={t('members.signup.tips.activityLevel')} value={details.activityLevel} options={activityOptions} onChange={(v) => updateDetails('activityLevel', v)} disabled={disabled} />
+                        <SelectField label={t('members.fields.preferredTime')} tip={t('members.signup.tips.preferredTime')} value={details.preferredTime} options={preferredTimeOptions} onChange={(v) => updateDetails('preferredTime', v)} disabled={disabled} />
                       </div>
                     </Section>
                   )}
 
                   {STEPS[step] === 'account' && (
                     <Section title={t('members.signup.account')} hint={t('members.signup.accountHint')}>
-                      <div className="grid gap-x-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                          <TextField label={t('members.fields.email')} type="email" required autoComplete="email" maxLength={120} value={details.email} onChange={(v) => updateDetails('email', v)} disabled={disabled} />
+                          <TextField label={t('members.fields.email')} tip={t('members.signup.tips.email')} type="email" required autoComplete="email" maxLength={120} value={details.email} onChange={(v) => updateDetails('email', v)} disabled={disabled} />
                         </div>
-                        <TextField label={t('members.fields.passwordMin')} type="password" required autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} maxLength={72} value={details.password} onChange={(v) => updateDetails('password', v)} disabled={disabled} />
-                        <TextField label={t('members.signup.confirmPassword')} type="password" required autoComplete="new-password" maxLength={72} value={details.confirmPassword} onChange={(v) => updateDetails('confirmPassword', v)} disabled={disabled} />
+                        <TextField label={t('members.fields.passwordMin')} tip={t('members.signup.tips.password')} type="password" required autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} maxLength={72} value={details.password} onChange={(v) => updateDetails('password', v)} disabled={disabled} />
+                        <TextField label={t('members.signup.confirmPassword')} tip={t('members.signup.tips.confirmPassword')} type="password" required autoComplete="new-password" maxLength={72} value={details.confirmPassword} onChange={(v) => updateDetails('confirmPassword', v)} disabled={disabled} />
                       </div>
                     </Section>
                   )}
 
                   {STEPS[step] === 'health' && (
                     <Section title={t('members.tabs.health')} hint={t('members.signup.healthHint')}>
-                      <div className="grid gap-x-4 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                         <CheckboxField label={t('members.health.hypertension')} checked={health.hypertension} onChange={(v) => updateHealth('hypertension', v)} disabled={disabled} />
                         <CheckboxField label={t('members.health.diabetes')} checked={health.diabetes} onChange={(v) => updateHealth('diabetes', v)} disabled={disabled} />
                         <CheckboxField label={t('members.health.heartProblems')} checked={health.heartProblems} onChange={(v) => updateHealth('heartProblems', v)} disabled={disabled} />
                         <CheckboxField label={t('members.health.asthma')} checked={health.asthma} onChange={(v) => updateHealth('asthma', v)} disabled={disabled} />
                       </div>
-                      <TextField label={t('members.health.otherConditions')} multiline maxLength={1000} value={health.otherConditions} onChange={(v) => updateHealth('otherConditions', v)} disabled={disabled} />
+                      <TextField label={t('members.health.otherConditions')} tip={t('members.signup.tips.otherConditions')} multiline maxLength={1000} value={health.otherConditions} onChange={(v) => updateHealth('otherConditions', v)} disabled={disabled} />
                       <CheckboxField label={t('members.health.hasInjury')} checked={health.hasInjury} onChange={(v) => updateHealth('hasInjury', v)} disabled={disabled} />
-                      {health.hasInjury && <TextField label={t('members.health.injuryDescription')} multiline maxLength={1000} value={health.injuryDescription} onChange={(v) => updateHealth('injuryDescription', v)} disabled={disabled} />}
+                      {health.hasInjury && <TextField label={t('members.health.injuryDescription')} tip={t('members.signup.tips.injuryDescription')} multiline maxLength={1000} value={health.injuryDescription} onChange={(v) => updateHealth('injuryDescription', v)} disabled={disabled} />}
                       <CheckboxField label={t('members.health.takesMedication')} checked={health.takesMedication} onChange={(v) => updateHealth('takesMedication', v)} disabled={disabled} />
-                      {health.takesMedication && <TextField label={t('members.health.medicationDescription')} multiline maxLength={1000} value={health.medicationDescription} onChange={(v) => updateHealth('medicationDescription', v)} disabled={disabled} />}
+                      {health.takesMedication && <TextField label={t('members.health.medicationDescription')} tip={t('members.signup.tips.medicationDescription')} multiline maxLength={1000} value={health.medicationDescription} onChange={(v) => updateHealth('medicationDescription', v)} disabled={disabled} />}
                     </Section>
                   )}
 
                   {STEPS[step] === 'emergency' && (
                     <>
                       <Section title={t('members.tabs.emergency')} hint={t('members.signup.emergencyHint')}>
-                        <div className="grid gap-x-4 sm:grid-cols-2">
-                          <TextField label={t('members.fields.name')} maxLength={120} value={contact.name} onChange={(v) => updateContact('name', v)} disabled={disabled} />
-                          <SelectField label={t('members.fields.relationship')} value={contact.relationship} options={relationshipOptions} onChange={(v) => updateContact('relationship', v)} disabled={disabled} />
-                          <Field label={t('members.fields.phone')}>
+                        <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                          <TextField label={t('members.fields.name')} tip={t('members.signup.tips.contactName')} maxLength={120} value={contact.name} onChange={(v) => updateContact('name', v)} disabled={disabled} />
+                          <SelectField label={t('members.fields.relationship')} tip={t('members.signup.tips.relationship')} value={contact.relationship} options={relationshipOptions} onChange={(v) => updateContact('relationship', v)} disabled={disabled} />
+                          <Field label={t('members.fields.phone')} tip={t('members.signup.tips.contactPhone')}>
                             <PhoneField value={contact.phone} onChange={(v) => updateContact('phone', v)} />
                           </Field>
                         </div>
@@ -359,29 +363,53 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
-function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+// La etiqueta va con htmlFor (no envolviendo el campo) para que el botón de
+// ayuda quede fuera del <label>: dentro, el label apuntaría al botón y no al
+// input. Sin htmlFor (p. ej. el teléfono, con dos controles que ya tienen
+// aria-label) el texto es un simple span.
+function Field({
+  label, required = false, tip, htmlFor, children,
+}: { label: string; required?: boolean; tip?: string; htmlFor?: string; children: React.ReactNode }) {
+  const text = <>{label}{required && <span className="text-red-500"> *</span>}</>;
   return (
-    <label className="mb-4 block text-sm font-medium text-slate-700">
-      <span className="mb-1.5 block">{label}{required && <span className="text-red-500"> *</span>}</span>
+    <div className="mb-4 min-w-0 text-sm font-medium text-slate-700">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        {htmlFor ? <label htmlFor={htmlFor}>{text}</label> : <span>{text}</span>}
+        {tip && <InfoTip text={tip} />}
+      </div>
       {children}
-    </label>
+    </div>
   );
 }
 
 function TextField({
   label, value, onChange, required = false, multiline = false, type = 'text', disabled = false,
-  autoComplete, inputMode, minLength, maxLength,
+  autoComplete, inputMode, minLength, maxLength, tip,
 }: {
   label: string; value: string; onChange: (value: string) => void; required?: boolean;
   multiline?: boolean; type?: 'text' | 'email' | 'password' | 'date'; disabled?: boolean;
-  autoComplete?: string; inputMode?: 'numeric' | 'text'; minLength?: number; maxLength?: number;
+  autoComplete?: string; inputMode?: 'numeric' | 'text'; minLength?: number; maxLength?: number; tip?: string;
 }) {
+  const id = useId();
   return (
-    <Field label={label} required={required}>
-      {multiline ? (
-        <textarea required={required} disabled={disabled} maxLength={maxLength} value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} min-h-24`} />
+    <Field label={label} required={required} tip={tip} htmlFor={id}>
+      {type === 'password' ? (
+        <PasswordInput
+          id={id}
+          required={required}
+          disabled={disabled}
+          autoComplete={autoComplete}
+          minLength={minLength}
+          maxLength={maxLength}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputClass}
+        />
+      ) : multiline ? (
+        <textarea id={id} required={required} disabled={disabled} maxLength={maxLength} value={value} onChange={(e) => onChange(e.target.value)} className={`${inputClass} h-auto min-h-24`} />
       ) : (
         <input
+          id={id}
           type={type}
           required={required}
           disabled={disabled}
@@ -399,12 +427,13 @@ function TextField({
 }
 
 function SelectField({
-  label, value, options, onChange, disabled = false,
-}: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void; disabled?: boolean }) {
+  label, value, options, onChange, disabled = false, tip,
+}: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void; disabled?: boolean; tip?: string }) {
   const t = useT();
+  const id = useId();
   return (
-    <Field label={label}>
-      <select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+    <Field label={label} tip={tip} htmlFor={id}>
+      <select id={id} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} className={inputClass}>
         <option value="">{t('common.select')}</option>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
