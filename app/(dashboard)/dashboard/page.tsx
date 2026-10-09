@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import OccupancyCard from '@/components/OccupancyCard';
+import BirthdaysCard from '@/components/BirthdaysCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -410,6 +411,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BirthdaysCard />
 
       {/* Ventas */}
       <Card>

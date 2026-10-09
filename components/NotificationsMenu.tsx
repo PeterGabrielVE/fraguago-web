@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Bell,
   BellOff,
+  Cake,
   Check,
   CheckCheck,
   Coins,
@@ -31,6 +32,7 @@ const CATEGORY_ICON: Record<NotificationCategory, React.ComponentType<{ classNam
   retention: UserX,
   occupancy: Users,
   exchange: Coins,
+  birthday: Cake,
 };
 
 const SEVERITY_STYLE: Record<NotificationSeverity, string> = {

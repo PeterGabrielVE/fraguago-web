@@ -19,6 +19,7 @@ import { activityOptions, preferredTimeOptions, relationshipOptions } from '@/li
 import { SHIFT_LABELS } from '@/lib/portal';
 import { activeIntlLocale } from '@/lib/i18n/client';
 import { useT } from '@/components/I18nProvider';
+import { ageFrom, formatBirthDate } from '@/lib/birthdays';
 
 type MembershipHistoryItem = {
   id: string;
@@ -34,6 +35,7 @@ export type MemberDetailsMember = {
   id: string;
   activityLevel?: string;
   preferredTime?: string;
+  birthDate?: string | null;
   user?: { email?: string; profile?: Record<string, string | null> };
 };
 
@@ -91,7 +93,9 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
     address: profile.address ?? '',
     activityLevel: member.activityLevel ?? '',
     preferredTime: profile.preferredTime ?? '',
+    birthDate: member.birthDate?.slice(0, 10) ?? '',
   });
+  const age = ageFrom(details.birthDate);
   const [health, setHealth] = useState<HealthProfile>({});
   const [contact, setContact] = useState<EmergencyContact>({});
   const [healthLoaded, setHealthLoaded] = useState(false);
@@ -172,6 +176,7 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
       address: details.address || undefined,
       activityLevel: details.activityLevel || undefined,
       preferredTime: details.preferredTime || undefined,
+      birthDate: details.birthDate || undefined,
     };
 
     await api.patch(`/members/${member.id}`, payload);
@@ -245,6 +250,18 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
               <DetailField label={t('members.fields.email')} value={details.email} editing={editingDetails} onChange={(value) => updateDetails('email', value)} />
               <DetailField label={t('members.fields.phone')} value={details.phone} editing={editingDetails} type="phone" onChange={(value) => updateDetails('phone', value)} />
               <DetailField label={t('members.fields.address')} value={details.address} editing={editingDetails} onChange={(value) => updateDetails('address', value)} />
+              <DetailField
+                label={t('birthdays.birthDate')}
+                value={details.birthDate}
+                display={details.birthDate ? formatBirthDate(details.birthDate, activeIntlLocale()) : ''}
+                editing={editingDetails}
+                type="date"
+                onChange={(value) => updateDetails('birthDate', value)}
+              />
+              <label className="mb-4 block text-sm font-medium text-slate-700">
+                <span className="mb-1.5 block">{t('birthdays.age')}</span>
+                <span className="block rounded-lg bg-slate-50 px-3 py-2 font-normal text-slate-600">{age === null ? '—' : t('birthdays.ageYears', { count: age })}</span>
+              </label>
               <DetailField label={t('members.fields.activityLevel')} value={details.activityLevel} editing={editingDetails} options={activityOptions} onChange={(value) => updateDetails('activityLevel', value)} />
               <DetailField label={t('members.fields.preferredTime')} value={details.preferredTime} editing={editingDetails} options={preferredTimeOptions} onChange={(value) => updateDetails('preferredTime', value)} />
             </div>
@@ -379,14 +396,14 @@ function TabHeader({ title, editing, onEdit }: { title: string; editing: boolean
   return <div className="mb-5 flex items-center justify-between"><h3 className="text-lg font-semibold text-slate-900">{title}</h3>{!editing && <button type="button" onClick={onEdit} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Pencil className="h-4 w-4" />{t('members.details.edit')}</button>}</div>;
 }
 
-function DetailField({ label, value, editing, multiline = false, options, type = 'text', onChange }: { label: string; value: string; editing: boolean; multiline?: boolean; options?: { value: string; label: string }[]; type?: 'text' | 'phone'; onChange: (value: string) => void }) {
+function DetailField({ label, value, display, editing, multiline = false, options, type = 'text', onChange }: { label: string; value: string; display?: string; editing: boolean; multiline?: boolean; options?: { value: string; label: string }[]; type?: 'text' | 'phone' | 'date'; onChange: (value: string) => void }) {
   const t = useT();
-  const displayValue = options?.find((option) => option.value === value)?.label ?? value;
+  const displayValue = display ?? options?.find((option) => option.value === value)?.label ?? value;
 
   return <label className="mb-4 block text-sm font-medium text-slate-700"><span className="mb-1.5 block">{label}</span>{editing ? (multiline ? <textarea value={value} onChange={(event) => onChange(event.target.value)} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" /> : type === 'phone' ? <PhoneField value={value} onChange={onChange} /> : options && options.length > 0 ? <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200">
     <option value="">{t('common.select')}</option>
     {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-  </select> : <input value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />) : <span className="block rounded-lg bg-slate-50 px-3 py-2 font-normal text-slate-600">{displayValue || '—'}</span>}</label>;
+  </select> : <input type={type === 'date' ? 'date' : 'text'} max={type === 'date' ? new Date().toISOString().slice(0, 10) : undefined} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" />) : <span className="block rounded-lg bg-slate-50 px-3 py-2 font-normal text-slate-600">{displayValue || '—'}</span>}</label>;
 }
 
 function CheckField({ label, checked, editing, onChange }: { label: string; checked: boolean; editing: boolean; onChange: (value: boolean) => void }) {

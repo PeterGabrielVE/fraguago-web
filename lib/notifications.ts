@@ -2,11 +2,12 @@ import { api } from '@/lib/api';
 import type { Translate } from '@/lib/i18n/translate';
 
 // El backend no guarda notificaciones: se derivan de las alertas operativas que ya
-// expone la API (vencimientos, stock, canjes, inactividad, aforo, tasa del día).
+// expone la API (vencimientos, stock, canjes, inactividad, aforo, tasa del día,
+// cumpleaños).
 // Cada fuente declara qué roles pueden pedirla, porque un 403 redirige a /403.
 
 export type NotificationSeverity = 'critical' | 'warning' | 'info';
-export type NotificationCategory = 'membership' | 'stock' | 'redemption' | 'retention' | 'occupancy' | 'exchange';
+export type NotificationCategory = 'membership' | 'stock' | 'redemption' | 'retention' | 'occupancy' | 'exchange' | 'birthday';
 
 export type AppNotification = {
   id: string;
@@ -71,6 +72,28 @@ const SOURCES: Source[] = [
         href: `/members?id=${membership.memberId}&q=${encodeURIComponent(name ?? '')}`,
         date: membership.endDate,
         fingerprint: membership.endDate,
+      } satisfies AppNotification;
+    }),
+  },
+  // Cumpleaños de hoy y de los próximos 3 días, para felicitar a tiempo.
+  {
+    roles: ALL_STAFF,
+    load: async () => rows(await api.get('/members/birthdays?days=3')).map((birthday) => {
+      const days = Number(birthday.daysUntil ?? 0);
+      const date = startOfDay(new Date(Date.now() + days * DAY_MS));
+      return {
+        id: `birthday:${birthday.memberId}`,
+        category: 'birthday',
+        severity: days === 0 ? 'warning' : 'info',
+        title: (t) => days === 0
+          ? t('birthdays.notifications.today', { name: birthday.name, age: birthday.turns })
+          : t('birthdays.notifications.upcoming', { name: birthday.name, age: birthday.turns, when: whenLabel(days, t) }),
+        description: birthday.phone ? () => birthday.phone : undefined,
+        href: `/members?id=${birthday.memberId}&q=${encodeURIComponent(birthday.name ?? '')}`,
+        // Hoy no lleva fecha (si no, se vería "hace 10 h"); los próximos muestran el día.
+        date: days === 0 ? undefined : date.toISOString(),
+        // Una vez leído no vuelve a aparecer como nuevo hasta el cumpleaños del año siguiente.
+        fingerprint: `${date.getFullYear()}`,
       } satisfies AppNotification;
     }),
   },

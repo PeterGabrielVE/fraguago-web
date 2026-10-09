@@ -16,6 +16,7 @@ import { catalog } from './modules/catalog';
 import { attendance } from './modules/attendance';
 import { dashboard } from './modules/dashboard';
 import { members } from './modules/members';
+import { birthdays } from './modules/birthdays';
 
 export const en: Messages = {
   labels: labels.en,
@@ -35,6 +36,7 @@ export const en: Messages = {
   attendance: attendance.en,
   dashboard: dashboard.en,
   members: members.en,
+  birthdays: birthdays.en,
 
   common: {
     cancel: 'Cancel',

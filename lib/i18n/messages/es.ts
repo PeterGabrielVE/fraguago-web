@@ -15,6 +15,7 @@ import { catalog } from './modules/catalog';
 import { attendance } from './modules/attendance';
 import { dashboard } from './modules/dashboard';
 import { members } from './modules/members';
+import { birthdays } from './modules/birthdays';
 
 // Diccionario base (español). Define la forma que deben cumplir los demás idiomas:
 // si falta una clave en en.ts, TypeScript no compila.
@@ -37,6 +38,7 @@ export const es = {
   attendance: attendance.es,
   dashboard: dashboard.es,
   members: members.es,
+  birthdays: birthdays.es,
 
   common: {
     cancel: 'Cancelar',

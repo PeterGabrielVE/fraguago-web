@@ -129,7 +129,7 @@ export type ListFilter = { label: string; endpoint: string };
 export default function ResourceManager({
   title, subtitle, icon: Icon, endpoint, columns, fields, getEditValues, renderDetails,
   renderCreateForm, renderCreate, hideListWhenCreating = false, statusConfig,
-  formVariant = 'inline', onCreate, extraActions, disableEdit, disableCreate = false, disableDelete = false, filters, headerActions, intro, validate,
+  formVariant = 'inline', onCreate, extraActions, disableEdit, disableCreate = false, disableDelete = false, filters, headerActions, intro, validate, rowFilter,
 }: {
   title: string;
   subtitle?: string;
@@ -171,6 +171,8 @@ export default function ResourceManager({
   intro?: React.ReactNode;
   /** Validación adicional (p. ej. entre campos) antes de crear/editar. Devolver un mensaje de error la bloquea; devolver nada/null la deja pasar. */
   validate?: (form: Record<string, any>) => string | null | undefined;
+  /** Filtro extra de filas (p. ej. por rango de edad) que se suma al buscador y a los filtros de columna. Memoízalo: al cambiar vuelve a la página 1. */
+  rowFilter?: (row: Record<string, any>) => boolean;
 }) {
   const t = useT();
   const [form, setForm] = useState<Record<string, any>>({});
@@ -191,6 +193,7 @@ export default function ResourceManager({
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [activeFilter, setActiveFilter] = useState(0);
   const listEndpoint = filters?.[activeFilter]?.endpoint ?? endpoint;
+  useEffect(() => setPage(1), [rowFilter]);
 
   // carga (loading / empty / error) gestionada por el hook
   // api.list trae todas las páginas (la tabla pagina y busca en el cliente).
@@ -744,7 +747,7 @@ export default function ResourceManager({
           >
             {(items) => (
               <ResourceTable
-                items={items.map((item) => statusOverrides[String(item.id)] ? { ...item, status: statusOverrides[String(item.id)], statusOverride: true } : item)}
+                items={(rowFilter ? items.filter(rowFilter) : items).map((item) => statusOverrides[String(item.id)] ? { ...item, status: statusOverrides[String(item.id)], statusOverride: true } : item)}
                 columns={columns}
                 query={query}
                 page={page}
