@@ -389,6 +389,7 @@ export const en: Messages = {
     openSource: 'Open source',
     verifying: 'Checking your credentials...',
     failed: 'Couldn’t sign in',
+    invalidCredentials: 'Incorrect email or password',
   },
 
   forgotPassword: {

@@ -392,6 +392,7 @@ export const es = {
     openSource: 'Código abierto',
     verifying: 'Verificando tus credenciales...',
     failed: 'No se pudo iniciar sesión',
+    invalidCredentials: 'Email o contraseña incorrectos',
   },
 
   forgotPassword: {

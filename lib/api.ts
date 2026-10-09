@@ -100,7 +100,9 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
     throw new Error(tActive('api.offline'));
   }
 
-  if (res.status === 401) {
+  // Sin token no hay sesión que expirar (p. ej. /auth/login con clave
+  // incorrecta): el 401 sigue como error normal con el mensaje del API.
+  if (res.status === 401 && token) {
     if (canRefresh && token && typeof window !== 'undefined') {
       const refreshedToken = await refreshAccessToken();
       if (refreshedToken) {

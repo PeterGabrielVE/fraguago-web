@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getRoleRedirect, login } from '@/lib/auth';
+import { ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PasswordInput from '@/components/PasswordInput';
@@ -37,7 +38,7 @@ export default function LoginPage() {
         : getRoleRedirect(session);
       router.replace(destination);
     } catch (e: any) {
-      setError(e.message || t('login.failed'));
+      setError(e instanceof ApiError && e.status === 401 ? t('login.invalidCredentials') : e.message || t('login.failed'));
     } finally {
       setLoading(false);
     }
