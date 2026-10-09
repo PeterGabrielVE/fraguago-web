@@ -219,7 +219,8 @@ export default function LoginPage() {
                 className="w-full border-slate-200 hover:bg-slate-50"
                 disabled={loading}
                 onClick={() => {
-                  setEmail('admin@fraguago.com');
+                  // Cuenta del gym ficticio "Gym Demo" (fraguago-api: npm run seed:demo).
+                  setEmail('demo@fraguago.com');
                   setPassword('demo123');
                 }}
               >
