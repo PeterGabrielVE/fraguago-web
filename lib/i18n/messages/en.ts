@@ -39,6 +39,7 @@ export const en: Messages = {
   birthdays: birthdays.en,
 
   common: {
+    skipToContent: 'Skip to content',
     cancel: 'Cancel',
     save: 'Save',
     update: 'Update',
@@ -167,6 +168,7 @@ export const en: Messages = {
   },
 
   portalNav: {
+    label: 'Portal sections',
     home: 'Home',
     membership: 'Membership',
     attendance: 'Attendance',
@@ -318,6 +320,12 @@ export const en: Messages = {
     selectRow: 'Select row {id}',
     status: 'Status',
     actions: 'Actions',
+    editLabel: 'Edit {label}',
+    filterActive: 'Filter by {column} ({count} selected)',
+    removeFilter: 'Remove filter {value}',
+    noResults: 'No records match the search or filters.',
+    clearSearch: 'Clear search and filters',
+    goToPage: 'Go to page {page}',
     viewDetails: 'View details for {id}',
     rowActions: 'Actions for {id}',
     suspend: 'Suspend',
@@ -326,7 +334,8 @@ export const en: Messages = {
     pagination: 'Pagination',
     prevPage: 'Previous page',
     nextPage: 'Next page',
-    empty: 'Nothing here yet. Create the first one with the "New" button.',
+    empty: 'Nothing here yet.',
+    createFirst: 'Create the first one',
     loadError: 'Couldn’t load the data.',
     chooseFirst: 'Choose {field} first',
     previousField: 'the previous field',

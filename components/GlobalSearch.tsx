@@ -197,7 +197,7 @@ export default function GlobalSearch() {
         className="hidden h-9 max-w-sm flex-1 items-center gap-2 rounded-lg bg-muted px-3 text-sm text-muted-foreground transition hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:flex"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">{t('search.trigger')}</span>
+        <span className="min-w-0 flex-1 truncate text-left">{t('search.trigger')}</span>
         <Kbd className="bg-card">{shortcut}</Kbd>
       </button>
       <button

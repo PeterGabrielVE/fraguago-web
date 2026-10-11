@@ -128,28 +128,28 @@ export default function AttendancePage() {
   const isToday = filterDate === todayISO();
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       {/* Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl" aria-hidden="true">
               <Dumbbell className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{t('attendance.title')}</h1>
-              <p className="mt-1 text-slate-600">{t('attendance.subtitle')}</p>
+              <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('attendance.title')}</h1>
+              <p className="mt-1 text-sm text-slate-600 sm:text-base">{t('attendance.subtitle')}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {gymRef && (
               <a
                 href={`/check-in/${gymRef}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-amber-300 hover:text-amber-700"
+                className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:border-amber-300 hover:text-amber-700"
               >
-                <MonitorSmartphone className="h-4 w-4" />
+                <MonitorSmartphone className="h-4 w-4" aria-hidden="true" />
                 {t('attendance.kioskLink')}
               </a>
             )}
@@ -158,7 +158,7 @@ export default function AttendancePage() {
               label={t('attendance.exportDay')}
               filters={{ from: filterDate, to: filterDate, shift: filterShift }}
             />
-            <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-5 py-3 text-right sm:text-left">
+            <div className="hidden items-center gap-3 rounded-xl bg-amber-50 px-5 py-3 xl:flex">
               <div>
                 <p className="text-sm font-semibold text-amber-800">{t('attendance.motto1')}</p>
                 <p className="text-sm text-amber-700">{t('attendance.motto2')}</p>
@@ -169,8 +169,8 @@ export default function AttendancePage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div role="alert" className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           {error}
         </div>
       )}

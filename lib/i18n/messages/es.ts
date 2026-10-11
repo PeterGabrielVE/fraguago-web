@@ -41,6 +41,7 @@ export const es = {
   birthdays: birthdays.es,
 
   common: {
+    skipToContent: 'Saltar al contenido',
     cancel: 'Cancelar',
     save: 'Guardar',
     update: 'Actualizar',
@@ -170,6 +171,7 @@ export const es = {
   },
 
   portalNav: {
+    label: 'Secciones del portal',
     home: 'Inicio',
     membership: 'Membresía',
     attendance: 'Asistencias',
@@ -321,6 +323,12 @@ export const es = {
     selectRow: 'Seleccionar registro {id}',
     status: 'Estado',
     actions: 'Acciones',
+    editLabel: 'Editar {label}',
+    filterActive: 'Filtrar por {column} ({count} seleccionados)',
+    removeFilter: 'Quitar filtro {value}',
+    noResults: 'No hay registros que coincidan con la búsqueda o los filtros.',
+    clearSearch: 'Limpiar búsqueda y filtros',
+    goToPage: 'Ir a la página {page}',
     viewDetails: 'Ver detalles de {id}',
     rowActions: 'Acciones para {id}',
     suspend: 'Suspender',
@@ -329,7 +337,8 @@ export const es = {
     pagination: 'Paginación',
     prevPage: 'Página anterior',
     nextPage: 'Página siguiente',
-    empty: 'Aún no hay registros. Crea el primero con el botón "Nuevo".',
+    empty: 'Aún no hay registros.',
+    createFirst: 'Crear el primero',
     loadError: 'No se pudieron cargar los datos.',
     chooseFirst: 'Elige primero {field}',
     previousField: 'el campo anterior',

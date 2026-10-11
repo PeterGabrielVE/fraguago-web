@@ -204,7 +204,7 @@ export default function PublicSignupPage() {
             ) : (
               <>
                 <div className="mb-8 space-y-2 text-center">
-                  <h1 className="text-3xl font-bold text-slate-900">{t('members.signup.title')}</h1>
+                  <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('members.signup.title')}</h1>
                   <p className="text-sm leading-6 text-slate-600">{t('members.signup.intro')}</p>
                 </div>
 

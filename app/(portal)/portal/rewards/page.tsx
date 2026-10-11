@@ -52,7 +52,7 @@ export default function PortalRewardsPage() {
   const { status, data, error, refetch } = useAsync<RewardsData>(loadRewards, []);
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <AsyncBoundary
         status={status}
         data={data}
@@ -107,14 +107,14 @@ function RewardsContent({ data, onChanged }: { data: RewardsData; onChanged: () 
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl" aria-hidden="true">
               <Gift className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{t('portal.rewards.title')}</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('portal.rewards.title')}</h1>
               <p className="mt-1 text-slate-600">{t('portal.rewards.subtitle')}</p>
             </div>
           </div>

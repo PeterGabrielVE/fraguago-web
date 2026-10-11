@@ -34,14 +34,14 @@ export default function PortalProfilePage() {
   );
 
   return (
-    <div className="space-y-6 p-8">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+      <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-4 p-6">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl" aria-hidden="true">
             <User className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('portal.profile.title')}</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('portal.profile.title')}</h1>
             <p className="mt-1 text-slate-600">{t('portal.profile.subtitle')}</p>
           </div>
         </div>
@@ -150,7 +150,8 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+    // min-w-0: sin esto el campo de teléfono estira la columna y todo se sale en móvil.
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2 [&>*]:min-w-0">
       {formError && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 md:col-span-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -159,34 +160,34 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
       )}
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.email')}</label>
-        <input type="text" value={profile.email} disabled readOnly className={readOnlyClass} />
+        <label htmlFor="pf-email" className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.email')}</label>
+        <input id="pf-email" type="text" value={profile.email} disabled readOnly className={readOnlyClass} />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.role')}</label>
-        <input type="text" value={ROLE_LABELS[profile.role] ?? profile.role} disabled readOnly className={readOnlyClass} />
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">
-          {t('portal.profile.firstName')}<span className="text-red-500"> *</span>
-        </label>
-        <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
-      </div>
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">
-          {t('portal.profile.lastName')}<span className="text-red-500"> *</span>
-        </label>
-        <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+        <label htmlFor="pf-role" className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.role')}</label>
+        <input id="pf-role" type="text" value={ROLE_LABELS[profile.role] ?? profile.role} disabled readOnly className={readOnlyClass} />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.phone')}</label>
+        <label htmlFor="pf-first" className="mb-1.5 block text-sm font-medium text-slate-700">
+          {t('portal.profile.firstName')}<span className="text-red-500" aria-hidden="true"> *</span>
+        </label>
+        <input id="pf-first" required autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+      </div>
+      <div>
+        <label htmlFor="pf-last" className="mb-1.5 block text-sm font-medium text-slate-700">
+          {t('portal.profile.lastName')}<span className="text-red-500" aria-hidden="true"> *</span>
+        </label>
+        <input id="pf-last" required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+      </div>
+
+      <div>
+        <p className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.phone')}</p>
         <PhoneField value={phone} onChange={setPhone} />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.preferredTime')}</label>
-        <select value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} className={`${inputClass} bg-white`}>
+        <label htmlFor="pf-time" className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.preferredTime')}</label>
+        <select id="pf-time" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} className={`${inputClass} bg-white`}>
           <option value="">{t('common.select')}</option>
           {preferredTimeOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -195,15 +196,15 @@ function ProfileForm({ profile, onSaved }: { profile: MeProfile; onSaved: () => 
       </div>
 
       <div className="md:col-span-2">
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.address')}</label>
-        <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
+        <label htmlFor="pf-address" className="mb-1.5 block text-sm font-medium text-slate-700">{t('portal.profile.address')}</label>
+        <input id="pf-address" autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
       </div>
 
       <div className="md:col-span-2">
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60"
+          className="h-11 w-full rounded-lg bg-amber-600 px-4 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60 sm:h-10 sm:w-auto"
         >
           {saving ? t('portal.saving') : t('portal.profile.saveChanges')}
         </button>

@@ -211,15 +211,15 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-4 p-6">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl" aria-hidden="true">
             <ShoppingCart className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('operations.sales.title')}</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('operations.sales.title')}</h1>
             <p className="mt-1 text-slate-600">{t('operations.sales.subtitle')}</p>
           </div>
         </div>

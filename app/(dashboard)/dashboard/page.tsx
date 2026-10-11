@@ -248,7 +248,7 @@ export default function DashboardPage() {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-primary">{t('dashboard.eyebrow')}</p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t('dashboard.greeting')}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl tracking-tight md:text-4xl">{t('dashboard.greeting')}</h1>
           <p className="mt-2 text-muted-foreground">{t('dashboard.intro')}</p>
         </div>
         <div className="rounded-lg bg-card px-4 py-2 text-sm text-muted-foreground ring-1 ring-foreground/10">
@@ -261,45 +261,45 @@ export default function DashboardPage() {
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-l-4 border-l-primary">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.activeMembers')}</CardTitle>
             <span className="rounded-lg bg-primary/10 p-2 text-primary"><Users className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{data.summary.activeMembers}</div>
+            <div className="text-2xl font-bold tracking-tight sm:text-3xl">{data.summary.activeMembers}</div>
             <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600"><ArrowUpRight className="h-3.5 w-3.5" /> {t('dashboard.activeCommunity')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-cyan-500">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.activeMemberships')}</CardTitle>
             <span className="rounded-lg bg-cyan-500/10 p-2 text-cyan-500"><CreditCard className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{data.summary.activeMemberships}</div>
+            <div className="text-2xl font-bold tracking-tight sm:text-3xl">{data.summary.activeMemberships}</div>
             <p className="mt-2 flex items-center gap-1 text-xs text-cyan-600"><ArrowUpRight className="h-3.5 w-3.5" /> {t('dashboard.currentPlans')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-amber-500">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.attendanceToday')}</CardTitle>
             <span className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><CalendarCheck2 className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{data.summary.attendanceToday}</div>
+            <div className="text-2xl font-bold tracking-tight sm:text-3xl">{data.summary.attendanceToday}</div>
             <p className="mt-2 text-xs text-muted-foreground">{t('dashboard.todayRecords')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-emerald-500">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.monthBalance')}</CardTitle>
             <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Wallet className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold tracking-tight ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+            <div className={`text-2xl font-bold tracking-tight sm:text-3xl break-words ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
               {money(balance)}
             </div>
             <p className={`mt-2 flex items-center gap-1 text-xs ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-emerald-700 dark:text-emerald-400">{t('dashboard.income')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{money(income)}</div>
+            <div className="break-words text-2xl font-bold sm:text-3xl text-emerald-700 dark:text-emerald-400">{money(income)}</div>
             <p className="mt-1 text-xs text-emerald-700/70 dark:text-emerald-400/70">{t('dashboard.incomeHint')}</p>
           </CardContent>
         </Card>
@@ -326,7 +326,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-rose-700 dark:text-rose-400">{t('dashboard.expenses')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-rose-700 dark:text-rose-400">{money(expense)}</div>
+            <div className="break-words text-2xl font-bold sm:text-3xl text-rose-700 dark:text-rose-400">{money(expense)}</div>
             <p className="mt-1 text-xs text-rose-700/70 dark:text-rose-400/70">{t('dashboard.expensesHint')}</p>
           </CardContent>
         </Card>
@@ -336,7 +336,7 @@ export default function DashboardPage() {
             <CardTitle className={`text-sm ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>{t('dashboard.netProfit')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>
+            <div className={`break-words text-2xl font-bold sm:text-3xl ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>
               {money(balance)}
             </div>
             <p className={`mt-1 text-xs ${balance >= 0 ? 'text-indigo-700/70 dark:text-indigo-400/70' : 'text-amber-600'}`}>
