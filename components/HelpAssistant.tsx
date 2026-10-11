@@ -2,25 +2,23 @@
 import Link from 'next/link';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bot, Loader2, RotateCcw, Send, X } from 'lucide-react';
+import { Bot, RotateCcw, Send, X } from 'lucide-react';
 import { useI18n } from '@/components/I18nProvider';
-import { api } from '@/lib/api';
 import { getRole } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { canAccess, findEntry, match, pageEntryFor, text as entryText } from '@/lib/assistant/engine';
+import { ROLE_NAMES, STARTERS, type Entry, type Role } from '@/lib/assistant/knowledge';
 
-type ChatMessage = { role: 'user' | 'model'; text: string };
+// Asistente de ayuda sin IA: responde con la base de conocimiento local
+// (lib/assistant). No llama al servidor, no tiene costo y es instantáneo.
+
+// options: ids de entradas para mostrar como botones (relacionadas o sugerencias).
+type ChatMessage = { role: 'user' | 'bot'; text: string; options?: string[] };
 
 // Se conserva mientras la pestaña esté abierta (al navegar entre pantallas).
 const STORAGE_KEY = 'fg_assistant_chat';
-// Turnos que se mandan al API: suficiente contexto sin disparar el costo.
-const HISTORY_LIMIT = 10;
-const MAX_INPUT = 1000;
-
-const SUGGESTIONS = {
-  staff: ['assistant.suggest.registerMember', 'assistant.suggest.renew', 'assistant.suggest.suspendVsCancel', 'assistant.suggest.checkIn'],
-  trainer: ['assistant.suggest.routine', 'assistant.suggest.progress', 'assistant.suggest.challenge', 'assistant.suggest.switchRole'],
-  member: ['assistant.suggest.myMembership', 'assistant.suggest.points', 'assistant.suggest.referral', 'assistant.suggest.checkInMember'],
-} as const;
+const MAX_INPUT = 300;
+const ROLES: Role[] = ['OWNER', 'ADMIN', 'STAFF', 'TRAINER', 'MEMBER'];
 
 function loadHistory(): ChatMessage[] {
   try {
@@ -99,13 +97,16 @@ export default function HelpAssistant() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const role = getRole()?.toUpperCase();
-  const suggestions = role === 'MEMBER' ? SUGGESTIONS.member : role === 'TRAINER' ? SUGGESTIONS.trainer : SUGGESTIONS.staff;
+  const rawRole = getRole()?.toUpperCase();
+  const role = ROLES.find((r) => r === rawRole);
+  const starters = (role === 'MEMBER' ? STARTERS.member : role === 'TRAINER' ? STARTERS.trainer : STARTERS.desk)
+    .map(findEntry)
+    .filter((e): e is Entry => Boolean(e) && canAccess(e!, role))
+    // "¿Qué hago aquí?" solo si hay ayuda para la pantalla actual.
+    .filter((e) => e.id !== 'here' || Boolean(pageEntryFor(pathname)));
 
   useEffect(() => { setMessages(loadHistory()); }, []);
   useEffect(() => { saveHistory(messages); }, [messages]);
@@ -120,35 +121,78 @@ export default function HelpAssistant() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, sending, open]);
+  }, [messages, open]);
 
-  async function send(text: string) {
-    const question = text.trim().slice(0, MAX_INPUT);
-    if (!question || sending) return;
-    const next: ChatMessage[] = [...messages, { role: 'user', text: question }];
-    setMessages(next);
-    setInput('');
-    setError('');
-    setSending(true);
-    try {
-      const res = await api.post('/ai/assistant', {
-        messages: next.slice(-HISTORY_LIMIT),
-        page: pathname,
-        locale,
-      }) as { reply?: string };
-      setMessages([...next, { role: 'model', text: res.reply || t('assistant.empty') }]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('assistant.error'));
-    } finally {
-      setSending(false);
+  // Nombres de los roles que sí pueden hacer algo (sin repetir Propietario,
+  // que puede todo, salvo que sea el único).
+  const roleList = (roles: Role[] | undefined) =>
+    (roles ?? []).filter((r) => r !== 'OWNER' || roles!.length === 1).map((r) => ROLE_NAMES[r][locale]).join(', ');
+
+  // Respuesta a una entrada concreta (botones de sugerencia o relacionadas).
+  function reply(entry: Entry): ChatMessage {
+    if (entry.id === 'here') {
+      const page = pageEntryFor(pathname);
+      if (page) return reply(page);
     }
+    if (!canAccess(entry, role)) {
+      return { role: 'bot', text: t('assistant.denied', { roles: roleList(entry.roles) }) };
+    }
+    const options = entry.id === 'greeting'
+      ? starters.map((e) => e.id)
+      : (entry.related ?? []).filter((id) => {
+        const related = findEntry(id);
+        return related && canAccess(related, role);
+      });
+    return { role: 'bot', text: entryText(entry, 'answer', locale), options };
+  }
+
+  function answerQuestion(question: string): ChatMessage {
+    const result = match(question, { role, pathname });
+    if (result.kind === 'answer') {
+      const base = reply(result.entry);
+      // Si la pregunta era ambigua, ofrecemos también las otras coincidencias.
+      const options = [...result.also.map((e) => e.id), ...(base.options ?? [])];
+      return { ...base, options: [...new Set(options)].slice(0, 4) };
+    }
+    if (result.kind === 'denied') return reply(result.entry);
+    const fallback = result.suggestions.length ? result.suggestions : starters;
+    return {
+      role: 'bot',
+      text: t(result.suggestions.length ? 'assistant.notSure' : 'assistant.noMatch'),
+      options: fallback.map((e) => e.id).slice(0, 4),
+    };
+  }
+
+  function send(text: string) {
+    const question = text.trim().slice(0, MAX_INPUT);
+    if (!question) return;
+    setMessages((prev) => [...prev, { role: 'user', text: question }, answerQuestion(question)]);
+    setInput('');
+  }
+
+  function choose(entry: Entry) {
+    setMessages((prev) => [...prev, { role: 'user', text: entryText(entry, 'title', locale) }, reply(entry)]);
   }
 
   function reset() {
     setMessages([]);
-    setError('');
     inputRef.current?.focus();
   }
+
+  const optionButton = (id: string) => {
+    const entry = findEntry(id);
+    if (!entry) return null;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => choose(entry)}
+        className="rounded-xl border border-border px-3 py-2 text-left text-sm transition hover:border-primary/50 hover:bg-primary/5"
+      >
+        {entryText(entry, 'title', locale)}
+      </button>
+    );
+  };
 
   return (
     <>
@@ -205,44 +249,34 @@ export default function HelpAssistant() {
               <div className="space-y-3">
                 <p className="text-muted-foreground">{t('assistant.welcome')}</p>
                 <div className="flex flex-col gap-2">
-                  {suggestions.map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => send(t(key))}
-                      className="rounded-xl border border-border px-3 py-2 text-left text-sm transition hover:border-primary/50 hover:bg-primary/5"
-                    >
-                      {t(key)}
-                    </button>
-                  ))}
+                  {starters.map((e) => optionButton(e.id))}
                 </div>
               </div>
             )}
 
             {messages.map((m, i) => (
-              <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div
-                  className={cn(
-                    'max-w-[85%] rounded-2xl px-3 py-2 leading-relaxed',
-                    m.role === 'user' ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm bg-muted',
-                  )}
-                >
-                  {m.role === 'user'
-                    ? <p className="whitespace-pre-wrap">{m.text}</p>
-                    : <AssistantText text={m.text} onNavigate={() => setOpen(false)} />}
+              <div key={i} className="space-y-2">
+                <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  <div
+                    className={cn(
+                      'max-w-[85%] rounded-2xl px-3 py-2 leading-relaxed',
+                      m.role === 'user' ? 'rounded-br-sm bg-primary text-primary-foreground' : 'rounded-bl-sm bg-muted',
+                    )}
+                  >
+                    {m.role === 'user'
+                      ? <p className="whitespace-pre-wrap">{m.text}</p>
+                      : <AssistantText text={m.text} onNavigate={() => setOpen(false)} />}
+                  </div>
                 </div>
+                {/* Botones de seguimiento solo en la última respuesta. */}
+                {m.role === 'bot' && m.options && m.options.length > 0 && i === messages.length - 1 && (
+                  <div className="flex flex-col gap-2 pl-1">
+                    <p className="text-xs text-muted-foreground">{t('assistant.related')}</p>
+                    {m.options.map(optionButton)}
+                  </div>
+                )}
               </div>
             ))}
-
-            {sending && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('assistant.thinking')}
-              </div>
-            )}
-            {error && (
-              <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-destructive">{error}</p>
-            )}
           </div>
 
           <form
@@ -266,7 +300,7 @@ export default function HelpAssistant() {
             />
             <button
               type="submit"
-              disabled={sending || !input.trim()}
+              disabled={!input.trim()}
               aria-label={t('assistant.send')}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
             >
