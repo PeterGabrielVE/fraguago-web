@@ -364,6 +364,16 @@ export const en: Messages = {
     requestFailed: 'Request failed',
   },
 
+  session: {
+    idleTitle: 'Are you still there?',
+    idleDesc: 'For your security, you’ll be signed out for inactivity in {time}. Do you want to stay signed in?',
+    stay: 'Stay signed in',
+    logout: 'Sign out',
+    renewing: 'Renewing...',
+    idleLoggedOut: 'You were signed out due to inactivity. Sign in again to continue.',
+    expired: 'Your session expired. Sign in again to continue.',
+  },
+
   login: {
     tagline1: 'The system that',
     tagline2: 'forges your gym.',

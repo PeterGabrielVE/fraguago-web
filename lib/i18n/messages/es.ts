@@ -367,6 +367,16 @@ export const es = {
     requestFailed: 'Fallo en la solicitud',
   },
 
+  session: {
+    idleTitle: '¿Sigues ahí?',
+    idleDesc: 'Por seguridad, tu sesión se cerrará por inactividad en {time}. ¿Deseas seguir conectado?',
+    stay: 'Seguir conectado',
+    logout: 'Cerrar sesión',
+    renewing: 'Renovando...',
+    idleLoggedOut: 'Cerramos tu sesión por inactividad. Vuelve a entrar para continuar.',
+    expired: 'Tu sesión expiró. Vuelve a entrar para continuar.',
+  },
+
   login: {
     tagline1: 'El sistema que',
     tagline2: 'forja tu gimnasio.',

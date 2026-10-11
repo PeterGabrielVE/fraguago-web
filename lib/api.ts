@@ -26,7 +26,89 @@ export function getToken(): string | null {
   return localStorage.getItem('fg_token');
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+export type StoredSession = {
+  accessToken: string;
+  role?: string;
+  expiresAt?: number;
+};
+
+export function readTokenPayload(token: string): { role?: string; exp?: number; gymId?: string } {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return {};
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+  } catch {
+    return {};
+  }
+}
+
+// Vigencia del refresh token (debe coincidir con JWT_REFRESH_EXPIRES_SEC del API).
+const REFRESH_TTL_SEC = 7 * 24 * 60 * 60;
+// Cookie marcador (no sensible) que le dice al middleware que hay un refresh
+// token vivo: la cookie real es httpOnly y con path=/api/auth, el middleware
+// no la ve, y sin esto mandaba al login a los 15 min aunque la sesión siguiera.
+const AUTH_MARKER_COOKIE = 'fg_auth';
+
+export function hasRefreshMarker(): boolean {
+  return typeof document !== 'undefined' && document.cookie.split('; ').some((c) => c.startsWith(`${AUTH_MARKER_COOKIE}=`));
+}
+
+// Único punto que guarda la sesión (login y cada renovación), así expiresAt,
+// rol y cookies quedan siempre sincronizados.
+export function saveSession(accessToken: string, role?: string): StoredSession {
+  const payload = readTokenPayload(accessToken);
+  const session: StoredSession = {
+    accessToken,
+    role: role ?? payload.role,
+    expiresAt: payload.exp ? payload.exp * 1000 : undefined,
+  };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fg_token', accessToken);
+    localStorage.setItem('fg_session', JSON.stringify(session));
+    document.cookie = `fg_token=${encodeURIComponent(accessToken)}; path=/;${session.expiresAt ? ` expires=${new Date(session.expiresAt).toUTCString()};` : ''} samesite=lax`;
+    document.cookie = `${AUTH_MARKER_COOKIE}=1; path=/; max-age=${REFRESH_TTL_SEC}; samesite=lax`;
+  }
+  return session;
+}
+
+export function clearStoredSession() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('fg_token');
+  localStorage.removeItem('fg_session');
+  document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
+  document.cookie = `${AUTH_MARKER_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  resetAnalytics();
+}
+
+function isTokenFresh(token: string) {
+  const exp = readTokenPayload(token).exp;
+  return !exp || exp * 1000 > Date.now() + 5_000;
+}
+
+// El API rota el refresh token y, si recibe uno ya usado, lo trata como robo y
+// cierra TODAS las sesiones. Por eso solo puede haber una renovación a la vez:
+// varias peticiones con 401 en paralelo (p. ej. api.list) comparten la misma
+// promesa, y entre pestañas se serializa con Web Locks.
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(staleToken: string | null = getToken()): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  if (!refreshInFlight) {
+    const run = () => doRefresh(staleToken);
+    // request() resuelve con el valor de la promesa del callback (el tipado del DOM no lo aplana).
+    const locked = navigator.locks?.request
+      ? navigator.locks.request('fg-auth-refresh', run) as unknown as Promise<string | null>
+      : run();
+    refreshInFlight = locked.finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(staleToken: string | null): Promise<string | null> {
+  // Otra pestaña pudo renovar mientras esperábamos el lock: usamos su token.
+  const current = getToken();
+  if (current && current !== staleToken && isTokenFresh(current)) return current;
+
   try {
     const response = await fetch(`${BASE}/auth/refresh`, {
       method: 'POST',
@@ -40,11 +122,7 @@ async function refreshAccessToken(): Promise<string | null> {
     const accessToken = data.accessToken ?? data.access_token;
     if (!accessToken) return null;
 
-    localStorage.setItem('fg_token', accessToken);
-    localStorage.setItem('fg_session', JSON.stringify({
-      accessToken,
-      role: data.user?.role ?? data.role,
-    }));
+    saveSession(accessToken, data.user?.role ?? data.role);
     return accessToken;
   } catch {
     return null;
@@ -60,8 +138,9 @@ export function refreshSession(): Promise<string | null> {
 // fetch autenticado con un reintento tras renovar el token si responde 401.
 // Para respuestas binarias (descargas) donde req() no sirve porque parsea JSON.
 export async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  let sentToken: string | null = null;
   const run = () => {
-    const token = getToken();
+    const token = sentToken = getToken();
     return fetch(BASE + path, {
       ...init,
       credentials: 'include',
@@ -69,7 +148,7 @@ export async function authorizedFetch(path: string, init: RequestInit = {}): Pro
     });
   };
   let res = await run();
-  if (res.status === 401 && getToken() && (await refreshAccessToken())) res = await run();
+  if (res.status === 401 && sentToken && (await refreshAccessToken(sentToken))) res = await run();
   return res;
 }
 
@@ -104,7 +183,7 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
   // incorrecta): el 401 sigue como error normal con el mensaje del API.
   if (res.status === 401 && token) {
     if (canRefresh && token && typeof window !== 'undefined') {
-      const refreshedToken = await refreshAccessToken();
+      const refreshedToken = await refreshAccessToken(token);
       if (refreshedToken) {
         return req(path, opts, false);
       }
@@ -112,11 +191,8 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
 
     // El refresh falló o la sesión ya no es recuperable.
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('fg_token');
-      localStorage.removeItem('fg_session');
-      document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
-      resetAnalytics();
-      window.location.href = '/login';
+      clearStoredSession();
+      window.location.href = '/login?reason=expired';
     }
     throw new Error(tActive('api.sessionExpired'));
   }

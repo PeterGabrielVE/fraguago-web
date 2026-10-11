@@ -1,5 +1,5 @@
-import { api, getToken } from './api';
-import { identifyFromToken, resetAnalytics } from './analytics';
+import { api, getToken, readTokenPayload, saveSession, clearStoredSession, hasRefreshMarker, type StoredSession } from './api';
+import { identifyFromToken } from './analytics';
 import { tActive } from './i18n/client';
 
 type LoginResponse = {
@@ -10,40 +10,14 @@ type LoginResponse = {
   data?: { accessToken?: string; access_token?: string; role?: string; user?: { role?: string } };
 };
 
-export type AuthSession = {
-  accessToken: string;
-  role?: string;
-  expiresAt?: number;
-};
-
-function readTokenPayload(token: string): { role?: string; exp?: number; gymId?: string } {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) return {};
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { role?: string; exp?: number; gymId?: string };
-    return decoded;
-  } catch {
-    return {};
-  }
-}
+export type AuthSession = StoredSession;
 
 export async function login(email: string, password: string) {
   const response = await api.post('/auth/login', { email, password }) as LoginResponse;
   const data = response.data ?? response;
   const accessToken = data.accessToken ?? data.access_token;
   if (!accessToken) throw new Error(tActive('labels.auth.noToken'));
-  const tokenPayload = readTokenPayload(accessToken);
-  const session: AuthSession = {
-    accessToken,
-    role: data.user?.role ?? data.role ?? tokenPayload.role,
-    expiresAt: tokenPayload.exp ? tokenPayload.exp * 1000 : undefined,
-  };
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('fg_token', session.accessToken);
-    localStorage.setItem('fg_session', JSON.stringify(session));
-    // Fallback para el middleware durante la navegación en desarrollo.
-    document.cookie = `fg_token=${encodeURIComponent(session.accessToken)}; path=/;${session.expiresAt ? ` expires=${new Date(session.expiresAt).toUTCString()};` : ''} samesite=lax`;
-  }
+  saveSession(accessToken, data.user?.role ?? data.role);
   identifyFromToken(accessToken);
   return { ...data, accessToken };
 }
@@ -72,7 +46,10 @@ export function getSession(): AuthSession | null {
   }
 
   if (!session?.accessToken) return null;
-  if (session.expiresAt && session.expiresAt <= Date.now()) {
+  // Access token vencido NO es sesión vencida: la primera petición recibe 401
+  // y api.ts lo renueva con el refresh token. Solo descartamos si tampoco hay
+  // refresh token vivo (antes esto echaba al usuario a los 15 min al recargar).
+  if (session.expiresAt && session.expiresAt <= Date.now() && !hasRefreshMarker()) {
     clearSession();
     return null;
   }
@@ -81,12 +58,7 @@ export function getSession(): AuthSession | null {
 }
 
 export function clearSession() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('fg_token');
-    localStorage.removeItem('fg_session');
-    document.cookie = 'fg_token=; path=/; max-age=0; samesite=lax';
-  }
-  resetAnalytics();
+  clearStoredSession();
 }
 
 // gym del usuario logueado (viene en el access token).
@@ -109,12 +81,15 @@ export function getRoleRedirect(data?: LoginResponse): string {
   }
 }
 
-export async function logout() {
+// reason se muestra en el login (p. ej. 'idle' tras cierre por inactividad).
+export async function logout(reason?: 'idle') {
   try {
     await api.post('/auth/logout', {});
+  } catch {
+    // Si el token ya no sirve igual cerramos localmente.
   } finally {
     clearSession();
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    if (typeof window !== 'undefined') window.location.href = reason ? `/login?reason=${reason}` : '/login';
   }
 }
 

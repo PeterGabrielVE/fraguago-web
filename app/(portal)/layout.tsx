@@ -8,6 +8,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import BadgeUnlockNotifier from '@/components/BadgeUnlockNotifier';
 import { getSession, logout } from '@/lib/auth';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import SessionTimeout from '@/components/SessionTimeout';
 import { useT } from '@/components/I18nProvider';
 
 const NAV = [
@@ -126,6 +127,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <main>{children}</main>
 
       <BadgeUnlockNotifier />
+      <SessionTimeout />
     </div>
   );
 }

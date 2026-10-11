@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getRoleRedirect, login } from '@/lib/auth';
@@ -25,6 +25,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Motivo del cierre de sesión anterior (inactividad o expiración).
+  const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get('reason');
+    if (reason === 'idle') setNotice(t('session.idleLoggedOut'));
+    else if (reason === 'expired') setNotice(t('session.expired'));
+  }, [t]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,6 +137,15 @@ export default function LoginPage() {
                   {t('login.subtitle')}
                 </p>
               </div>
+
+              {notice && !error && (
+                <Alert className="mb-6 border-amber-200 bg-amber-50">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800">
+                    {notice}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Error Alert */}
               {error && (

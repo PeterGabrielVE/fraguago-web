@@ -8,6 +8,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import GlobalSearch from '@/components/GlobalSearch';
 import NotificationsMenu from '@/components/NotificationsMenu';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import SessionTimeout from '@/components/SessionTimeout';
 import { useT } from '@/components/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Las pantallas leen ?q= / ?id= del buscador global (useSearchParams). */}
         <Suspense fallback={null}>{children}</Suspense>
       </SidebarInset>
+      <SessionTimeout />
     </SidebarProvider>
   );
 }

@@ -46,8 +46,12 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const accessToken = request.cookies.get('fg_token')?.value;
   const refreshToken = request.cookies.get('refresh_token')?.value;
+  // fg_auth: marcador que pone el cliente mientras el refresh token sigue vivo
+  // (la cookie real es httpOnly con path=/api/auth y aquí no llega). Con access
+  // token vencido dejamos pasar: el cliente lo renueva en la primera petición.
+  const hasRefresh = Boolean(refreshToken || request.cookies.get('fg_auth')?.value);
   const payload = accessToken ? readToken(decodeURIComponent(accessToken)) : null;
-  const hasSession = Boolean(payload || refreshToken);
+  const hasSession = Boolean(payload || hasRefresh);
 
   if (isProtectedPath(pathname) && !hasSession) {
     const loginUrl = new URL('/login', request.url);
