@@ -4,20 +4,18 @@ import { Activity, AlertCircle, TrendingUp } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import { fmtMeasurement, toNum, type Measurement, type MeasurementListResponse } from '@/lib/portal';
 import { activeIntlLocale } from '@/lib/i18n/client';
 import { useT } from '@/components/I18nProvider';
 
-function shortDate(iso: string) {
-  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' }).format(new Date(iso));
-}
+// Mismo gráfico que el panel, cargado aparte (Recharts no va en el bundle inicial).
+const WeightChart = dynamic(() => import('@/components/charts/ProgressCharts').then((m) => m.WeightChart), {
+  ssr: false,
+  loading: () => <Skeleton className="h-56 w-full" />,
+});
+
 
 function fullDate(iso: string) {
   return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
@@ -78,9 +76,6 @@ export default function PortalProgressPage() {
 
 function ProgressContent({ measurements }: { measurements: Measurement[] }) {
   const t = useT();
-  const weightChartConfig = {
-    weightKg: { label: t('progress.weightSeries'), theme: { light: '#d97706', dark: '#f59e0b' } },
-  } satisfies ChartConfig;
   const chronological = useMemo(() => [...measurements].reverse(), [measurements]);
   const weightSeries = useMemo(
     () =>
@@ -97,29 +92,7 @@ function ProgressContent({ measurements }: { measurements: Measurement[] }) {
           <TrendingUp className="h-4 w-4 text-amber-600" />
           {t('portal.progress.weightTrend')}
         </h2>
-        {weightSeries.length < 2 ? (
-          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-slate-300 px-4 text-center text-sm text-slate-500">
-            {t('progress.notEnoughWeight')}
-          </div>
-        ) : (
-          <ChartContainer config={weightChartConfig} className="aspect-auto h-56 w-full">
-            <AreaChart data={weightSeries} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={shortDate} minTickGap={20} />
-              <YAxis tickLine={false} axisLine={false} width={32} domain={['auto', 'auto']} />
-              <ChartTooltip content={<ChartTooltipContent indicator="line" labelFormatter={(v) => fullDate(String(v))} />} />
-              <Area
-                dataKey="weightKg"
-                type="monotone"
-                stroke="var(--color-weightKg)"
-                fill="var(--color-weightKg)"
-                fillOpacity={0.1}
-                strokeWidth={2}
-                dot={{ r: 3, fill: 'var(--color-weightKg)', stroke: 'var(--color-background)', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ChartContainer>
-        )}
+        <WeightChart data={weightSeries} />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
