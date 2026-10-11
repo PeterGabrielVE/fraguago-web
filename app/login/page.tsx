@@ -2,14 +2,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getRoleRedirect, login } from '@/lib/auth';
+import { getRoleRedirect, isRoleSelection, login, selectRole, type RoleSelection } from '@/lib/auth';
 import { ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PasswordInput from '@/components/PasswordInput';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Mail, Lock, Zap, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Mail, Lock, Zap, CheckCircle2, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { ROLE_META, isRoleKey } from '@/lib/roles';
 import Flame from '@/components/Flame';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useT } from '@/components/I18nProvider';
@@ -18,6 +19,7 @@ import { useT } from '@/components/I18nProvider';
 // Definir en .env.local -> NEXT_PUBLIC_ENABLE_REGISTRATION=true
 const REGISTRATION_ENABLED = process.env.NEXT_PUBLIC_ENABLE_REGISTRATION === 'true';
 
+
 export default function LoginPage() {
   const t = useT();
   const router = useRouter();
@@ -25,6 +27,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Cuenta con varios roles: tras validar la contraseña se elige con cuál entrar.
+  const [selection, setSelection] = useState<RoleSelection | null>(null);
+  const [choosingRole, setChoosingRole] = useState<string | null>(null);
   // Motivo del cierre de sesión anterior (inactividad o expiración).
   const [notice, setNotice] = useState('');
 
@@ -40,16 +45,48 @@ export default function LoginPage() {
     setError('');
     try {
       const session = await login(email, password);
-      const requestedPath = new URLSearchParams(window.location.search).get('next');
-      const destination = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
-        ? requestedPath
-        : getRoleRedirect(session);
-      router.replace(destination);
+      if (isRoleSelection(session)) {
+        setSelection(session);
+        return;
+      }
+      goToApp(session);
     } catch (e: any) {
       setError(e instanceof ApiError && e.status === 401 ? t('login.invalidCredentials') : e.message || t('login.failed'));
     } finally {
       setLoading(false);
     }
+  }
+
+  function goToApp(session: Parameters<typeof getRoleRedirect>[0]) {
+    const requestedPath = new URLSearchParams(window.location.search).get('next');
+    const destination = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
+      ? requestedPath
+      : getRoleRedirect(session);
+    router.replace(destination);
+  }
+
+  async function chooseRole(role: string) {
+    if (!selection || choosingRole) return;
+    setChoosingRole(role);
+    setError('');
+    try {
+      goToApp(await selectRole(selection.selectionToken, role));
+    } catch (e: any) {
+      // Token de selección vencido (5 min): se vuelve a pedir la contraseña.
+      if (e instanceof ApiError && e.status === 401) {
+        backToCredentials();
+        setError(t('login.roleSelectionExpired'));
+      } else {
+        setError(e.message || t('login.failed'));
+      }
+      setChoosingRole(null);
+    }
+  }
+
+  function backToCredentials() {
+    setSelection(null);
+    setChoosingRole(null);
+    setPassword('');
   }
 
   const features = [
@@ -157,6 +194,51 @@ export default function LoginPage() {
                 </Alert>
               )}
 
+              {selection ? (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-900">{t('login.chooseRole')}</p>
+                    <p className="text-xs text-slate-600">{t('login.chooseRoleHint')}</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {selection.roles.filter(isRoleKey).map((role) => {
+                      const { icon: RoleIcon, name, hint } = ROLE_META[role];
+                      const busy = choosingRole === role;
+                      return (
+                        <li key={role}>
+                          <button
+                            type="button"
+                            onClick={() => chooseRole(role)}
+                            disabled={Boolean(choosingRole)}
+                            className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition hover:border-amber-400 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-60"
+                          >
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                              <RoleIcon className="h-5 w-5" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-slate-900">{t(name)}</span>
+                              <span className="block text-xs text-slate-500">{t(hint)}</span>
+                            </span>
+                            {busy
+                              ? <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                              : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={backToCredentials}
+                    disabled={Boolean(choosingRole)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:underline disabled:opacity-60"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    {t('login.otherAccount')}
+                  </button>
+                </div>
+              ) : (
+              <>
               {/* Form */}
               <form onSubmit={submit} className="space-y-4">
                 {/* Email Field */}
@@ -244,6 +326,8 @@ export default function LoginPage() {
               >
                 {t('login.demo')}
               </Button>
+              </>
+              )}
 
               {/* Footer Text */}
               {REGISTRATION_ENABLED ? (

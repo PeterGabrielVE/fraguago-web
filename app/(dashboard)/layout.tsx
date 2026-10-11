@@ -9,6 +9,8 @@ import GlobalSearch from '@/components/GlobalSearch';
 import NotificationsMenu from '@/components/NotificationsMenu';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SessionTimeout from '@/components/SessionTimeout';
+import HelpAssistant from '@/components/HelpAssistant';
+import RoleSwitcher from '@/components/RoleSwitcher';
 import { useT } from '@/components/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarTrigger aria-label={t('header.toggleSidebar')} title={t('header.toggleSidebar')} />
           <GlobalSearch />
           <div className="ml-auto flex items-center gap-1">
+            <RoleSwitcher />
             <LanguageSwitcher />
             <ThemeToggle />
             <NotificationsMenu />
@@ -43,6 +46,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Las pantallas leen ?q= / ?id= del buscador global (useSearchParams). */}
         <Suspense fallback={null}>{children}</Suspense>
       </SidebarInset>
+      <HelpAssistant />
       <SessionTimeout />
     </SidebarProvider>
   );

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getRoleRedirect, login } from '@/lib/auth';
+import { getRoleRedirect, isRoleSelection, login } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PasswordInput from '@/components/PasswordInput';
@@ -62,7 +62,8 @@ export default function RegisterGymPage() {
       // reutilizando el mismo flujo de auth que el login.
       try {
         const session = await login(ownerEmail, ownerPassword);
-        router.replace(getRoleRedirect(session));
+        // Un dueño recién creado tiene un solo rol; por si acaso, el login elige.
+        router.replace(isRoleSelection(session) ? '/login' : getRoleRedirect(session));
       } catch {
         // Si el auto-login falla, mandamos al login manual.
         router.replace('/login');

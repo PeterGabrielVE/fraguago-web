@@ -47,6 +47,9 @@ export default function Page() {
       title={t('payments.memberships.title')} subtitle={t('payments.memberships.subtitle')}
       icon={CreditCard}
       endpoint="/memberships"
+      // Sin borrado: el API no lo permite y se perdería el historial de pagos;
+      // para dar de baja está "Cancelar membresía".
+      disableDelete
       formVariant="modal"
       // Alta con datos del pago (método, referencia, comprobante): diálogo propio.
       disableCreate
@@ -96,6 +99,7 @@ export default function Page() {
       extraActions={(row) => [
         ...(row.status !== 'CANCELLED' ? [{
           label: t('payments.memberships.renew'),
+          description: t('payments.memberships.renewHint'),
           icon: RefreshCw,
           silent: true,
           // Renovar es un cobro: se registra cómo se pagó.
@@ -108,27 +112,35 @@ export default function Page() {
         // check-in), reactivar o cancelar (definitivo).
         ...(row.status === 'ACTIVE' ? [{
           label: t('payments.memberships.suspend'),
+          description: t('payments.memberships.suspendHint'),
           icon: CirclePause,
           confirm: true,
+          confirmLabel: t('payments.memberships.suspendConfirm'),
+          dismissLabel: t('payments.memberships.keep'),
           confirmTitle: t('payments.memberships.suspendTitle'),
           confirmDescription: t('payments.memberships.suspendDesc', { name: memberFullName(row.member) || t('payments.memberships.theMember') }),
           onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'SUSPENDED' }),
         }] : []),
         ...(row.status === 'SUSPENDED' ? [{
           label: t('payments.memberships.reactivate'),
+          description: t('payments.memberships.reactivateHint'),
           icon: CirclePlay,
           confirm: true,
+          confirmLabel: t('payments.memberships.reactivateConfirm'),
           confirmTitle: t('payments.memberships.reactivateTitle'),
           confirmDescription: t('payments.memberships.reactivateDesc', { name: memberFullName(row.member) || t('payments.memberships.theMember') }),
           onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'ACTIVE' }),
         }] : []),
         ...(row.status !== 'CANCELLED' ? [{
           label: t('payments.memberships.cancel'),
+          description: t('payments.memberships.cancelHint'),
           icon: Ban,
+          danger: true,
           confirm: true,
           confirmTitle: t('payments.memberships.cancelTitle'),
-          confirmDescription: t('payments.memberships.cancelDesc'),
-          className: 'text-red-600',
+          confirmDescription: t('payments.memberships.cancelDesc', { name: memberFullName(row.member) || t('payments.memberships.theMember') }),
+          confirmLabel: t('payments.memberships.cancelConfirm'),
+          dismissLabel: t('payments.memberships.keep'),
           onClick: () => api.patch(`/memberships/${row.id}/status`, { status: 'CANCELLED' }),
         }] : []),
       ]}

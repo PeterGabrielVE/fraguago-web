@@ -9,6 +9,8 @@ import BadgeUnlockNotifier from '@/components/BadgeUnlockNotifier';
 import { getSession, logout } from '@/lib/auth';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SessionTimeout from '@/components/SessionTimeout';
+import HelpAssistant from '@/components/HelpAssistant';
+import RoleSwitcher from '@/components/RoleSwitcher';
 import { useT } from '@/components/I18nProvider';
 
 const NAV = [
@@ -89,6 +91,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
+            <RoleSwitcher />
             <LanguageSwitcher />
             <ThemeToggle />
             <button
@@ -127,6 +130,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <main>{children}</main>
 
       <BadgeUnlockNotifier />
+      <HelpAssistant />
       <SessionTimeout />
     </div>
   );

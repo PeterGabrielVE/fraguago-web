@@ -2,6 +2,7 @@
 import { Children, isValidElement, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
   AlertCircle,
   ChevronDown,
@@ -40,6 +41,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/toast';
+import PasswordInput from '@/components/PasswordInput';
 
 /** `group` se usa junto con `Field.dependsOn` para filtrar opciones según otro campo. */
 export type SelectOption = string | { value: string; label: string; group?: string };
@@ -47,7 +49,7 @@ export type SelectOption = string | { value: string; label: string; group?: stri
 export type Field = {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'datetime-local' | 'time' | 'select' | 'multiselect' | 'email' | 'textarea' | 'checkbox' | 'phone';
+  type?: 'text' | 'number' | 'date' | 'datetime-local' | 'time' | 'select' | 'multiselect' | 'email' | 'textarea' | 'checkbox' | 'phone' | 'password';
   options?: SelectOption[];
   required?: boolean;
   requiredOnEdit?: boolean;
@@ -116,15 +118,29 @@ export type RowAction = {
   icon?: React.ComponentType<{ className?: string }>;
   onClick: () => Promise<any> | void;
   className?: string;
+  /** Explicación corta bajo la etiqueta en el menú (qué hace la acción). */
+  description?: string;
+  /** Acción destructiva: se muestra en rojo y separada del resto. */
+  danger?: boolean;
   /** Si es true, la acción abre un modal de confirmación (como el de crear) en vez de ejecutarse al instante. */
   confirm?: boolean;
   confirmTitle?: string;
   confirmDescription?: React.ReactNode;
+  /** Texto del botón que confirma (por defecto, la etiqueta de la acción). */
+  confirmLabel?: string;
+  /** Texto del botón que cierra el modal sin hacer nada (por defecto, "Cancelar"). */
+  dismissLabel?: string;
   /** Si es true, no muestra el toast automático de "Acción completada" ni refresca la lista al terminar — para acciones que solo abren un diálogo propio (que maneja su propio guardado/toast/refetch) en vez de mutar algo de inmediato. */
   silent?: boolean;
 };
 
 export type ListFilter = { label: string; endpoint: string };
+
+// Posición del menú de acciones de fila (fixed). above: se abre hacia arriba
+// porque la fila está cerca del borde inferior; y es entonces la distancia al
+// borde inferior de la ventana.
+type MenuAnchor = { x: number; y: number; above?: boolean };
+const ROW_MENU_WIDTH = 240;
 
 export default function ResourceManager({
   title, subtitle, icon: Icon, endpoint, columns, fields, getEditValues, renderDetails,
@@ -185,7 +201,7 @@ export default function ResourceManager({
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [menuId, setMenuId] = useState<string | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [statusTarget, setStatusTarget] = useState<{ id: string; label: string; nextStatus: 'ACTIVE' | 'SUSPENDED' } | null>(null);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
@@ -513,6 +529,15 @@ export default function ResourceManager({
             return <option key={value} value={value}>{label}</option>;
           })}
         </select>
+      ) : f.type === 'password' ? (
+        <PasswordInput
+          required={isRequired(f)}
+          value={form[f.name] ?? ''}
+          autoComplete="new-password"
+          onChange={(e) => updateField(f.name, e.target.value)}
+          placeholder={byForm(f.placeholder)}
+          className={inputClass}
+        />
       ) : f.type === 'textarea' ? (
         <textarea
           required={isRequired(f)}
@@ -651,15 +676,18 @@ export default function ResourceManager({
               onClick={() => setConfirmTarget(null)}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
             >
-              {t('common.cancel')}
+              {confirmTarget?.dismissLabel ?? t('common.cancel')}
             </button>
             <button
               type="button"
               disabled={confirmBusy}
               onClick={confirmRowAction}
-              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition disabled:opacity-60"
+              className={cn(
+                'rounded-lg px-4 py-2 text-sm font-medium text-white transition disabled:opacity-60',
+                confirmTarget?.danger ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700',
+              )}
             >
-              {confirmBusy ? t('common.processing') : confirmTarget?.label}
+              {confirmBusy ? t('common.processing') : confirmTarget?.confirmLabel ?? confirmTarget?.label}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -824,12 +852,12 @@ function ResourceTable({
   pageSize: number;
   selectedIds: string[];
   menuId: string | null;
-  menuAnchor: { x: number; y: number } | null;
+  menuAnchor: MenuAnchor | null;
   onQueryChange: (value: string) => void;
   onPageSizeChange: (value: number) => void;
   onPageChange: (value: number) => void;
   onMenuChange: (value: string | null) => void;
-  setMenuAnchor: (anchor: { x: number; y: number } | null) => void;
+  setMenuAnchor: (anchor: MenuAnchor | null) => void;
   onSelectionChange: (value: string[]) => void;
   onEdit: (row: Record<string, any>) => void;
   onDetails?: (row: Record<string, any>) => void;
@@ -1051,7 +1079,14 @@ function ResourceTable({
                         type="button"
                         onClick={(event) => {
                           const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-                          const nextAnchor = menuId === id ? null : { x: rect.right - 128, y: rect.bottom + 8 };
+                          // Alineado al borde derecho del botón, sin salirse de la pantalla.
+                          const x = Math.max(8, Math.min(rect.right - ROW_MENU_WIDTH, window.innerWidth - ROW_MENU_WIDTH - 8));
+                          const above = rect.bottom > window.innerHeight * 0.6;
+                          const nextAnchor: MenuAnchor | null = menuId === id
+                            ? null
+                            : above
+                              ? { x, y: window.innerHeight - rect.top + 8, above }
+                              : { x, y: rect.bottom + 8 };
                           setMenuAnchor(nextAnchor);
                           onMenuChange(nextAnchor ? id : null);
                         }}
@@ -1061,41 +1096,80 @@ function ResourceTable({
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </div>
-                    {menuId === id && menuAnchor && (
-                      <div
-                        className="fixed z-50 w-36 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
-                        style={{ left: `${menuAnchor.x}px`, top: `${menuAnchor.y}px` }}
-                      >
-                        {extraActions?.(row).map((action) => {
-                          const Icon = action.icon;
-                          return (
-                            <button
-                              key={action.label}
-                              type="button"
-                              onClick={() => onRunAction(action)}
-                              className={action.className ?? 'w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50'}
-                            >
-                              {Icon && <Icon className="mr-2 inline h-3.5 w-3.5" />}{action.label}
-                            </button>
-                          );
-                        })}
-                        {statusConfig && onStatusRequest && ['ACTIVE', 'SUSPENDED'].includes(statusConfig.getStatus(row)) && (
+                    {menuId === id && menuAnchor && (() => {
+                      const actions = extraActions?.(row) ?? [];
+                      const safe = actions.filter((action) => !action.danger);
+                      const danger = actions.filter((action) => action.danger);
+                      const status = statusConfig && onStatusRequest ? statusConfig.getStatus(row) : null;
+                      const itemClass = 'flex w-full items-start gap-2.5 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none';
+                      const renderItem = (action: RowAction) => {
+                        const Icon = action.icon;
+                        return (
                           <button
+                            key={action.label}
                             type="button"
-                            onClick={() => onStatusRequest(row, statusConfig.getStatus(row) === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')}
-                            className="w-full px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50"
+                            role="menuitem"
+                            onClick={() => onRunAction(action)}
+                            className={cn(
+                              itemClass,
+                              action.danger
+                                ? 'text-red-600 hover:bg-red-50 focus-visible:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 dark:focus-visible:bg-red-500/10'
+                                : 'text-slate-700 hover:bg-slate-50 focus-visible:bg-slate-50',
+                              action.className,
+                            )}
                           >
-                            <RefreshCw className="mr-2 inline h-3.5 w-3.5" />
-                            {statusConfig.getStatus(row) === 'ACTIVE' ? t('table.suspend') : t('table.reactivate')}
+                            {Icon && <Icon className="mt-0.5 h-4 w-4 shrink-0" />}
+                            <span className="min-w-0">
+                              <span className="block font-medium">{action.label}</span>
+                              {action.description && (
+                                <span className={cn('block text-xs leading-snug', action.danger ? 'text-red-500/80 dark:text-red-400/80' : 'text-slate-500')}>
+                                  {action.description}
+                                </span>
+                              )}
+                            </span>
                           </button>
-                        )}
-                        {!disableDelete && (
-                          <button type="button" onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                            <Trash2 className="mr-2 inline h-3.5 w-3.5" />{t('common.delete')}
-                          </button>
-                        )}
-                      </div>
-                    )}
+                        );
+                      };
+                      const hasSafe = safe.length > 0 || (status !== null && ['ACTIVE', 'SUSPENDED'].includes(status));
+                      const hasDanger = danger.length > 0 || !disableDelete;
+                      return (
+                        <div
+                          role="menu"
+                          className="fixed z-50 rounded-lg border border-slate-200 bg-white py-1 text-left shadow-xl"
+                          style={{
+                            left: `${menuAnchor.x}px`,
+                            width: `${ROW_MENU_WIDTH}px`,
+                            ...(menuAnchor.above ? { bottom: `${menuAnchor.y}px` } : { top: `${menuAnchor.y}px` }),
+                          }}
+                        >
+                          {safe.map(renderItem)}
+                          {status !== null && ['ACTIVE', 'SUSPENDED'].includes(status) && (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => onStatusRequest!(row, status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')}
+                              className={cn(itemClass, 'text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10')}
+                            >
+                              <RefreshCw className="mt-0.5 h-4 w-4 shrink-0" />
+                              <span className="font-medium">{status === 'ACTIVE' ? t('table.suspend') : t('table.reactivate')}</span>
+                            </button>
+                          )}
+                          {hasSafe && hasDanger && <div role="separator" className="my-1 border-t border-slate-200" />}
+                          {danger.map(renderItem)}
+                          {!disableDelete && (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => { onMenuChange(null); setMenuAnchor(null); onDeleteRequest(row); }}
+                              className={cn(itemClass, 'text-red-600 hover:bg-red-50 focus-visible:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 dark:focus-visible:bg-red-500/10')}
+                            >
+                              <Trash2 className="mt-0.5 h-4 w-4 shrink-0" />
+                              <span className="font-medium">{t('common.delete')}</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                 </tr>
               );

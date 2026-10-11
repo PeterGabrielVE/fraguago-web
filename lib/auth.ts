@@ -12,14 +12,47 @@ type LoginResponse = {
 
 export type AuthSession = StoredSession;
 
-export async function login(email: string, password: string) {
-  const response = await api.post('/auth/login', { email, password }) as LoginResponse;
+// Respuesta del login cuando la cuenta tiene varios roles: todavía no hay
+// sesión; con selectionToken (vence en 5 min) se elige el rol en selectRole().
+export type RoleSelection = {
+  roleSelectionRequired: true;
+  roles: string[];
+  selectionToken: string;
+  user?: { firstName?: string; email?: string };
+};
+
+export function isRoleSelection(value: unknown): value is RoleSelection {
+  return Boolean(value && typeof value === 'object' && (value as RoleSelection).roleSelectionRequired);
+}
+
+function startSession(response: LoginResponse) {
   const data = response.data ?? response;
   const accessToken = data.accessToken ?? data.access_token;
   if (!accessToken) throw new Error(tActive('labels.auth.noToken'));
   saveSession(accessToken, data.user?.role ?? data.role);
   identifyFromToken(accessToken);
   return { ...data, accessToken };
+}
+
+export async function login(email: string, password: string) {
+  const response = await api.post('/auth/login', { email, password }) as LoginResponse | RoleSelection;
+  if (isRoleSelection(response)) return response;
+  return startSession(response);
+}
+
+export async function selectRole(selectionToken: string, role: string) {
+  const response = await api.post('/auth/select-role', { selectionToken, role }) as LoginResponse;
+  return startSession(response);
+}
+
+// Cambia el rol de la sesión actual (sin contraseña) y guarda los tokens nuevos.
+export async function switchRole(role: string) {
+  const response = await api.post('/auth/switch-role', { role }) as LoginResponse;
+  return startSession(response);
+}
+
+export async function getMyRoles(): Promise<{ active?: string; roles: string[] }> {
+  return api.get('/auth/roles');
 }
 
 export function getRole(data?: LoginResponse): string | undefined {
