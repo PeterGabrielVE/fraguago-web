@@ -26,6 +26,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink, RecordLink } from '@/components/RecordLink';
+import { links } from '@/lib/links';
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -480,7 +482,7 @@ export default function SalesPage() {
                       <td className="px-4 py-3 text-slate-600">
                         {new Date(s.soldAt).toLocaleString(intlLocale, { dateStyle: 'medium', timeStyle: 'short' })}
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{s.member ? (personLabel(s.member) || s.memberId) : t('operations.sales.walkIn')}</td>
+                      <td className="px-4 py-3 text-slate-700">{s.member ? <MemberLink id={s.memberId} fallback={s.memberId}>{personLabel(s.member)}</MemberLink> : t('operations.sales.walkIn')}</td>
                       <td className="px-4 py-3 text-slate-600">{t('operations.sales.units', { count: itemCount })}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">{formatMoney(s.total)}</td>
                       <td className="px-4 py-3 text-right">
@@ -517,7 +519,9 @@ export default function SalesPage() {
           <div className="space-y-2">
             {(detailSale?.items ?? []).map((it: any) => (
               <div key={it.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-700">{it.product?.name ?? it.productId} × {it.quantity}</span>
+                <span className="text-slate-700">
+                  {it.product?.name ? <RecordLink href={links.product(it.product.name)}>{it.product.name}</RecordLink> : it.productId} × {it.quantity}
+                </span>
                 <span className="font-medium text-slate-800">{formatMoney(it.subtotal)}</span>
               </div>
             ))}

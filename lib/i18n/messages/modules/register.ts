@@ -3,7 +3,7 @@ import { defineMessages } from '../../define';
 // Registro público de un gimnasio nuevo (dueño + gimnasio).
 export const register = defineMessages({
   es: {
-    errPasswordShort: 'La contraseña debe tener al menos 8 caracteres',
+    errPasswordShort: 'La contraseña debe tener al menos 7 caracteres',
     errPasswordMismatch: 'Las contraseñas no coinciden',
     failed: 'No se pudo registrar el gimnasio',
     feature1Title: 'Configura tu gimnasio',
@@ -20,14 +20,14 @@ export const register = defineMessages({
     gymName: 'Nombre del gimnasio',
     ownerName: 'Nombre del propietario',
     confirmPassword: 'Confirmar contraseña',
-    passwordHint: 'Mínimo 8 caracteres',
+    passwordHint: 'Mínimo 7 caracteres',
     creating: 'Creando gimnasio...',
     create: 'Crear gimnasio',
     haveAccount: '¿Ya tienes cuenta?',
     signIn: 'Inicia sesión',
   },
   en: {
-    errPasswordShort: 'The password must be at least 8 characters',
+    errPasswordShort: 'The password must be at least 7 characters',
     errPasswordMismatch: 'The passwords don’t match',
     failed: 'Couldn’t register the gym',
     feature1Title: 'Set up your gym',
@@ -44,7 +44,7 @@ export const register = defineMessages({
     gymName: 'Gym name',
     ownerName: 'Owner name',
     confirmPassword: 'Confirm password',
-    passwordHint: 'At least 8 characters',
+    passwordHint: 'At least 7 characters',
     creating: 'Creating gym...',
     create: 'Create gym',
     haveAccount: 'Already have an account?',

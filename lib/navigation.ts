@@ -33,6 +33,7 @@ import {
   Share2,
   Upload,
   ListChecks,
+  ChartLine,
 } from 'lucide-react';
 
 export type NavItemKey = keyof Messages['nav']['items'];
@@ -56,6 +57,7 @@ export const NAV: NavGroup[] = [
       { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
       { href: '/members', key: 'members', icon: Users },
       { href: '/attendance', key: 'attendance', icon: Clock },
+      { href: '/reports', key: 'reports', icon: ChartLine },
     ],
   },
   {

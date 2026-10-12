@@ -11,7 +11,7 @@ import { activityOptions, preferredTimeOptions, relationshipOptions } from '@/li
 import { useT } from '@/components/I18nProvider';
 
 // Mínimo que exige el API para la contraseña (la cédula, al crear el socio).
-const MIN_PASSWORD_LENGTH = 8;
+const MIN_PASSWORD_LENGTH = 7;
 
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ' +
@@ -70,7 +70,7 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
       setError(t('members.create.errContactIncomplete'));
       return;
     }
-    // La contraseña inicial es la cédula, y el API exige mínimo 8 caracteres.
+    // La contraseña inicial es la cédula, y el API exige mínimo 7 caracteres.
     if (details.identificationNumber.trim().length < MIN_PASSWORD_LENGTH) {
       setError(t('members.create.errIdShort', { min: MIN_PASSWORD_LENGTH }));
       return;

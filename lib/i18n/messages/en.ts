@@ -17,6 +17,7 @@ import { attendance } from './modules/attendance';
 import { dashboard } from './modules/dashboard';
 import { members } from './modules/members';
 import { birthdays } from './modules/birthdays';
+import { reports } from './modules/reports';
 
 export const en: Messages = {
   labels: labels.en,
@@ -37,6 +38,7 @@ export const en: Messages = {
   dashboard: dashboard.en,
   members: members.en,
   birthdays: birthdays.en,
+  reports: reports.en,
 
   common: {
     cancel: 'Cancel',
@@ -61,6 +63,7 @@ export const en: Messages = {
     backToDashboard: 'Back to dashboard',
     signIn: 'Sign in',
     goHome: 'Go home',
+    openInNewTab: 'Open in a new tab',
   },
 
   language: {
@@ -79,6 +82,12 @@ export const en: Messages = {
   header: {
     toggleSidebar: 'Show or hide the menu',
     profile: 'Profile',
+    account: 'My account',
+    myProfile: 'My profile',
+    usersAndRoles: 'Users and roles',
+    gymSettings: 'Gym settings',
+    logoutAll: 'Sign out on all devices',
+    logoutAllFailed: 'Couldn’t sign out the other sessions',
   },
 
   nav: {
@@ -98,6 +107,7 @@ export const en: Messages = {
       dashboard: 'Dashboard',
       members: 'Members',
       attendance: 'Attendance',
+      reports: 'Reports',
       health: 'Health',
       progress: 'Progress',
       emergencyContacts: 'Emergency',
@@ -133,6 +143,7 @@ export const en: Messages = {
       dashboard: 'home, overview, summary, kpi, metrics',
       members: 'clients, customers, subscribers, people',
       attendance: 'check-in, checkin, entry, occupancy, capacity, check-out',
+      reports: 'analytics, statistics, insights, charts, trends',
       health: 'medical record, injuries, allergies, conditions',
       progress: 'measurements, weight, body, evolution',
       emergencyContacts: 'emergency contact, family, next of kin',

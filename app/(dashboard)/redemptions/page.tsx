@@ -22,6 +22,7 @@ import {
   type Redemption,
 } from '@/lib/gamification';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink } from '@/components/RecordLink';
 
 const LIST = '/gamification/redemptions?pageSize=100';
 
@@ -159,7 +160,7 @@ export default function Page() {
       headerActions={<CodeLookup onResolved={() => setReloadKey((k) => k + 1)} />}
       columns={[
         { key: 'code', label: t('gamification.redemptions.code'), render: (r: Redemption) => <span className="font-mono font-semibold tracking-widest">{r.code}</span> },
-        { key: 'member', label: t('gamification.redemptions.member'), render: (r: Redemption) => redemptionMemberName(r) || '—' },
+        { key: 'member', label: t('gamification.redemptions.member'), render: (r: Redemption) => <MemberLink id={r.member?.id}>{redemptionMemberName(r)}</MemberLink> },
         { key: 'reward', label: t('gamification.redemptions.reward'), render: (r: Redemption) => r.reward?.name },
         { key: 'pointsSpent', label: t('gamification.redemptions.points'), render: (r: Redemption) => formatPoints(r.pointsSpent) },
         { key: 'createdAt', label: t('gamification.redemptions.date'), render: (r: Redemption) => new Date(r.createdAt).toLocaleString(intlLocale) },

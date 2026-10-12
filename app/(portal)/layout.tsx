@@ -2,11 +2,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, CreditCard, Clock, Dumbbell, Activity, Gift, Trophy, Share2, User, LogOut, Loader2 } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Clock, Dumbbell, Activity, Gift, Trophy, Share2, User } from 'lucide-react';
 import Flame from '@/components/Flame';
 import ThemeToggle from '@/components/ThemeToggle';
 import BadgeUnlockNotifier from '@/components/BadgeUnlockNotifier';
-import { getSession, logout } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
+import UserMenu from '@/components/UserMenu';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
@@ -34,7 +35,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!getSession()) {
@@ -43,16 +43,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     }
     setReady(true);
   }, [router]);
-
-  async function handleLogout() {
-    if (loggingOut) return;
-    setLoggingOut(true);
-    try {
-      await logout();
-    } catch {
-      setLoggingOut(false);
-    }
-  }
 
   if (!ready) return null;
 
@@ -94,15 +84,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             <RoleSwitcher />
             <LanguageSwitcher />
             <ThemeToggle />
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-60"
-            >
-              {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              <span className="hidden sm:inline">{loggingOut ? t('common.loggingOut') : t('common.logout')}</span>
-            </button>
+            <UserMenu />
           </div>
         </div>
 

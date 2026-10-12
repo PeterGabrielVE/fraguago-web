@@ -32,7 +32,7 @@ export type StoredSession = {
   expiresAt?: number;
 };
 
-export function readTokenPayload(token: string): { role?: string; exp?: number; gymId?: string } {
+export function readTokenPayload(token: string): { sub?: string; email?: string; role?: string; exp?: number; gymId?: string } {
   try {
     const payload = token.split('.')[1];
     if (!payload) return {};

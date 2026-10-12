@@ -6,7 +6,6 @@ import {
   useSidebar,
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
@@ -14,10 +13,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { LogOut, Loader2 } from 'lucide-react';
 import Flame from './Flame';
-import { logout } from '@/lib/auth';
 import { NAV } from '@/lib/navigation';
 import { useT } from '@/components/I18nProvider';
 
@@ -25,7 +21,6 @@ export default function SidebarNav() {
   const t = useT();
   const path = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
-  const [loggingOut, setLoggingOut] = useState(false);
   // Ruta clickeada aún en navegación: se marca activa de inmediato para dar feedback.
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
@@ -39,16 +34,6 @@ export default function SidebarNav() {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     if (href !== path) setPendingHref(href);
     if (isMobile) setOpenMobile(false);
-  }
-
-  async function handleLogout() {
-    if (loggingOut) return;
-    setLoggingOut(true);
-    try {
-      await logout();
-    } catch {
-      setLoggingOut(false);
-    }
   }
 
   return (
@@ -104,19 +89,6 @@ export default function SidebarNav() {
           );
         })}
       </SidebarContent>
-
-      {/* Footer */}
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        <Button
-          onClick={handleLogout}
-          disabled={loggingOut}
-          variant="outline"
-          className="w-full justify-start text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        >
-          {loggingOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
-          {loggingOut ? t('common.loggingOut') : t('common.logout')}
-        </Button>
-      </SidebarFooter>
     </Sidebar>
   );
 }

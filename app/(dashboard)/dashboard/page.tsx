@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import OccupancyCard from '@/components/OccupancyCard';
 import BirthdaysCard from '@/components/BirthdaysCard';
+import { RankedBarList } from '@/components/RankedBarList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -38,6 +39,7 @@ import {
 } from 'lucide-react';
 import { activeIntlLocale } from '@/lib/i18n/client';
 import { useT } from '@/components/I18nProvider';
+import { useMe } from '@/hooks/useMe';
 
 type DaySeries = { date: string; value: number };
 
@@ -84,37 +86,6 @@ function dayNumber(dateStr: string) {
 
 function fullDateLabel(dateStr: string) {
   return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' }).format(new Date(`${dateStr}T00:00:00`));
-}
-
-// Ranking de una sola magnitud (plan más usado, producto más vendido): un solo
-// hue secuencial, nunca un color por fila (eso gastaría el canal de identidad
-// en algo que el largo de la barra ya muestra).
-function RankedBarList({
-  items, valueLabel, emptyLabel,
-}: { items: { label: string; value: number; caption?: string }[]; valueLabel: (v: number) => string; emptyLabel: string }) {
-  if (items.length === 0) {
-    return <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">{emptyLabel}</p>;
-  }
-  const max = Math.max(1, ...items.map((i) => i.value));
-  return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <div key={item.label}>
-          <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-            <span className="truncate font-medium text-foreground">{item.label}</span>
-            <span className="shrink-0 font-mono text-muted-foreground tabular-nums">{valueLabel(item.value)}</span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-amber-500/10">
-            <div
-              className="h-full rounded-full bg-amber-600 dark:bg-amber-500"
-              style={{ width: `${(item.value / max) * 100}%` }}
-            />
-          </div>
-          {item.caption && <p className="mt-1 text-xs text-muted-foreground">{item.caption}</p>}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 // Reparto de socios por estado: es un campo de estado, no identidad libre, así
@@ -200,6 +171,7 @@ function FinanceTrendChart({ series }: { series: { date: string; income: number;
 
 export default function DashboardPage() {
   const t = useT();
+  const me = useMe();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -248,7 +220,7 @@ export default function DashboardPage() {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-primary">{t('dashboard.eyebrow')}</p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t('dashboard.greeting')}</h1>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{me?.firstName ? t('dashboard.greetingName', { name: me.firstName }) : t('dashboard.greeting')}</h1>
           <p className="mt-2 text-muted-foreground">{t('dashboard.intro')}</p>
         </div>
         <div className="rounded-lg bg-card px-4 py-2 text-sm text-muted-foreground ring-1 ring-foreground/10">

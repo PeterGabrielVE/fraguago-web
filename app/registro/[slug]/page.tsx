@@ -17,7 +17,7 @@ import { useT } from '@/components/I18nProvider';
 import { activityOptions, preferredTimeOptions, relationshipOptions } from '@/lib/memberOptions';
 
 // Mínimo que exige el API para la contraseña.
-const MIN_PASSWORD_LENGTH = 8;
+const MIN_PASSWORD_LENGTH = 7;
 
 // text-base en móvil: con menos de 16px iOS hace zoom al enfocar. min-w-0 y
 // appearance-none evitan que el input date de iOS se salga de su columna.

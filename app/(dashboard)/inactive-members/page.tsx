@@ -7,6 +7,8 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { InactiveMember } from '@/lib/retention';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink, RecordLink } from '@/components/RecordLink';
+import { links } from '@/lib/links';
 
 type InactiveResponse = { days: number; total: number; data: InactiveMember[] };
 
@@ -86,7 +88,7 @@ export default function Page() {
                 <tbody className="divide-y divide-slate-100">
                   {d.data.map((m) => (
                     <tr key={m.memberId}>
-                      <td className="px-4 py-3 font-medium text-slate-900">{m.name || '—'}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900"><MemberLink id={m.memberId}>{m.name}</MemberLink></td>
                       <td className="px-4 py-3">
                         <span className={cn(
                           'rounded-full px-2 py-0.5 text-xs font-semibold',
@@ -97,7 +99,7 @@ export default function Page() {
                       </td>
                       <td className="px-4 py-3 text-slate-600">{m.lastAttendance ? DATE(m.lastAttendance) : t('retention.inactive.never')}</td>
                       <td className="px-4 py-3 text-slate-600">
-                        {m.plan ?? '—'}
+                        {m.plan ? <RecordLink href={links.plan(m.plan)}>{m.plan}</RecordLink> : '—'}
                         {m.membershipEnd && <span className="block text-xs text-slate-400">{t('retention.inactive.expires', { date: DATE(m.membershipEnd) })}</span>}
                       </td>
                       <td className="px-4 py-3 text-slate-600">

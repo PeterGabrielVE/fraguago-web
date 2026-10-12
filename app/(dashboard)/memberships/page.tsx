@@ -6,6 +6,8 @@ import { Ban, CirclePause, CirclePlay, CreditCard, Plus, RefreshCw } from 'lucid
 import MembershipPaymentDialog, { type PlanOption } from '@/components/MembershipPaymentDialog';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink, RecordLink } from '@/components/RecordLink';
+import { links } from '@/lib/links';
 
 function nowAsDatetimeLocal() {
   const now = new Date();
@@ -68,8 +70,8 @@ export default function Page() {
         { label: t('payments.memberships.filterExpired'), endpoint: '/memberships/expired' },
       ]}
       columns={[
-        { key: 'member', label: t('payments.memberships.member'), render: (r) => memberFullName(r.member) || r.memberId },
-        { key: 'plan', label: t('payments.memberships.plan'), render: (r) => r.plan?.name || r.planId },
+        { key: 'member', label: t('payments.memberships.member'), render: (r) => <MemberLink id={r.memberId} fallback={r.memberId}>{memberFullName(r.member)}</MemberLink> },
+        { key: 'plan', label: t('payments.memberships.plan'), render: (r) => (r.plan?.name ? <RecordLink href={links.plan(r.plan.name)}>{r.plan.name}</RecordLink> : r.planId) },
         { key: 'endDate', label: t('payments.memberships.expires'), render: (r) => new Date(r.endDate).toLocaleDateString(intlLocale) },
         {
           key: 'status', label: t('payments.memberships.status'), render: (r) => {

@@ -15,6 +15,8 @@ import {
 import { localizedOptions, tActive } from '@/lib/i18n/client';
 import { activityOptions } from '@/lib/memberOptions';
 import { richText, useT } from '@/components/I18nProvider';
+import { MemberLink, RecordLink } from '@/components/RecordLink';
+import { links } from '@/lib/links';
 
 const GOAL_OPTIONS = localizedOptions({
   MUSCLE_GAIN: 'records.goals.options.MUSCLE_GAIN',
@@ -436,8 +438,8 @@ export default function Page() {
         }
         columns={[
           { key: 'name', label: t('routines.name') },
-          { key: 'member', label: t('routines.member'), render: (r) => personLabel(r.member) || r.memberId },
-          { key: 'trainer', label: t('routines.trainer'), render: (r) => personLabel(r.trainer) || '—' },
+          { key: 'member', label: t('routines.member'), render: (r) => <MemberLink id={r.memberId} fallback={r.memberId}>{personLabel(r.member)}</MemberLink> },
+          { key: 'trainer', label: t('routines.trainer'), render: (r) => (personLabel(r.trainer) ? <RecordLink href={links.trainer(personLabel(r.trainer))}>{personLabel(r.trainer)}</RecordLink> : '—') },
         ]}
         fields={[
           { name: 'memberId', label: t('routines.member'), type: 'select', required: true, options: memberOptions },

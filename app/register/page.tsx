@@ -30,7 +30,7 @@ export default function RegisterGymPage() {
     setError('');
 
     // Validaciones básicas del lado del cliente
-    if (ownerPassword.length < 8) {
+    if (ownerPassword.length < 7) {
       setError(t('register.errPasswordShort'));
       return;
     }
@@ -246,7 +246,7 @@ export default function RegisterGymPage() {
                       value={ownerPassword}
                       onChange={(e) => setOwnerPassword(e.target.value)}
                       required
-                      minLength={8}
+                      minLength={7}
                       disabled={loading}
                       className="pl-10 border-slate-200 focus:border-amber-500 focus:ring-amber-500"
                     />
@@ -267,7 +267,7 @@ export default function RegisterGymPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
-                      minLength={8}
+                      minLength={7}
                       disabled={loading}
                       className="pl-10 border-slate-200 focus:border-amber-500 focus:ring-amber-500"
                     />

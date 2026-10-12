@@ -16,6 +16,7 @@ import { attendance } from './modules/attendance';
 import { dashboard } from './modules/dashboard';
 import { members } from './modules/members';
 import { birthdays } from './modules/birthdays';
+import { reports } from './modules/reports';
 
 // Diccionario base (español). Define la forma que deben cumplir los demás idiomas:
 // si falta una clave en en.ts, TypeScript no compila.
@@ -39,6 +40,7 @@ export const es = {
   dashboard: dashboard.es,
   members: members.es,
   birthdays: birthdays.es,
+  reports: reports.es,
 
   common: {
     cancel: 'Cancelar',
@@ -63,6 +65,7 @@ export const es = {
     backToDashboard: 'Volver al dashboard',
     signIn: 'Iniciar sesión',
     goHome: 'Ir al inicio',
+    openInNewTab: 'Abrir en una pestaña nueva',
   },
 
   language: {
@@ -81,6 +84,12 @@ export const es = {
   header: {
     toggleSidebar: 'Mostrar u ocultar el menú',
     profile: 'Perfil',
+    account: 'Mi cuenta',
+    myProfile: 'Mi perfil',
+    usersAndRoles: 'Usuarios y roles',
+    gymSettings: 'Configuración del gimnasio',
+    logoutAll: 'Cerrar sesión en todos los dispositivos',
+    logoutAllFailed: 'No se pudieron cerrar las demás sesiones',
   },
 
   nav: {
@@ -100,6 +109,7 @@ export const es = {
       dashboard: 'Dashboard',
       members: 'Socios',
       attendance: 'Asistencia',
+      reports: 'Reportes',
       health: 'Salud',
       progress: 'Progreso',
       emergencyContacts: 'Emergencia',
@@ -136,6 +146,7 @@ export const es = {
       dashboard: 'inicio, resumen, panel, indicadores, kpi',
       members: 'clientes, miembros, afiliados, alumnos',
       attendance: 'entrada, check-in, checkin, aforo, ingreso, salida',
+      reports: 'informes, estadisticas, analisis, metricas, graficos, tendencias',
       health: 'ficha medica, lesiones, alergias, condiciones',
       progress: 'medidas, peso, mediciones, evolucion',
       emergencyContacts: 'contacto de emergencia, familiar',

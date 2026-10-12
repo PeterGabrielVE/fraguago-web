@@ -55,6 +55,30 @@ export async function getMyRoles(): Promise<{ active?: string; roles: string[] }
   return api.get('/auth/roles');
 }
 
+export type Me = {
+  id: string;
+  email: string;
+  gymId: string;
+  role: string;
+  firstName: string | null;
+  lastName: string | null;
+};
+
+// Lo piden a la vez el menú de la cuenta y el saludo del dashboard: comparten
+// la misma petición. Cambiar de rol o cerrar sesión recarga la página, así que
+// el caché nunca sobrevive a la sesión.
+let mePromise: Promise<Me> | null = null;
+
+export function getMe(): Promise<Me> {
+  if (!mePromise) {
+    mePromise = (api.get('/auth/me') as Promise<Me>).catch((e) => {
+      mePromise = null;
+      throw e;
+    });
+  }
+  return mePromise;
+}
+
 export function getRole(data?: LoginResponse): string | undefined {
   const token = data?.accessToken ?? getToken();
   return data?.user?.role ?? data?.role ?? (token ? readTokenPayload(token).role : undefined);
@@ -124,6 +148,15 @@ export async function logout(reason?: 'idle') {
     clearSession();
     if (typeof window !== 'undefined') window.location.href = reason ? `/login?reason=${reason}` : '/login';
   }
+}
+
+// Revoca los refresh tokens de todos los dispositivos. A diferencia de logout(),
+// si el API falla no se cierra nada: el usuario creería que las otras sesiones
+// quedaron cerradas.
+export async function logoutAll() {
+  await api.post('/auth/logout-all', {});
+  clearSession();
+  if (typeof window !== 'undefined') window.location.href = '/login';
 }
 
 export { getToken };

@@ -9,6 +9,7 @@ import {
   type MessageLog,
 } from '@/lib/retention';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink } from '@/components/RecordLink';
 
 const LIST = '/retention/messages?pageSize=100';
 
@@ -36,7 +37,7 @@ export default function Page() {
       ]}
       columns={[
         { key: 'createdAt', label: t('retention.logs.date'), render: (r: MessageLog) => new Date(r.createdAt).toLocaleString(intlLocale) },
-        { key: 'member', label: t('retention.logs.member'), render: (r: MessageLog) => memberName(r) || <span className="text-slate-400">{t('retention.logs.test')}</span> },
+        { key: 'member', label: t('retention.logs.member'), render: (r: MessageLog) => <MemberLink id={r.member?.id} fallback={<span className="text-slate-400">{t('retention.logs.test')}</span>}>{memberName(r)}</MemberLink> },
         { key: 'automatedMessage', label: t('retention.logs.message'), render: (r: MessageLog) => r.automatedMessage?.name ?? r.subject ?? '—' },
         { key: 'channel', label: t('retention.logs.channel'), render: (r: MessageLog) => `${CHANNEL_LABELS[r.channel]} · ${r.recipient}` },
         {

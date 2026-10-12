@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { localizedRecord } from '@/lib/i18n/client';
 import { useI18n } from '@/components/I18nProvider';
+import { RecordLink } from '@/components/RecordLink';
+import { links } from '@/lib/links';
 
 type ExchangeRate = { currency: string; rate: number | string; source?: string | null };
 type Concept = { id: string; name: string; kind: 'INCOME' | 'EXPENSE' };
@@ -406,7 +408,7 @@ export default function FinancesPage() {
                           <span className="text-slate-400"> (≈ {formatMoney(tx.amountBase, baseCurrency)})</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{tx.concept?.name || '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">{tx.concept?.name ? <RecordLink href={links.concept(tx.concept.name)}>{tx.concept.name}</RecordLink> : '—'}</td>
                       <td className="px-4 py-3 text-slate-500">{tx.note || '—'}</td>
                       <td className="px-4 py-3 text-slate-700">{new Date(tx.date).toLocaleDateString(intlLocale)}</td>
                     </tr>

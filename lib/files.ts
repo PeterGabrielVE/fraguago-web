@@ -80,7 +80,9 @@ export function uploadWithProgress<T>(
 export function downloadCsv(fileName: string, headers: string[], rows: (string | number)[][]) {
   const cell = (v: string | number) => {
     let text = String(v ?? '');
-    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`; // evita fórmulas al abrir en Excel
+    // Evita fórmulas al abrir en Excel. Los números no pueden serlo, y el
+    // apóstrofo convertiría un negativo en texto.
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
     return /[";\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   const csv = [headers, ...rows].map((r) => r.map(cell).join(';')).join('\r\n');

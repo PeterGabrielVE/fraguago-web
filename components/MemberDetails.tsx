@@ -15,6 +15,8 @@ import {
 } from '@/lib/attendanceStreak';
 import Flame from '@/components/Flame';
 import MemberPointsPanel from '@/components/MemberPointsPanel';
+import { RecordLink } from '@/components/RecordLink';
+import { links } from '@/lib/links';
 import { activityOptions, preferredTimeOptions, relationshipOptions } from '@/lib/memberOptions';
 import { SHIFT_LABELS } from '@/lib/portal';
 import { activeIntlLocale } from '@/lib/i18n/client';
@@ -96,6 +98,8 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
     birthDate: member.birthDate?.slice(0, 10) ?? '',
   });
   const age = ageFrom(details.birthDate);
+  // Nombre guardado (no el que se está editando): es por el que filtran los otros módulos.
+  const fullName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim();
   const [health, setHealth] = useState<HealthProfile>({});
   const [contact, setContact] = useState<EmergencyContact>({});
   const [healthLoaded, setHealthLoaded] = useState(false);
@@ -226,6 +230,14 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">{t('members.details.eyebrow')}</p>
             <h2 id="member-details-title" className="mt-1 text-2xl font-bold text-slate-900">{details.firstName} {details.lastName}</h2>
+            {fullName && (
+              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+                <span className="text-slate-500">{t('members.details.viewIn')}</span>
+                <RecordLink href={links.memberMemberships(fullName)}>{t('nav.items.memberships')}</RecordLink>
+                <RecordLink href={links.memberPayments(fullName)}>{t('nav.items.paymentRecords')}</RecordLink>
+                <RecordLink href={links.memberRoutines(fullName)}>{t('nav.items.routines')}</RecordLink>
+              </p>
+            )}
           </div>
           <button type="button" onClick={onClose} aria-label={t('members.details.backLabel')} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><X className="h-5 w-5" />{t('members.details.back')}</button>
         </header>
@@ -290,7 +302,11 @@ export default function MemberDetails({ member, onClose }: { member: MemberDetai
                       const s = effectiveMembershipStatus(m);
                       return (
                         <tr key={m.id} className="border-b border-slate-100 last:border-0">
-                          <td className="px-4 py-3 font-medium text-slate-700">{m.plan?.name ?? '—'}</td>
+                          <td className="px-4 py-3 font-medium text-slate-700">
+                            {fullName
+                              ? <RecordLink href={links.memberMemberships(fullName)}>{m.plan?.name ?? '—'}</RecordLink>
+                              : m.plan?.name ?? '—'}
+                          </td>
                           <td className="px-4 py-3 text-slate-600">{new Date(m.startDate).toLocaleDateString(activeIntlLocale())}</td>
                           <td className="px-4 py-3 text-slate-600">{new Date(m.endDate).toLocaleDateString(activeIntlLocale())}</td>
                           <td className="px-4 py-3">

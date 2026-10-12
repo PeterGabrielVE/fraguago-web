@@ -11,6 +11,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
+import UserMenu from '@/components/UserMenu';
 import { useT } from '@/components/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -40,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LanguageSwitcher />
             <ThemeToggle />
             <NotificationsMenu />
-            <div className="ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">FG</div>
+            <UserMenu />
           </div>
         </header>
         {/* Las pantallas leen ?q= / ?id= del buscador global (useSearchParams). */}

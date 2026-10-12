@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { SHIFT_LABELS } from '@/lib/portal';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink } from '@/components/RecordLink';
 
 function toISODate(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -366,9 +367,7 @@ export default function AttendancePage() {
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-slate-700">
-                            {a.member?.user?.profile?.firstName
-                              ? `${a.member.user.profile.firstName} ${a.member.user.profile.lastName ?? ''}`.trim()
-                              : a.memberId}
+                            <MemberLink id={a.memberId} fallback={a.memberId}>{memberFullName(a.member)}</MemberLink>
                           </span>
                         </div>
                       </td>

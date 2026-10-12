@@ -9,6 +9,8 @@ import BankSelect from '@/components/BankSelect';
 import { METHOD_FIELDS, REFERENCE_REQUIRED, emptyPayment, referencePlaceholder, validatePayment, type PaymentMethod } from '@/lib/payments';
 import { localizedOptions, localizedRecord } from '@/lib/i18n/client';
 import { useI18n } from '@/components/I18nProvider';
+import { MemberLink } from '@/components/RecordLink';
+import { personName } from '@/lib/links';
 
 const TYPE_KEYS = { INCOME: 'labels.conceptKind.INCOME', EXPENSE: 'labels.conceptKind.EXPENSE' } as const;
 const TYPE_LABELS: Record<string, string> = localizedRecord(TYPE_KEYS);
@@ -55,6 +57,7 @@ export default function Page() {
       columns={[
         { key: 'type', label: t('payments.records.type'), render: (r) => TYPE_LABELS[r.type] ?? r.type },
         { key: 'amount', label: t('payments.records.amount'), render: (r) => formatMoney(r.amount, r.currency) },
+        { key: 'member', label: t('payments.memberships.member'), render: (r) => <MemberLink id={r.member?.id}>{personName(r.member)}</MemberLink> },
         { key: 'paymentMethod', label: t('payments.records.method'), render: (r) => (r.paymentMethod ? METHOD_LABELS[r.paymentMethod] ?? r.paymentMethod : '—') },
         {
           key: 'paymentReference', label: t('payments.records.reference'),
