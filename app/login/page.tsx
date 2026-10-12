@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getRoleRedirect, isRoleSelection, login, selectRole, type RoleSelection } from '@/lib/auth';
 import { ApiError } from '@/lib/api';
+import { APP_VERSION } from '@/lib/version';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PasswordInput from '@/components/PasswordInput';
@@ -138,7 +139,7 @@ export default function LoginPage() {
               <h1 className="text-xl font-bold text-white lg:text-2xl">
                 Fragua<span className="text-amber-400">Go</span>
               </h1>
-              <p className="hidden text-xs text-slate-400 lg:block">v0.1.0</p>
+              <p className="hidden text-xs text-slate-400 lg:block">v{APP_VERSION}</p>
             </div>
             <LanguageSwitcher tone="onDark" className="ml-auto lg:hidden" />
           </div>

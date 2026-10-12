@@ -1,4 +1,5 @@
 'use client';
+import { APP_VERSION } from '@/lib/version';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -48,7 +49,7 @@ export default function SidebarNav() {
             <h1 className="text-lg font-bold text-white">
               Fragua<span className="text-primary">Go</span>
             </h1>
-            <p className="text-xs text-slate-300">v0.1.0</p>
+            <p className="text-xs text-slate-300">v{APP_VERSION}</p>
           </div>
         </Link>
       </div>

@@ -12,6 +12,7 @@ import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
 import UserMenu from '@/components/UserMenu';
+import AppFooter from '@/components/AppFooter';
 import OfflineProvider from '@/components/offline/OfflineProvider';
 import SyncIndicator from '@/components/offline/SyncIndicator';
 import { useT } from '@/components/I18nProvider';
@@ -57,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div id="main-content" tabIndex={-1} className="min-w-0 flex-1">
           <Suspense fallback={null}>{children}</Suspense>
         </div>
+        <AppFooter />
       </SidebarInset>
       <HelpAssistant />
       <SessionTimeout />

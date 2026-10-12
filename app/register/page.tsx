@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getRoleRedirect, isRoleSelection, login } from '@/lib/auth';
+import { APP_VERSION } from '@/lib/version';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PasswordInput from '@/components/PasswordInput';
@@ -102,7 +103,7 @@ export default function RegisterGymPage() {
               <h1 className="text-2xl font-bold text-white">
                 Fragua<span className="text-amber-400">Go</span>
               </h1>
-              <p className="text-xs text-slate-400">v0.1.0</p>
+              <p className="text-xs text-slate-400">v{APP_VERSION}</p>
             </div>
           </div>
 

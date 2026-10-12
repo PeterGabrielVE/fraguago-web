@@ -46,6 +46,7 @@ export const es = {
 
   common: {
     skipToContent: 'Saltar al contenido',
+    rightsReserved: 'Todos los derechos reservados.',
     cancel: 'Cancelar',
     save: 'Guardar',
     update: 'Actualizar',

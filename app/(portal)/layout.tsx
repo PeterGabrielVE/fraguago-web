@@ -12,6 +12,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
+import AppFooter from '@/components/AppFooter';
 import OfflineProvider from '@/components/offline/OfflineProvider';
 import SyncIndicator from '@/components/offline/SyncIndicator';
 import { useT } from '@/components/I18nProvider';
@@ -55,7 +56,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   if (!ready) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <a
         href="#main-content"
         className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:px-4 focus:py-2 focus:shadow-lg"
@@ -126,7 +127,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </nav>
       </header>
 
-      <main id="main-content" tabIndex={-1}>{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
+      <AppFooter />
 
       <BadgeUnlockNotifier />
       <HelpAssistant />

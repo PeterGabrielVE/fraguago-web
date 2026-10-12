@@ -44,6 +44,7 @@ export const en: Messages = {
 
   common: {
     skipToContent: 'Skip to content',
+    rightsReserved: 'All rights reserved.',
     cancel: 'Cancel',
     save: 'Save',
     update: 'Update',
