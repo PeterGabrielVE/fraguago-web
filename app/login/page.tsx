@@ -19,6 +19,12 @@ import { useT } from '@/components/I18nProvider';
 // Definir en .env.local -> NEXT_PUBLIC_ENABLE_REGISTRATION=true
 const REGISTRATION_ENABLED = process.env.NEXT_PUBLIC_ENABLE_REGISTRATION === 'true';
 
+// Campos: en móvil solo una línea inferior (sin caja), en escritorio la caja habitual.
+// text-base (16px) en móvil: con menos, iOS hace zoom al enfocar.
+const fieldClass =
+  'h-12 pl-7 text-base border-slate-200 focus:border-amber-500 focus:ring-amber-500 lg:h-10 lg:pl-10 lg:text-sm ' +
+  'max-lg:rounded-none max-lg:border-0 max-lg:border-b max-lg:border-slate-300 max-lg:bg-transparent max-lg:shadow-none ' +
+  'max-lg:focus-visible:border-amber-500 max-lg:focus-visible:ring-0';
 
 export default function LoginPage() {
   const t = useT();
@@ -96,33 +102,50 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="theme-static grid min-h-screen grid-cols-1 lg:grid-cols-2">
+    // En móvil: cabecera con formas orgánicas y el saludo, una ola que da paso
+    // al formulario en blanco, todo sin desplazarse. El panel completo (lema y
+    // ventajas) y la tarjeta son para escritorio.
+    <div className="theme-static grid min-h-dvh grid-cols-1 grid-rows-[auto_1fr] bg-white lg:grid-cols-2 lg:grid-rows-1 lg:bg-slate-900">
       {/* Left - Branding & Features */}
-      <div className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-12 sm:px-12 lg:px-16">
+      <div className="relative flex min-h-[38dvh] flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 pb-20 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-12 lg:min-h-0 lg:px-16 lg:py-12">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -right-40 -top-40 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
         </div>
 
+        {/* Solo móvil: manchas orgánicas en los tonos de la marca y la ola inferior. */}
+        <div className="pointer-events-none absolute inset-0 lg:hidden" aria-hidden="true">
+          <div className="absolute -right-16 -top-10 h-64 w-72 rounded-[42%_58%_36%_64%/55%_38%_62%_45%] bg-slate-950/45" />
+          <div className="absolute -left-20 bottom-4 h-48 w-64 rounded-[61%_39%_52%_48%/44%_58%_42%_56%] bg-slate-950/35" />
+          <div className="absolute right-8 top-16 h-20 w-24 rounded-[58%_42%_47%_53%/46%_57%_43%_54%] bg-amber-500/25" />
+          <div className="absolute right-28 top-6 h-5 w-6 rounded-[55%_45%_60%_40%/50%_60%_40%_50%] bg-amber-400/40" />
+          <div className="absolute bottom-20 left-10 h-12 w-16 rounded-[45%_55%_40%_60%/60%_45%_55%_40%] bg-amber-500/20" />
+          <div className="absolute bottom-28 right-12 h-7 w-8 rounded-[60%_40%_55%_45%/45%_55%_45%_55%] bg-amber-400/30" />
+          <svg viewBox="0 0 390 64" preserveAspectRatio="none" className="absolute inset-x-0 -bottom-px h-14 w-full">
+            <path fill="#fff" d="M0 34 C 55 4, 115 2, 190 24 S 320 62, 390 22 V64 H0 Z" />
+          </svg>
+        </div>
+
         {/* Content */}
         <div className="relative z-10">
           {/* Logo */}
-          <div className="mb-12 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg">
+          <div className="mb-6 flex items-center gap-3 lg:mb-12">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg lg:h-12 lg:w-12">
               <Flame size={11} color="#fff" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-xl font-bold text-white lg:text-2xl">
                 Fragua<span className="text-amber-400">Go</span>
               </h1>
-              <p className="text-xs text-slate-400">v0.1.0</p>
+              <p className="hidden text-xs text-slate-400 lg:block">v0.1.0</p>
             </div>
+            <LanguageSwitcher tone="onDark" className="ml-auto lg:hidden" />
           </div>
 
           {/* Main heading */}
-          <div className="space-y-4">
-            <h2 className="text-4xl font-bold leading-tight text-white sm:text-5xl">
+          <div className="hidden space-y-4 lg:block">
+            <h2 className="text-5xl font-bold leading-tight text-white">
               {t('login.tagline1')}<br />
               <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">{t('login.tagline2')}</span>
             </h2>
@@ -130,10 +153,16 @@ export default function LoginPage() {
               {t('login.intro')}
             </p>
           </div>
+
+          {/* Saludo (móvil): en escritorio va dentro de la tarjeta. */}
+          <div className="mt-10 space-y-2 lg:hidden">
+            <h2 className="text-4xl font-bold leading-tight text-white">{t('login.welcome')}</h2>
+            <p className="text-sm text-slate-300">{t('login.subtitle')}</p>
+          </div>
         </div>
 
         {/* Features */}
-        <div className="relative z-10 space-y-4">
+        <div className="relative z-10 hidden space-y-4 lg:block">
           {features.map((feature, i) => {
             const Icon = feature.icon;
             return (
@@ -152,23 +181,23 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="relative z-10 flex items-center gap-2 text-xs text-slate-400">
+        <div className="relative z-10 hidden items-center gap-2 text-xs text-slate-400 lg:flex">
           <Zap className="h-4 w-4 text-amber-400" />
           <span>{t('login.footerBadges')}</span>
         </div>
       </div>
 
-      {/* Right - Login Form */}
-      <div className="flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
+      {/* Right - Login Form. En móvil va directo sobre blanco, sin tarjeta. */}
+      <div className="flex items-start justify-center bg-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-6 lg:items-center lg:bg-slate-50 lg:px-8 lg:py-12">
         <div className="w-full max-w-sm space-y-6">
-          <div className="flex justify-end">
+          <div className="hidden justify-end lg:flex">
             <LanguageSwitcher />
           </div>
           {/* Card */}
-          <Card className="border-0 shadow-xl">
-            <div className="p-6 sm:p-10">
+          <Card className="border-0 shadow-xl max-lg:rounded-none max-lg:bg-transparent max-lg:py-0 max-lg:shadow-none max-lg:ring-0">
+            <div className="lg:p-10">
               {/* Header */}
-              <div className="mb-8 space-y-2">
+              <div className="mb-8 hidden space-y-2 lg:block">
                 <h2 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('login.welcome')}</h2>
                 <p className="text-sm text-slate-600">
                   {t('login.subtitle')}
@@ -247,16 +276,21 @@ export default function LoginPage() {
                     {t('common.email')}
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Mail className="pointer-events-none absolute left-0 top-1/2 z-10 lg:left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <Input
                       id="email"
                       type="email"
+                      inputMode="email"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       placeholder="admin@gimnasio.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={loading}
-                      className="pl-10 border-slate-200 focus:border-amber-500 focus:ring-amber-500"
+                      className={fieldClass}
                     />
                   </div>
                 </div>
@@ -267,19 +301,20 @@ export default function LoginPage() {
                     {t('common.password')}
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Lock className="pointer-events-none absolute left-0 top-1/2 z-10 lg:left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <PasswordInput
                       id="password"
+                      autoComplete="current-password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={loading}
-                      className="pl-10 border-slate-200 focus:border-amber-500 focus:ring-amber-500"
+                      className={fieldClass}
                     />
                   </div>
                   <div className="text-right">
-                    <Link href="/forgot-password" className="text-xs font-medium text-amber-600 hover:underline">
+                    <Link href="/forgot-password" className="inline-block py-2 text-sm font-medium text-amber-600 hover:underline lg:py-0 lg:text-xs">
                       {t('login.forgot')}
                     </Link>
                   </div>
@@ -289,7 +324,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="mt-6 w-full bg-gradient-to-r from-amber-500 to-amber-600 py-2 text-base font-semibold hover:from-amber-600 hover:to-amber-700 transition-all"
+                  className="mt-2 h-12 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-base font-semibold hover:from-amber-600 hover:to-amber-700 transition-all lg:mt-6 lg:h-10"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -316,7 +351,7 @@ export default function LoginPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-slate-200 hover:bg-slate-50"
+                className="h-12 w-full rounded-xl border-slate-300 hover:bg-slate-50 lg:h-10"
                 disabled={loading}
                 onClick={() => {
                   // Cuenta del gym ficticio "Gym Demo" (fraguago-api: npm run seed:demo).
