@@ -13,6 +13,7 @@ import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
 import UserMenu from '@/components/UserMenu';
 import AppFooter from '@/components/AppFooter';
+import AppBreadcrumbs from '@/components/AppBreadcrumbs';
 import OfflineProvider from '@/components/offline/OfflineProvider';
 import SyncIndicator from '@/components/offline/SyncIndicator';
 import { useT } from '@/components/I18nProvider';
@@ -54,6 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <UserMenu />
           </div>
         </header>
+        <AppBreadcrumbs />
         {/* Las pantallas leen ?q= / ?id= del buscador global (useSearchParams). */}
         <div id="main-content" tabIndex={-1} className="min-w-0 flex-1">
           <Suspense fallback={null}>{children}</Suspense>

@@ -13,6 +13,7 @@ import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
 import AppFooter from '@/components/AppFooter';
+import AppBreadcrumbs from '@/components/AppBreadcrumbs';
 import OfflineProvider from '@/components/offline/OfflineProvider';
 import SyncIndicator from '@/components/offline/SyncIndicator';
 import { useT } from '@/components/I18nProvider';
@@ -127,6 +128,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </nav>
       </header>
 
+      <AppBreadcrumbs />
       <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
       <AppFooter />
 

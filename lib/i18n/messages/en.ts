@@ -94,6 +94,12 @@ export const en: Messages = {
     logoutAllFailed: 'Couldn’t sign out the other sessions',
   },
 
+  breadcrumbs: {
+    label: 'Breadcrumb',
+    home: 'Home',
+    detail: 'Details',
+  },
+
   nav: {
     groups: {
       general: 'General',

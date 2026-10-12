@@ -96,6 +96,12 @@ export const es = {
     logoutAllFailed: 'No se pudieron cerrar las demás sesiones',
   },
 
+  breadcrumbs: {
+    label: 'Ruta de navegación',
+    home: 'Inicio',
+    detail: 'Detalle',
+  },
+
   nav: {
     groups: {
       general: 'General',
