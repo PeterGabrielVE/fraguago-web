@@ -22,16 +22,19 @@ function getMemberStatus(member: Record<string, any>) {
   if (status === 'INACTIVE') return 'INACTIVE';
   if (status === 'EXPIRED') return 'EXPIRED';
 
+  // Vencido = tuvo membresías y ninguna sigue vigente. Las anteriores ya
+  // vencidas (renovaciones, historial importado) no cuentan si hay una vigente.
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const hasExpiredMembership = (member.memberships ?? []).some((membership: Record<string, any>) => {
-    if (!membership.endDate) return false;
+  const memberships = (member.memberships ?? []).filter((membership: Record<string, any>) =>
+    membership.endDate && String(membership.status ?? '').toUpperCase() !== 'CANCELLED');
+  const hasCurrentMembership = memberships.some((membership: Record<string, any>) => {
     const endDate = new Date(membership.endDate);
     endDate.setHours(0, 0, 0, 0);
-    return endDate < today;
+    return endDate >= today;
   });
 
-  return hasExpiredMembership ? 'EXPIRED' : 'ACTIVE';
+  return memberships.length > 0 && !hasCurrentMembership ? 'EXPIRED' : 'ACTIVE';
 }
 
 const MEMBER_STATUSES = ['ACTIVE', 'SUSPENDED', 'INACTIVE', 'EXPIRED'] as const;
