@@ -69,7 +69,7 @@ export default function SidebarNav() {
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
-                        render={<Link href={item.href} onClick={(event) => handleNavigate(event, item.href)} />}
+                        render={<Link href={item.href} aria-current={isActive ? 'page' : undefined} onClick={(event) => handleNavigate(event, item.href)} />}
                         className={`rounded-lg transition-colors ${
                           isActive
                             ? 'bg-primary font-semibold text-primary-foreground shadow-sm shadow-primary/20'
@@ -77,7 +77,7 @@ export default function SidebarNav() {
                         }`}
                       >
                         <>
-                          <ItemIcon className="h-4 w-4" />
+                          <ItemIcon className="h-4 w-4" aria-hidden="true" />
                           <span>{t(`nav.items.${item.key}`)}</span>
                         </>
                       </SidebarMenuButton>

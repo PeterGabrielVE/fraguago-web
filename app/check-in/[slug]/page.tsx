@@ -108,7 +108,7 @@ export default function PublicCheckInPage() {
         </div>
 
         <Card className="border-0 shadow-xl">
-          <div className="p-8 sm:p-10">
+          <div className="p-6 sm:p-10">
             {gymError ? (
               <Alert variant="destructive" className="border-red-200 bg-red-50">
                 <AlertCircle className="h-4 w-4" />
@@ -139,7 +139,7 @@ export default function PublicCheckInPage() {
             ) : (
               <>
                 <div className="mb-8 space-y-2 text-center">
-                  <h1 className="text-3xl font-bold text-slate-900">{t('attendance.kiosk.title')}</h1>
+                  <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('attendance.kiosk.title')}</h1>
                   <p className="text-sm leading-6 text-slate-600">
                     {t('attendance.kiosk.intro')}
                   </p>

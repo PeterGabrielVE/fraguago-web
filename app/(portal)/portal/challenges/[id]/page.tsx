@@ -45,7 +45,7 @@ export default function PortalChallengeDetailPage() {
   );
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       <Link href="/portal/challenges" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
         <ArrowLeft className="h-4 w-4" /> {t('challenges.back')}
       </Link>
@@ -120,7 +120,7 @@ function ChallengeDetail({ challenge, onChanged }: { challenge: MemberChallenge;
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl" aria-hidden="true">
               <Trophy className="h-7 w-7" />
             </div>
             <div>

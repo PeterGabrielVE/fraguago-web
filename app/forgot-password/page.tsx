@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
         </Link>
 
         <Card className="border-0 shadow-xl">
-          <div className="p-8 sm:p-10">
+          <div className="p-6 sm:p-10">
             {submitted ? (
               <div className="space-y-5 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
             ) : (
               <>
                 <div className="mb-8 space-y-2">
-                  <h1 className="text-3xl font-bold text-slate-900">{t('forgotPassword.title')}</h1>
+                  <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('forgotPassword.title')}</h1>
                   <p className="text-sm leading-6 text-slate-600">
                     {t('forgotPassword.intro')}
                   </p>

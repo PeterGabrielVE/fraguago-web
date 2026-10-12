@@ -6,7 +6,7 @@ import ExportButton from '@/components/ExportButton';
 import SignupLinkButton from '@/components/SignupLinkButton';
 import MemberCreate from '@/components/MemberCreate';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { SlidersHorizontal, User, Users, X } from 'lucide-react';
+import { ChevronDown, SlidersHorizontal, User, Users, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { activityOptions, preferredTimeOptions } from '@/lib/memberOptions';
 import { useT } from '@/components/I18nProvider';
@@ -75,20 +75,37 @@ const filterInput = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-
 function MemberFilters({ value, onChange }: { value: MemberFilterState; onChange: (value: MemberFilterState) => void }) {
   const t = useT();
   const months = monthNames(activeIntlLocale());
-  const active = Object.values(value).some(Boolean);
+  const activeCount = Object.values(value).filter(Boolean).length;
+  const active = activeCount > 0;
+  // En móvil los filtros arrancan plegados: si no, empujan la lista fuera de la pantalla.
+  const [expanded, setExpanded] = useState(false);
   const set = (key: keyof MemberFilterState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange({ ...value, [key]: e.target.value });
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold text-slate-800"><SlidersHorizontal className="h-4 w-4 text-amber-600" />{t('birthdays.filters.title')}</p>
+      <div className="flex items-center justify-between gap-2 sm:mb-3">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls="member-filters"
+          className="-m-1 flex items-center gap-2 rounded-md p-1 text-sm font-semibold text-slate-800 sm:hidden"
+        >
+          <SlidersHorizontal className="h-4 w-4 text-amber-600" aria-hidden="true" />
+          {t('birthdays.filters.title')}
+          {active && <span className="rounded-full bg-amber-600 px-1.5 text-[10px] text-white">{activeCount}</span>}
+          <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+        </button>
+        <p className="hidden items-center gap-2 text-sm font-semibold text-slate-800 sm:flex">
+          <SlidersHorizontal className="h-4 w-4 text-amber-600" aria-hidden="true" />{t('birthdays.filters.title')}
+        </p>
         {active && (
           <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">
             <X className="h-3.5 w-3.5" />{t('birthdays.filters.clear')}
           </button>
         )}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div id="member-filters" className={`mt-3 gap-3 sm:mt-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 ${expanded ? 'grid' : 'hidden'}`}>
         <label className="text-xs font-medium text-slate-600">{t('birthdays.filters.ageFrom')}
           <input type="number" min={0} max={120} inputMode="numeric" value={value.ageFrom} onChange={set('ageFrom')} className={`${filterInput} mt-1`} />
         </label>

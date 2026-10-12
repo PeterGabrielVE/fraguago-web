@@ -166,10 +166,10 @@ export default function LoginPage() {
           </div>
           {/* Card */}
           <Card className="border-0 shadow-xl">
-            <div className="p-8 sm:p-10">
+            <div className="p-6 sm:p-10">
               {/* Header */}
               <div className="mb-8 space-y-2">
-                <h2 className="text-3xl font-bold text-slate-900">{t('login.welcome')}</h2>
+                <h2 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('login.welcome')}</h2>
                 <p className="text-sm text-slate-600">
                   {t('login.subtitle')}
                 </p>

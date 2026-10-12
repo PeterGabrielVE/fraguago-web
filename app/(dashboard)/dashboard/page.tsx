@@ -7,23 +7,8 @@ import BirthdaysCard from '@/components/BirthdaysCard';
 import { RankedBarList } from '@/components/RankedBarList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertCircle,
   ArrowDownRight,
@@ -42,6 +27,14 @@ import { useT } from '@/components/I18nProvider';
 import { useMe } from '@/hooks/useMe';
 
 type DaySeries = { date: string; value: number };
+
+// Recharts (~100 KB) se descarga aparte, cuando la página ya está pintada:
+// los gráficos quedan más abajo y no deben retrasar los indicadores.
+const chartLoading = (height: string) => function ChartSkeleton() {
+  return <Skeleton className={`${height} w-full`} />;
+};
+const AttendanceTrendChart = dynamic(() => import('./charts').then((m) => m.AttendanceTrendChart), { ssr: false, loading: chartLoading('h-56') });
+const FinanceTrendChart = dynamic(() => import('./charts').then((m) => m.FinanceTrendChart), { ssr: false, loading: chartLoading('h-64') });
 
 type DashboardData = {
   summary: {
@@ -76,18 +69,6 @@ function money(v: number) {
   return `$${v.toLocaleString(activeIntlLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function weekdayShort(dateStr: string) {
-  return new Intl.DateTimeFormat(activeIntlLocale(), { weekday: 'short' }).format(new Date(`${dateStr}T00:00:00`));
-}
-
-function dayNumber(dateStr: string) {
-  return String(new Date(`${dateStr}T00:00:00`).getDate());
-}
-
-function fullDateLabel(dateStr: string) {
-  return new Intl.DateTimeFormat(activeIntlLocale(), { day: 'numeric', month: 'short' }).format(new Date(`${dateStr}T00:00:00`));
-}
-
 // Reparto de socios por estado: es un campo de estado, no identidad libre, así
 // que usa la paleta reservada (bueno / neutro / crítico) siempre con ícono +
 // etiqueta, nunca solo color.
@@ -119,53 +100,6 @@ function MemberStatusBar({ byStatus, total }: { byStatus: DashboardData['members
         ))}
       </div>
     </div>
-  );
-}
-
-function AttendanceTrendChart({ series }: { series: DaySeries[] }) {
-  const t = useT();
-  const attendanceChartConfig = {
-    value: { label: t('dashboard.attendanceSeries'), theme: { light: '#d97706', dark: '#f59e0b' } },
-  } satisfies ChartConfig;
-  return (
-    <ChartContainer config={attendanceChartConfig} className="aspect-auto h-56 w-full">
-      <AreaChart data={series} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={weekdayShort} />
-        <YAxis tickLine={false} axisLine={false} width={28} allowDecimals={false} />
-        <ChartTooltip content={<ChartTooltipContent indicator="line" labelFormatter={(v) => fullDateLabel(String(v))} />} />
-        <Area
-          dataKey="value"
-          type="monotone"
-          stroke="var(--color-value)"
-          fill="var(--color-value)"
-          fillOpacity={0.1}
-          strokeWidth={2}
-          dot={{ r: 3, fill: 'var(--color-value)', stroke: 'var(--color-background)', strokeWidth: 2 }}
-        />
-      </AreaChart>
-    </ChartContainer>
-  );
-}
-
-function FinanceTrendChart({ series }: { series: { date: string; income: number; expense: number }[] }) {
-  const t = useT();
-  const financeChartConfig = {
-    income: { label: t('dashboard.income'), theme: { light: '#059669', dark: '#059669' } },
-    expense: { label: t('dashboard.expenses'), theme: { light: '#f43f5e', dark: '#f43f5e' } },
-  } satisfies ChartConfig;
-  return (
-    <ChartContainer config={financeChartConfig} className="aspect-auto h-64 w-full">
-      <LineChart data={series} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={dayNumber} minTickGap={20} />
-        <YAxis tickLine={false} axisLine={false} width={44} tickFormatter={(v: number) => `$${v}`} />
-        <ChartTooltip content={<ChartTooltipContent indicator="line" labelFormatter={(v) => fullDateLabel(String(v))} />} />
-        <ChartLegend content={<ChartLegendContent />} />
-        <Line dataKey="income" type="monotone" stroke="var(--color-income)" strokeWidth={2} dot={false} />
-        <Line dataKey="expense" type="monotone" stroke="var(--color-expense)" strokeWidth={2} dot={false} />
-      </LineChart>
-    </ChartContainer>
   );
 }
 
@@ -220,7 +154,7 @@ export default function DashboardPage() {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-primary">{t('dashboard.eyebrow')}</p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{me?.firstName ? t('dashboard.greetingName', { name: me.firstName }) : t('dashboard.greeting')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">{me?.firstName ? t('dashboard.greetingName', { name: me.firstName }) : t('dashboard.greeting')}</h1>
           <p className="mt-2 text-muted-foreground">{t('dashboard.intro')}</p>
         </div>
         <div className="rounded-lg bg-card px-4 py-2 text-sm text-muted-foreground ring-1 ring-foreground/10">
@@ -233,45 +167,45 @@ export default function DashboardPage() {
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-l-4 border-l-primary">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.activeMembers')}</CardTitle>
             <span className="rounded-lg bg-primary/10 p-2 text-primary"><Users className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{data.summary.activeMembers}</div>
+            <div className="text-2xl font-bold tracking-tight sm:text-3xl">{data.summary.activeMembers}</div>
             <p className="mt-2 flex items-center gap-1 text-xs text-emerald-600"><ArrowUpRight className="h-3.5 w-3.5" /> {t('dashboard.activeCommunity')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-cyan-500">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.activeMemberships')}</CardTitle>
             <span className="rounded-lg bg-cyan-500/10 p-2 text-cyan-500"><CreditCard className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{data.summary.activeMemberships}</div>
+            <div className="text-2xl font-bold tracking-tight sm:text-3xl">{data.summary.activeMemberships}</div>
             <p className="mt-2 flex items-center gap-1 text-xs text-cyan-600"><ArrowUpRight className="h-3.5 w-3.5" /> {t('dashboard.currentPlans')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-amber-500">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.attendanceToday')}</CardTitle>
             <span className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><CalendarCheck2 className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{data.summary.attendanceToday}</div>
+            <div className="text-2xl font-bold tracking-tight sm:text-3xl">{data.summary.attendanceToday}</div>
             <p className="mt-2 text-xs text-muted-foreground">{t('dashboard.todayRecords')}</p>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-emerald-500">
-          <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
             <CardTitle className="text-sm text-muted-foreground">{t('dashboard.monthBalance')}</CardTitle>
             <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Wallet className="h-5 w-5" /></span>
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold tracking-tight ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+            <div className={`text-2xl font-bold tracking-tight sm:text-3xl break-words ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
               {money(balance)}
             </div>
             <p className={`mt-2 flex items-center gap-1 text-xs ${balance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
@@ -288,7 +222,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-emerald-700 dark:text-emerald-400">{t('dashboard.income')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{money(income)}</div>
+            <div className="break-words text-2xl font-bold sm:text-3xl text-emerald-700 dark:text-emerald-400">{money(income)}</div>
             <p className="mt-1 text-xs text-emerald-700/70 dark:text-emerald-400/70">{t('dashboard.incomeHint')}</p>
           </CardContent>
         </Card>
@@ -298,7 +232,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-rose-700 dark:text-rose-400">{t('dashboard.expenses')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-rose-700 dark:text-rose-400">{money(expense)}</div>
+            <div className="break-words text-2xl font-bold sm:text-3xl text-rose-700 dark:text-rose-400">{money(expense)}</div>
             <p className="mt-1 text-xs text-rose-700/70 dark:text-rose-400/70">{t('dashboard.expensesHint')}</p>
           </CardContent>
         </Card>
@@ -308,7 +242,7 @@ export default function DashboardPage() {
             <CardTitle className={`text-sm ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>{t('dashboard.netProfit')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>
+            <div className={`break-words text-2xl font-bold sm:text-3xl ${balance >= 0 ? 'text-indigo-700 dark:text-indigo-400' : 'text-amber-700 dark:text-amber-400'}`}>
               {money(balance)}
             </div>
             <p className={`mt-1 text-xs ${balance >= 0 ? 'text-indigo-700/70 dark:text-indigo-400/70' : 'text-amber-600'}`}>

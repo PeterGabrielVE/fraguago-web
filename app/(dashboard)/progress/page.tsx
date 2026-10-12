@@ -13,15 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
-import { Area, AreaChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import { activeIntlLocale } from '@/lib/i18n/client';
 import { useT } from '@/components/I18nProvider';
 
@@ -74,13 +67,12 @@ function personLabel(m: any) {
 }
 
 
-function EmptyChart({ label }: { label: string }) {
-  return (
-    <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-slate-300 px-4 text-center text-sm text-slate-500">
-      {label}
-    </div>
-  );
-}
+// Recharts se descarga aparte, con la página ya pintada.
+const chartSkeleton = () => <Skeleton className="h-56 w-full" />;
+const WeightChart = dynamic(() => import('@/components/charts/ProgressCharts').then((m) => m.WeightChart), { ssr: false, loading: chartSkeleton });
+const BodyFatChart = dynamic(() => import('@/components/charts/ProgressCharts').then((m) => m.BodyFatChart), { ssr: false, loading: chartSkeleton });
+const BodyMeasurementsChart = dynamic(() => import('@/components/charts/ProgressCharts').then((m) => m.BodyMeasurementsChart), { ssr: false, loading: chartSkeleton });
+
 
 function ChartCard({ icon: Icon, title, children }: { icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) {
   return (
@@ -91,84 +83,6 @@ function ChartCard({ icon: Icon, title, children }: { icon: React.ComponentType<
       </h3>
       {children}
     </div>
-  );
-}
-
-function WeightChart({ data }: { data: { date: string; weightKg: number }[] }) {
-  const t = useT();
-  const weightChartConfig = {
-    weightKg: { label: t('progress.weightSeries'), theme: { light: '#d97706', dark: '#f59e0b' } },
-  } satisfies ChartConfig;
-  if (data.length < 2) return <EmptyChart label={t('progress.notEnoughWeight')} />;
-  return (
-    <ChartContainer config={weightChartConfig} className="aspect-auto h-56 w-full">
-      <AreaChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={shortDate} minTickGap={20} />
-        <YAxis tickLine={false} axisLine={false} width={32} domain={['auto', 'auto']} />
-        <ChartTooltip content={<ChartTooltipContent indicator="line" labelFormatter={(v) => fullDate(String(v))} />} />
-        <Area
-          dataKey="weightKg"
-          type="monotone"
-          stroke="var(--color-weightKg)"
-          fill="var(--color-weightKg)"
-          fillOpacity={0.1}
-          strokeWidth={2}
-          dot={{ r: 3, fill: 'var(--color-weightKg)', stroke: 'var(--color-background)', strokeWidth: 2 }}
-        />
-      </AreaChart>
-    </ChartContainer>
-  );
-}
-
-function BodyFatChart({ data }: { data: { date: string; bodyFat: number }[] }) {
-  const t = useT();
-  const bodyFatChartConfig = {
-    bodyFat: { label: t('progress.bodyFatSeries'), theme: { light: '#2a78d6', dark: '#3987e5' } },
-  } satisfies ChartConfig;
-  if (data.length < 2) return <EmptyChart label={t('progress.notEnoughBodyFat')} />;
-  return (
-    <ChartContainer config={bodyFatChartConfig} className="aspect-auto h-56 w-full">
-      <AreaChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={shortDate} minTickGap={20} />
-        <YAxis tickLine={false} axisLine={false} width={32} domain={['auto', 'auto']} tickFormatter={(v: number) => `${v}%`} />
-        <ChartTooltip content={<ChartTooltipContent indicator="line" labelFormatter={(v) => fullDate(String(v))} />} />
-        <Area
-          dataKey="bodyFat"
-          type="monotone"
-          stroke="var(--color-bodyFat)"
-          fill="var(--color-bodyFat)"
-          fillOpacity={0.1}
-          strokeWidth={2}
-          dot={{ r: 3, fill: 'var(--color-bodyFat)', stroke: 'var(--color-background)', strokeWidth: 2 }}
-        />
-      </AreaChart>
-    </ChartContainer>
-  );
-}
-
-function BodyMeasurementsChart({ data }: { data: { date: string; chestCm?: number; waistCm?: number; armCm?: number }[] }) {
-  const t = useT();
-  const bodyMeasurementsChartConfig = {
-    chestCm: { label: t('progress.chestSeries'), theme: { light: '#2a78d6', dark: '#3987e5' } },
-    waistCm: { label: t('progress.waistSeries'), theme: { light: '#eb6834', dark: '#d95926' } },
-    armCm: { label: t('progress.armSeries'), theme: { light: '#1baf7a', dark: '#199e70' } },
-  } satisfies ChartConfig;
-  if (data.length < 2) return <EmptyChart label={t('progress.notEnoughMeasurements')} />;
-  return (
-    <ChartContainer config={bodyMeasurementsChartConfig} className="aspect-auto h-56 w-full">
-      <LineChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={shortDate} minTickGap={20} />
-        <YAxis tickLine={false} axisLine={false} width={32} domain={['auto', 'auto']} />
-        <ChartTooltip content={<ChartTooltipContent indicator="line" labelFormatter={(v) => fullDate(String(v))} />} />
-        <ChartLegend content={<ChartLegendContent />} />
-        <Line dataKey="chestCm" type="monotone" stroke="var(--color-chestCm)" strokeWidth={2} dot={false} connectNulls />
-        <Line dataKey="waistCm" type="monotone" stroke="var(--color-waistCm)" strokeWidth={2} dot={false} connectNulls />
-        <Line dataKey="armCm" type="monotone" stroke="var(--color-armCm)" strokeWidth={2} dot={false} connectNulls />
-      </LineChart>
-    </ChartContainer>
   );
 }
 
@@ -306,15 +220,15 @@ export default function ProgressPage() {
   );
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-4 p-6">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl" aria-hidden="true">
             <Activity className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('progress.title')}</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl text-slate-900">{t('progress.title')}</h1>
             <p className="mt-1 text-slate-600">{t('progress.subtitle')}</p>
           </div>
         </div>

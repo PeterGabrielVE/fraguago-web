@@ -4,7 +4,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 // mientras la página destino termina de cargar.
 export default function DashboardLoading() {
   return (
-    <main aria-busy="true" aria-live="polite" className="space-y-6 p-4 md:p-8">
+    // div y no <main>: ya está dentro del <main> del layout.
+    <div role="status" aria-busy="true" aria-live="polite" className="space-y-6 p-4 md:p-8">
       <div className="space-y-2">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-72" />
@@ -18,6 +19,6 @@ export default function DashboardLoading() {
           <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
-    </main>
+    </div>
   );
 }

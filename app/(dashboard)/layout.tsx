@@ -31,9 +31,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
+      <a
+        href="#main-content"
+        className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:px-4 focus:py-2 focus:shadow-lg"
+      >
+        {t('common.skipToContent')}
+      </a>
       <SidebarNav />
-      <SidebarInset className="bg-background">
-        <header className="flex h-16 items-center gap-3 border-b border-border bg-card px-4 md:px-8">
+      <SidebarInset className="min-w-0 bg-background">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-card px-3 sm:gap-3 sm:px-4 md:px-8">
           <SidebarTrigger aria-label={t('header.toggleSidebar')} title={t('header.toggleSidebar')} />
           <GlobalSearch />
           <div className="ml-auto flex items-center gap-1">
@@ -45,7 +51,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         {/* Las pantallas leen ?q= / ?id= del buscador global (useSearchParams). */}
-        <Suspense fallback={null}>{children}</Suspense>
+        <div id="main-content" tabIndex={-1} className="min-w-0 flex-1">
+          <Suspense fallback={null}>{children}</Suspense>
+        </div>
       </SidebarInset>
       <HelpAssistant />
       <SessionTimeout />
