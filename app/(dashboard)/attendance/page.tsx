@@ -2,8 +2,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ExportButton from '@/components/ExportButton';
 import OccupancyCard from '@/components/OccupancyCard';
-import { api } from '@/lib/api';
 import { usePublicGymRef } from '@/hooks/usePublicGymRef';
+import { useRefetchOnSync } from '@/hooks/useRefetchOnSync';
+import { checkInMember, listDayEntries } from '@/lib/offline/attendance';
+import { listResource } from '@/lib/offline/resources';
+import CachedDataNotice from '@/components/offline/CachedDataNotice';
+import SyncBadge from '@/components/offline/SyncBadge';
+import KioskRejections from '@/components/offline/KioskRejections';
+import { toast } from '@/components/ui/toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertCircle,
@@ -57,24 +63,29 @@ export default function AttendancePage() {
   const [submitting, setSubmitting] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // Con copia local: sin conexión se ven las entradas guardadas y las marcadas
+  // en este dispositivo que aún no se sincronizan.
   async function loadEntries() {
     setEntriesLoading(true);
     try {
-      const params = new URLSearchParams({ page: '1', pageSize: '500' });
-      if (filterDate) params.set('date', filterDate);
-      if (filterShift) params.set('shift', filterShift);
-      setEntries(await api.list(`/attendance?${params.toString()}`));
+      setEntries(await listDayEntries(filterDate, filterShift || undefined));
     } finally {
       setEntriesLoading(false);
     }
   }
-  useEffect(() => {
-    api.list('/members').then(setMembers).catch((e) => setError(e.message));
-  }, []);
+  function loadMembers() {
+    listResource('/members').then(setMembers).catch((e) => setError(e.message));
+  }
+  useEffect(loadMembers, []);
 
   useEffect(() => {
     loadEntries().catch((e) => setError(e.message));
   }, [filterDate, filterShift]);
+
+  useRefetchOnSync(() => {
+    loadMembers();
+    loadEntries().catch(() => {});
+  });
 
   const filtersActive = filterDate !== todayISO() || Boolean(filterShift);
   function clearFilters() { setFilterDate(todayISO()); setFilterShift(''); }
@@ -115,7 +126,12 @@ export default function AttendancePage() {
     setError('');
     setSubmitting(true);
     try {
-      await api.post('/attendance/check-in', { memberId: selectedId });
+      const member = members.find((m) => m.id === selectedId);
+      if (!member) return;
+      const outcome = await checkInMember(member);
+      if (outcome === 'queued') {
+        toast.add({ title: t('offline.toast.checkInQueued'), description: t('offline.toast.queuedDesc'), type: 'info' });
+      }
       clearSelection();
       await loadEntries();
     } catch (e: any) {
@@ -175,6 +191,10 @@ export default function AttendancePage() {
           {error}
         </div>
       )}
+
+      <CachedDataNotice path="/members" />
+
+      <KioskRejections />
 
       {/* Registrar entrada */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -369,6 +389,7 @@ export default function AttendancePage() {
                           <span className="text-slate-700">
                             <MemberLink id={a.memberId} fallback={a.memberId}>{memberFullName(a.member)}</MemberLink>
                           </span>
+                          <SyncBadge state={a._sync} />
                         </div>
                       </td>
                       <td className="px-4 py-3 text-slate-600">{SHIFT_LABELS[a.shift as keyof typeof SHIFT_LABELS] ?? a.shift ?? '—'}</td>

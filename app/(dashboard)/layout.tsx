@@ -12,6 +12,8 @@ import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
 import UserMenu from '@/components/UserMenu';
+import OfflineProvider from '@/components/offline/OfflineProvider';
+import SyncIndicator from '@/components/offline/SyncIndicator';
 import { useT } from '@/components/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -43,6 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarTrigger aria-label={t('header.toggleSidebar')} title={t('header.toggleSidebar')} />
           <GlobalSearch />
           <div className="ml-auto flex items-center gap-1">
+            <SyncIndicator />
             <RoleSwitcher />
             <LanguageSwitcher />
             <ThemeToggle />
@@ -57,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </SidebarInset>
       <HelpAssistant />
       <SessionTimeout />
+      <OfflineProvider />
     </SidebarProvider>
   );
 }

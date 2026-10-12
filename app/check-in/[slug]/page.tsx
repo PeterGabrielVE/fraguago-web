@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useParams } from 'next/navigation';
-import { AlertCircle, CheckCircle2, IdCard } from 'lucide-react';
+import { liveQuery } from 'dexie';
+import { AlertCircle, CheckCircle2, CloudUpload, IdCard, WifiOff } from 'lucide-react';
 import Flame from '@/components/Flame';
-import { api } from '@/lib/api';
+import { api, NetworkError } from '@/lib/api';
+import { getConnectivity, isBackendUp, startConnectivityMonitor, subscribeConnectivity } from '@/lib/offline/connectivity';
+import { flushKiosk, listKioskEntries, queueKioskEntry } from '@/lib/offline/kiosk';
+import { registerServiceWorker } from '@/lib/offline/service-worker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +24,11 @@ type CheckInResult = {
   checkedInAt: string;
   alreadyCheckedIn: boolean;
   pointsAwarded: number;
+  // Guardada sin conexión: todavía no la validó el servidor.
+  queued?: boolean;
 };
+
+const FLUSH_EVERY_MS = 20_000;
 
 // Pantalla pública de asistencia: pensada para una tablet en la recepción.
 // No requiere sesión; el gym sale de la URL (/check-in/<slug>, o el id en
@@ -43,11 +51,50 @@ export default function PublicCheckInPage() {
   // deshabilitar el botón y en ese hueco cabe un segundo envío.
   const submittingRef = useRef(false);
 
+  const connectivity = useSyncExternalStore(subscribeConnectivity, getConnectivity, getConnectivity);
+  const online = connectivity.browserOnline && connectivity.backend !== 'down';
+  const [pending, setPending] = useState(0);
+
+  // Nombre del gym. Se recuerda en el dispositivo para que el kiosko siga
+  // operativo si se recarga sin conexión; al volver se confirma con el API.
   useEffect(() => {
+    const cacheKey = `fg_kiosk_gym:${slug}`;
     api.get(`/public/attendance/${encodeURIComponent(slug)}`)
-      .then((gym: { name: string }) => setGymName(gym.name))
-      .catch(() => setGymError(t('attendance.kiosk.invalidLink')));
+      .then((gym: { name: string }) => {
+        setGymName(gym.name);
+        setGymError('');
+        try { localStorage.setItem(cacheKey, gym.name); } catch { /* sin storage */ }
+      })
+      .catch((err) => {
+        let remembered: string | null = null;
+        try { remembered = localStorage.getItem(cacheKey); } catch { /* sin storage */ }
+        if (err instanceof NetworkError && remembered) setGymName(remembered);
+        else setGymError(err instanceof NetworkError ? err.message : t('attendance.kiosk.invalidLink'));
+      });
+  }, [slug, online]);
+
+  // Modo offline del kiosko: vigila la conexión, deja la pantalla disponible
+  // sin internet y envía lo guardado en cuanto vuelve.
+  useEffect(() => {
+    const stopMonitor = startConnectivityMonitor();
+    void registerServiceWorker([`/check-in/${slug}`]);
+    const subscription = liveQuery(() => listKioskEntries(slug)).subscribe({
+      next: (entries) => setPending(entries.length),
+      error: () => { /* sin IndexedDB no hay cola */ },
+    });
+    return () => {
+      stopMonitor();
+      subscription.unsubscribe();
+    };
   }, [slug]);
+
+  useEffect(() => {
+    if (!online || pending === 0) return;
+    const flush = () => { void flushKiosk(slug).catch(() => {}); };
+    flush();
+    const id = setInterval(flush, FLUSH_EVERY_MS);
+    return () => clearInterval(id);
+  }, [slug, online, pending > 0]);
 
   useEffect(() => {
     setNow(new Date());
@@ -75,12 +122,21 @@ export default function PublicCheckInPage() {
     setError('');
     setLoading(true);
 
+    const id = identificationNumber.trim();
     try {
+      // Sin conexión conocida no se espera a que falle la red.
+      if (!isBackendUp()) throw new NetworkError(t('api.offline'));
       const data = await api.post(`/public/attendance/${encodeURIComponent(slug)}/check-in`, {
-        identificationNumber: identificationNumber.trim(),
+        identificationNumber: id,
       }) as CheckInResult;
       setResult(data);
     } catch (requestError) {
+      // Sin internet: se guarda a ciegas y el servidor la valida al recibirla.
+      const saved = requestError instanceof NetworkError ? await queueKioskEntry(slug, id).catch(() => null) : null;
+      if (saved) {
+        setResult({ firstName: null, checkedInAt: saved.createdAt, alreadyCheckedIn: false, pointsAwarded: 0, queued: true });
+        return;
+      }
       setError(requestError instanceof Error ? requestError.message : t('attendance.kiosk.failed'));
       setIdentificationNumber('');
       inputRef.current?.focus();
@@ -114,6 +170,21 @@ export default function PublicCheckInPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-red-800">{gymError}</AlertDescription>
               </Alert>
+            ) : result?.queued ? (
+              <div className="space-y-5 text-center" role="status" aria-live="polite">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                  <CloudUpload className="h-8 w-8" />
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-bold text-slate-900">{t('attendance.kiosk.savedOffline')}</h1>
+                  <p className="text-sm leading-6 text-slate-600">
+                    {t('attendance.kiosk.savedOfflineDesc', { time: timeFormat.format(new Date(result.checkedInAt)) })}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={reset} className="w-full">
+                  {t('attendance.kiosk.done')}
+                </Button>
+              </div>
             ) : result ? (
               <div className="space-y-5 text-center" role="status" aria-live="polite">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -188,6 +259,16 @@ export default function PublicCheckInPage() {
             )}
           </div>
         </Card>
+
+        {(!online || pending > 0) && (
+          <div role="status" className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <WifiOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <p>
+              {!online && t('attendance.kiosk.offlineBanner')}
+              {pending > 0 && <span className="font-semibold">{!online && ' '}{t('attendance.kiosk.pending', { count: pending })}</span>}
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

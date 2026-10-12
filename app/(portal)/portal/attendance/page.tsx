@@ -4,6 +4,7 @@ import { AlertCircle, ClipboardCheck, Clock } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
+import { listResource } from '@/lib/offline/resources';
 import { toast } from '@/components/ui/toast';
 import { SHIFT_LABELS, type Attendance } from '@/lib/portal';
 import { useI18n } from '@/components/I18nProvider';
@@ -11,7 +12,7 @@ import { useI18n } from '@/components/I18nProvider';
 export default function PortalAttendancePage() {
   const { t, intlLocale } = useI18n();
   const { status, data, error, refetch } = useAsync<Attendance[]>(
-    () => api.list('/me/attendances') as Promise<Attendance[]>,
+    () => listResource('/me/attendances') as Promise<Attendance[]>,
     [],
   );
   const [checkingIn, setCheckingIn] = useState(false);

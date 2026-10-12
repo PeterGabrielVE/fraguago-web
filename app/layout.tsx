@@ -29,6 +29,9 @@ export function generateMetadata(): Metadata {
   return {
     title: "FraguaGo",
     description: translate(getServerLocale(), "meta.description"),
+    // PWA: iconos e instalación en iOS (el manifiesto sale de app/manifest.ts).
+    icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+    appleWebApp: { capable: true, title: "FraguaGo", statusBarStyle: "default" },
   };
 }
 

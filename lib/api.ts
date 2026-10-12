@@ -1,6 +1,7 @@
 import { reportError } from '@/lib/errorReporter';
 import { resetAnalytics } from '@/lib/analytics';
 import { getActiveLocale, tActive } from '@/lib/i18n/client';
+import { reportReachable, reportUnreachable } from '@/lib/offline/connectivity';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -18,6 +19,15 @@ export class ApiError extends Error {
   constructor(message: string, public readonly status: number) {
     super(message);
     this.name = 'ApiError';
+  }
+}
+
+// La petición no llegó al API (sin internet, backend caído, DNS). El modo
+// offline la distingue de un error que sí respondió el servidor.
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
   }
 }
 
@@ -176,8 +186,10 @@ async function req(path: string, opts: RequestInit = {}, canRefresh = true) {
       source: `${opts.method ?? 'GET'} ${path}`,
       error,
     });
-    throw new Error(tActive('api.offline'));
+    reportUnreachable();
+    throw new NetworkError(tActive('api.offline'));
   }
+  reportReachable();
 
   // Sin token no hay sesión que expirar (p. ej. /auth/login con clave
   // incorrecta): el 401 sigue como error normal con el mensaje del API.

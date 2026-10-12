@@ -1,6 +1,8 @@
 import { api, getToken, readTokenPayload, saveSession, clearStoredSession, hasRefreshMarker, type StoredSession } from './api';
 import { identifyFromToken } from './analytics';
 import { tActive } from './i18n/client';
+import { clearCachedData } from './offline/resources';
+import { getOfflineScope } from './offline/scope';
 
 type LoginResponse = {
   accessToken?: string;
@@ -138,6 +140,19 @@ export function getRoleRedirect(data?: LoginResponse): string {
   }
 }
 
+// Al cerrar sesión se borran los datos del gimnasio descargados en este
+// navegador (puede ser compartido). La cola de cambios sin sincronizar se
+// conserva: se envía cuando el mismo usuario vuelve a entrar.
+async function clearOfflineCache() {
+  const scope = getOfflineScope();
+  if (!scope) return;
+  try {
+    await clearCachedData(scope);
+  } catch {
+    // Sin IndexedDB no hay nada que borrar.
+  }
+}
+
 // reason se muestra en el login (p. ej. 'idle' tras cierre por inactividad).
 export async function logout(reason?: 'idle') {
   try {
@@ -145,6 +160,7 @@ export async function logout(reason?: 'idle') {
   } catch {
     // Si el token ya no sirve igual cerramos localmente.
   } finally {
+    await clearOfflineCache();
     clearSession();
     if (typeof window !== 'undefined') window.location.href = reason ? `/login?reason=${reason}` : '/login';
   }
@@ -155,6 +171,7 @@ export async function logout(reason?: 'idle') {
 // quedaron cerradas.
 export async function logoutAll() {
   await api.post('/auth/logout-all', {});
+  await clearOfflineCache();
   clearSession();
   if (typeof window !== 'undefined') window.location.href = '/login';
 }

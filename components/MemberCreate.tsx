@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import { api } from '@/lib/api';
+import { createMember } from '@/lib/offline/members';
+import { listResource } from '@/lib/offline/resources';
+import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { toast } from '@/components/ui/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneField, { isValidPhone } from '@/components/PhoneField';
@@ -40,6 +43,7 @@ type MembershipDraft = { planId: string; startDate: string };
 
 export default function MemberCreate({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
   const t = useT();
+  const { isOnline } = useOfflineStatus();
   const [details, setDetails] = useState<Details>({
     firstName: '', lastName: '', email: '', identificationNumber: '',
     phone: '', address: '', birthDate: '', activityLevel: '', preferredTime: '',
@@ -52,7 +56,7 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.list('/membership-plans')
+    listResource('/membership-plans')
       .then((plans) => setPlanOptions(plans.map((p: any) => ({ value: String(p.id), label: p.name }))))
       .catch(() => {});
   }, []);
@@ -86,32 +90,21 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
 
     setSaving(true);
     try {
-      const created = await api.post('/members', {
+      const hasHealthData = Object.values(health).some((v) => v === true || (typeof v === 'string' && v.trim() !== ''));
+      // Socio, ficha médica y contacto van en una sola operación: con conexión
+      // se guarda al momento; sin ella queda en la cola y se envía después.
+      // La contraseña inicial (la cédula) la pone el API.
+      const { id: memberId, outcome } = await createMember({
         firstName: details.firstName,
         lastName: details.lastName,
         email: details.email,
-        password: details.identificationNumber.trim(),
-        identificationNumber: details.identificationNumber,
+        identificationNumber: details.identificationNumber.trim(),
         phone: details.phone || undefined,
         address: details.address || undefined,
         birthDate: details.birthDate || undefined,
         activityLevel: details.activityLevel || undefined,
         preferredTime: details.preferredTime || undefined,
-      });
-      const memberId = created.id;
-
-      // La membresía es opcional al crear: un socio puede quedar sin plan y
-      // asignársele uno más tarde desde la sección "Membresías".
-      if (membership.planId) {
-        await api.post(`/members/${memberId}/memberships`, {
-          planId: membership.planId,
-          startDate: membership.startDate,
-        });
-      }
-
-      const hasHealthData = Object.values(health).some((v) => v === true || (typeof v === 'string' && v.trim() !== ''));
-      if (hasHealthData) {
-        await api.patch(`/health-profiles?memberId=${memberId}`, {
+        medicalProfile: hasHealthData ? {
           hypertension: health.hypertension ?? false,
           diabetes: health.diabetes ?? false,
           heartProblems: health.heartProblems ?? false,
@@ -121,11 +114,28 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
           injuryDescription: health.hasInjury ? health.injuryDescription || undefined : undefined,
           takesMedication: health.takesMedication ?? false,
           medicationDescription: health.takesMedication ? health.medicationDescription || undefined : undefined,
+        } : undefined,
+        emergencyContact: contactStarted ? contact : undefined,
+      });
+
+      if (outcome === 'queued') {
+        // Asignar la membresía registra un pago: no se hace sin conexión.
+        toast.add({
+          title: t('offline.toast.memberQueued'),
+          description: membership.planId ? t('offline.toast.membershipSkipped') : t('offline.toast.queuedDesc'),
+          type: membership.planId ? 'warning' : 'info',
         });
+        onCreated();
+        return;
       }
 
-      if (contactStarted) {
-        await api.put(`/members/${memberId}/emergency-contact`, contact);
+      // La membresía es opcional al crear: un socio puede quedar sin plan y
+      // asignársele uno más tarde desde la sección "Membresías".
+      if (membership.planId) {
+        await api.post(`/members/${memberId}/memberships`, {
+          planId: membership.planId,
+          startDate: membership.startDate,
+        });
       }
 
       toast.add({ title: t('members.create.created'), type: 'success' });
@@ -205,6 +215,11 @@ export default function MemberCreate({ onCreated, onCancel }: { onCreated: () =>
             {membership.planId && (
               <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 {t('members.create.endDateHint')}
+              </p>
+            )}
+            {!isOnline && (
+              <p role="status" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                {t('offline.data.membershipNeedsConnection')}
               </p>
             )}
           </TabsContent>

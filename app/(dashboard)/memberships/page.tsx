@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
+import { listResource } from '@/lib/offline/resources';
 import { Ban, CirclePause, CirclePlay, CreditCard, Plus, RefreshCw } from 'lucide-react';
 import MembershipPaymentDialog, { type PlanOption } from '@/components/MembershipPaymentDialog';
 import { MEMBERSHIP_STATUS_BADGES, MEMBERSHIP_STATUS_LABELS, effectiveMembershipStatus } from '@/lib/membershipStatus';
@@ -30,13 +31,13 @@ export default function Page() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    api.list('/members').then((members) => {
+    listResource('/members').then((members) => {
       setMemberOptions(members.map((m: any) => ({
         value: String(m.id),
         label: `${m.user?.profile?.firstName ?? ''} ${m.user?.profile?.lastName ?? ''}`.trim() || m.user?.email || m.id,
       })));
     }).catch(() => {});
-    api.list('/membership-plans').then((rows) => {
+    listResource('/membership-plans').then((rows) => {
       setPlanOptions(rows.map((p: any) => ({ value: String(p.id), label: p.name })));
       setPlans(rows.map((p: any) => ({ value: String(p.id), label: p.name, price: Number(p.price), currency: p.currency ?? 'USD' })));
     }).catch(() => {});

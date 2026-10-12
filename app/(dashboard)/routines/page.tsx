@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Copy, Dumbbell, Sparkles } from 'lucide-react';
 import ResourceManager, { type SelectOption } from '@/components/ResourceManager';
 import { api } from '@/lib/api';
+import { listResource } from '@/lib/offline/resources';
 import { toast } from '@/components/ui/toast';
 import {
   Dialog,
@@ -406,13 +407,13 @@ export default function Page() {
   const [copyRow, setCopyRow] = useState<any | null>(null);
 
   useEffect(() => {
-    api.list('/members').then((members) => {
+    listResource('/members').then((members) => {
       setMemberOptions(members.map((m: any) => ({
         value: String(m.id),
         label: personLabel(m) || m.user?.email || m.id,
       })));
     }).catch(() => {});
-    api.list('/trainers').then((trainers) => {
+    listResource('/trainers').then((trainers) => {
       setTrainerOptions(trainers.map((tr: any) => ({
         value: String(tr.id),
         label: personLabel(tr) || tr.id,

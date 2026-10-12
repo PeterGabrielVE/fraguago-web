@@ -18,6 +18,7 @@ import { dashboard } from './modules/dashboard';
 import { members } from './modules/members';
 import { birthdays } from './modules/birthdays';
 import { reports } from './modules/reports';
+import { offline } from './modules/offline';
 
 export const en: Messages = {
   labels: labels.en,
@@ -39,6 +40,7 @@ export const en: Messages = {
   members: members.en,
   birthdays: birthdays.en,
   reports: reports.en,
+  offline: offline.en,
 
   common: {
     skipToContent: 'Skip to content',

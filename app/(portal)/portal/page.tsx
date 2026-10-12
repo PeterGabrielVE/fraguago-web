@@ -6,6 +6,7 @@ import OccupancyCard from '@/components/OccupancyCard';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
+import { getResource, listResource } from '@/lib/offline/resources';
 import { toast } from '@/components/ui/toast';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -35,11 +36,11 @@ type DashboardData = {
 
 async function loadDashboard(): Promise<DashboardData> {
   const [profile, membershipRes, attendances, routines, progressRes] = await Promise.all([
-    api.get('/me/profile') as Promise<MeProfile>,
-    api.get('/me/membership?pageSize=1') as Promise<PaginatedResponse<Membership>>,
-    api.list('/me/attendances') as Promise<Attendance[]>,
-    api.list('/me/routine') as Promise<Routine[]>,
-    api.get('/me/progress?pageSize=1') as Promise<MeasurementListResponse>,
+    getResource<MeProfile>('/me/profile'),
+    getResource<PaginatedResponse<Membership>>('/me/membership?pageSize=1'),
+    listResource('/me/attendances') as Promise<Attendance[]>,
+    listResource('/me/routine') as Promise<Routine[]>,
+    getResource<MeasurementListResponse>('/me/progress?pageSize=1'),
   ]);
 
   return {

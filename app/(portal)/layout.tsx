@@ -12,6 +12,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SessionTimeout from '@/components/SessionTimeout';
 import HelpAssistant from '@/components/HelpAssistant';
 import RoleSwitcher from '@/components/RoleSwitcher';
+import OfflineProvider from '@/components/offline/OfflineProvider';
+import SyncIndicator from '@/components/offline/SyncIndicator';
 import { useT } from '@/components/I18nProvider';
 
 const NAV = [
@@ -94,6 +96,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
+            <SyncIndicator />
             <RoleSwitcher />
             <LanguageSwitcher />
             <ThemeToggle />
@@ -128,6 +131,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <BadgeUnlockNotifier />
       <HelpAssistant />
       <SessionTimeout />
+      <OfflineProvider />
     </div>
   );
 }

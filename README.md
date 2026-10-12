@@ -39,6 +39,41 @@ npm run build
 npm run start
 ```
 
+## Modo offline
+
+La app sigue funcionando si el gimnasio se queda sin internet:
+
+- **Sin conexión se puede**: consultar socios, planes, membresías y rutinas ya
+  descargados; marcar entradas; dar de alta socios (datos, ficha médica y
+  contacto de emergencia).
+- **Kiosko público** (`/check-in/<slug>`): sin conexión guarda cédula y hora
+  "a ciegas" (`kiosk.ts`) y el API las valida al recibirlas. Las que rechaza
+  aparecen en Asistencia como «Entradas del kiosko sin confirmar».
+- **Requiere conexión**: pagos, asignar o renovar membresías, ventas, reportes,
+  importaciones, IA e inicio de sesión.
+
+Cómo está hecho (todo en `lib/offline/`):
+
+| Pieza | Archivo | Qué hace |
+| --- | --- | --- |
+| Base local | `db.ts` | IndexedDB (Dexie), una base por gimnasio + usuario |
+| Conexión | `connectivity.ts` | Eventos del navegador + sondeo a `/api/health` |
+| Cola | `outbox.ts` | Operaciones pendientes; su `id` es la clave de idempotencia |
+| Sincronización | `sync-engine.ts`, `sync.ts` | Envía la cola a `POST /api/sync/operations` |
+| Lecturas | `resources.ts` | `listResource` / `getResource`: API con copia local |
+| Dominio | `attendance.ts`, `members.ts` | Check-in y alta de socios |
+
+El service worker (`public/sw.js`) guarda solo el HTML y los estáticos; nunca
+respuestas de `/api`. Se registra en producción (`NEXT_PUBLIC_ENABLE_SW=true`
+para probarlo en desarrollo).
+
+Para que un recurso nuevo se pueda leer sin conexión: agrégalo a `CACHEABLE`
+en `resources.ts` y léelo con `listResource` / `getResource`.
+
+```bash
+pnpm test   # pruebas de la cola y la sincronización
+```
+
 ## Características
 
 - ✅ Login con Bearer token

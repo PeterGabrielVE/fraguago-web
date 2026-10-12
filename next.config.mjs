@@ -16,6 +16,18 @@ const nextConfig = {
 			...(API_PROXY_URL ? [{ source: '/api/:path*', destination: `${API_PROXY_URL}/api/:path*` }] : []),
 		];
 	},
+	// El service worker no se cachea: cada despliegue debe llegar al navegador.
+	async headers() {
+		return [
+			{
+				source: '/sw.js',
+				headers: [
+					{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+					{ key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+				],
+			},
+		];
+	},
 	// Requerido por la API de PostHog (usa rutas con barra final).
 	skipTrailingSlashRedirect: true,
 };

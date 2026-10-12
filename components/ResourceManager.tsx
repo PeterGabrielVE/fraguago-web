@@ -19,6 +19,9 @@ import {
   X,
 } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
+import { useRefetchOnSync } from '@/hooks/useRefetchOnSync';
+import { listResource } from '@/lib/offline/resources';
+import CachedDataNotice from '@/components/offline/CachedDataNotice';
 import { richText, useT } from '@/components/I18nProvider';
 import { AsyncBoundary } from '@/components/async-boundary';
 import PhoneField from '@/components/PhoneField';
@@ -212,11 +215,13 @@ export default function ResourceManager({
   useEffect(() => setPage(1), [rowFilter]);
 
   // carga (loading / empty / error) gestionada por el hook
-  // api.list trae todas las páginas (la tabla pagina y busca en el cliente).
+  // listResource trae todas las páginas (la tabla pagina y busca en el cliente)
+  // y, en los recursos con copia local, responde aunque no haya conexión.
   const { status, data, error, refetch } = useAsync<any[]>(
-    () => api.list(listEndpoint),
+    () => listResource(listEndpoint),
     [listEndpoint],
   );
+  useRefetchOnSync(refetch);
   // Misma referencia mientras no cambien los datos: la tabla cachea el texto
   // de cada celda por fila.
   const tableItems = useMemo(
@@ -621,6 +626,8 @@ export default function ResourceManager({
       </div>
 
       {intro}
+
+      <CachedDataNotice path={listEndpoint} />
 
       {/* Pestañas de filtro: cambian de qué endpoint se lee la lista */}
       {filters && filters.length > 1 && (

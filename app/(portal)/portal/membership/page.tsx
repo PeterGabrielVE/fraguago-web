@@ -2,7 +2,7 @@
 import { AlertCircle, CreditCard } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
-import { api } from '@/lib/api';
+import { getResource } from '@/lib/offline/resources';
 import { Badge } from '@/components/ui/badge';
 import { isMembershipActive, type Membership, type PaginatedResponse } from '@/lib/portal';
 import { useI18n } from '@/components/I18nProvider';
@@ -18,7 +18,7 @@ const PLAN_TYPE_LABELS: Record<string, string> = localizedRecord({
 export default function PortalMembershipPage() {
   const { t, intlLocale } = useI18n();
   const { status, data, error, refetch } = useAsync<PaginatedResponse<Membership>>(
-    () => api.get('/me/membership') as Promise<PaginatedResponse<Membership>>,
+    () => getResource<PaginatedResponse<Membership>>('/me/membership'),
     [],
   );
 

@@ -5,6 +5,7 @@ import MemberDetails, { type MemberDetailsMember } from '@/components/MemberDeta
 import ExportButton from '@/components/ExportButton';
 import SignupLinkButton from '@/components/SignupLinkButton';
 import MemberCreate from '@/components/MemberCreate';
+import SyncBadge from '@/components/offline/SyncBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronDown, SlidersHorizontal, User, Users, X } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -162,6 +163,7 @@ export default function Page() {
                   )}
                 </Avatar>
                 <span>{fullName}</span>
+                <SyncBadge state={r._sync} />
               </div>
             );
           },

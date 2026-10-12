@@ -17,6 +17,7 @@ import { dashboard } from './modules/dashboard';
 import { members } from './modules/members';
 import { birthdays } from './modules/birthdays';
 import { reports } from './modules/reports';
+import { offline } from './modules/offline';
 
 // Diccionario base (español). Define la forma que deben cumplir los demás idiomas:
 // si falta una clave en en.ts, TypeScript no compila.
@@ -41,6 +42,7 @@ export const es = {
   members: members.es,
   birthdays: birthdays.es,
   reports: reports.es,
+  offline: offline.es,
 
   common: {
     skipToContent: 'Saltar al contenido',

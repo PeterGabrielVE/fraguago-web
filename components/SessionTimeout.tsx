@@ -13,6 +13,7 @@ import {
 import { useT } from '@/components/I18nProvider';
 import { refreshSession } from '@/lib/api';
 import { clearSession, logout } from '@/lib/auth';
+import { isBackendUp } from '@/lib/offline/connectivity';
 
 // Cierre por inactividad: 30 min sin interacción (criterio NIST 800-63B AAL2
 // para datos personales y de salud), con aviso 2 min antes para que el usuario
@@ -69,6 +70,14 @@ export default function SessionTimeout() {
     // Basado en la hora y no en un setTimeout: tras suspender el equipo o con
     // la pestaña en segundo plano (timers ralentizados) el cálculo sigue exacto.
     const left = readLastActivity() + IDLE_MS - Date.now();
+    // Sin conexión no se puede volver a iniciar sesión: cerrar por inactividad
+    // dejaría la recepción bloqueada hasta que vuelva internet. El cierre (y
+    // su aviso) se aplazan; al recuperar la conexión se evalúa de nuevo.
+    if (!isBackendUp()) {
+      warningRef.current = false;
+      setRemaining(null);
+      return;
+    }
     if (left <= 0) {
       endSession();
       return;

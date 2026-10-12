@@ -4,6 +4,7 @@ import { AlertCircle, CircleCheck, Dumbbell, User } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/components/async-boundary';
 import { api } from '@/lib/api';
+import { listResource } from '@/lib/offline/resources';
 import { toast } from '@/components/ui/toast';
 import { trainerName, type Routine, type RoutineExercise } from '@/lib/portal';
 import { challengeUpdatesMessage, type ChallengeProgressUpdate } from '@/lib/challenges';
@@ -41,7 +42,7 @@ function ExercisesByDay({ exercises }: { exercises: RoutineExercise[] }) {
 export default function PortalRoutinePage() {
   const { t, intlLocale } = useI18n();
   const { status, data, error, refetch } = useAsync<Routine[]>(
-    () => api.list('/me/routine') as Promise<Routine[]>,
+    () => listResource('/me/routine') as Promise<Routine[]>,
     [],
   );
   const [completingId, setCompletingId] = useState<string | null>(null);
